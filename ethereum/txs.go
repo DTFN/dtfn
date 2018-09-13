@@ -12,7 +12,7 @@ import (
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"fmt"
 	"github.com/ethereum/go-ethereum/rlp"
-)
+	)
 
 //----------------------------------------------------------------------
 // Transactions sent via the go-ethereum rpc need to be routed to tendermint
@@ -89,9 +89,11 @@ func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) error {
 // wait for Tendermint to open the socket and run http endpoint
 
 func waitForServer(c rpcClient.HTTPClient) {
-	var result interface{}
+	ctypes.RegisterAmino(c.Codec())
+	result := new(ctypes.ResultStatus)
+
 	for {
-		_, err := c.Call("status", map[string]interface{}{}, &result)
+		_, err := c.Call("status", map[string]interface{}{}, result)
 		if err == nil {
 			break
 		}
