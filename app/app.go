@@ -39,6 +39,8 @@ type EthermintApplication struct {
 	logger tmLog.Logger
 }
 
+//zxxhha
+
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
 // #stable - 0.4.0
 func NewEthermintApplication(backend *ethereum.Backend,
