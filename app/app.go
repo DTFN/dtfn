@@ -192,6 +192,9 @@ abciTypes.ResponseBeginBlock) {
 
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
+//这里需要修改，激励分配机制
+// ceshi
+// ada fadfad fad afd
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) (
 abciTypes.ResponseEndBlock) {
 
@@ -223,6 +226,9 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		Data: blockHash[:],
 	}
 }
+
+
+// ceshi
 
 // Query queries the state of the EthermintApplication
 // #stable - 0.4.0
