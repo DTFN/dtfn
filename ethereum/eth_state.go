@@ -123,6 +123,7 @@ func (es *EthState) ResetWorkState(receiver common.Address) error {
 	return es.resetWorkState(receiver)
 }
 
+//重置ws，说明新块已经产生
 func (es *EthState) resetWorkState(receiver common.Address) error {
 
 	blockchain := es.ethereum.BlockChain()
@@ -181,13 +182,14 @@ func (es *EthState) Pending() (*ethTypes.Block, *state.StateDB) {
 // The work struct handles block processing.
 // It's updated with each DeliverTx and reset on Commit.
 type workState struct {
-	header *ethTypes.Header
-	parent *ethTypes.Block
-	state  *state.StateDB
+	//这里开始进入以太坊代码利用geth操作，从ethermint走到geth中
+	header *ethTypes.Header //本区块头
+	parent *ethTypes.Block //父区块：头+身tx
+	state  *state.StateDB //状态数据库 默克尔树+合约代码
 	bstart time.Time   //leilei add for gcproc
 
 	txIndex      int
-	transactions []*ethTypes.Transaction
+	transactions []*ethTypes.Transaction //当前交易
 	receipts     ethTypes.Receipts
 	allLogs      []*ethTypes.Log
 
@@ -200,7 +202,34 @@ func (ws *workState) State() *state.StateDB{
 }
 // nolint: unparam
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
-	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
+	if strategy.ValidatorsStrategy != nil {
+		// counting the sum voting powers of the validators
+		validatorslist:=strategy.GetUpdatedValidators()
+		var Psum int64 = 0
+		for i:=0;i<len(validatorslist);i++{
+			Psum=validatorslist[i].Power+Psum
+		}
+
+		// send the Reward based on each validator's voting power
+		for i:=0;i<len(validatorslist);i++{
+			Power_big:=big.NewInt(validatorslist[i].Power)
+			Psum_big:=big.NewInt(Psum)
+			// Reward is the reward - based on the voting power
+			var Reward *big.Int
+			Reward=Reward.Mul(ethash.ByzantiumBlockReward,Power_big)
+			Reward=Reward.Div(Reward,Psum_big)
+			// the first parameter must be 20 bytes?
+			var static_address [20]byte
+			// change the tendermint Address style into ether Address style(20bytes)
+			for k:=0;k<20;k++{
+				static_address[k]=validatorslist[i].Address[k]
+			}
+			ws.state.AddBalance(static_address, Reward)
+		}
+	}else{
+		// ValidatorsStrategy isn't exist
+		// then what?
+	}
 //todo:后续要获取到块的validators列表根据voting power按比例分配收益
 	ws.header.GasUsed = *ws.totalUsedGas
 }

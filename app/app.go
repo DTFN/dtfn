@@ -39,8 +39,6 @@ type EthermintApplication struct {
 	logger tmLog.Logger
 }
 
-//zxxhha
-
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
 // #stable - 0.4.0
 func NewEthermintApplication(backend *ethereum.Backend,
@@ -192,9 +190,7 @@ abciTypes.ResponseBeginBlock) {
 
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
-//这里需要修改，激励分配机制
-// ceshi
-// ada fadfad fad afd
+// 这里需要修改，激励分配机制
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) (
 abciTypes.ResponseEndBlock) {
 
@@ -214,7 +210,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		}
 	}
 	app.checkTxState = state.Copy() //commit里会做recheck，需要先重置checkState,通过recheck也正好将checkState恢复到正确的状态
-	blockHash, err := app.backend.Commit(app.Receiver())
+	blockHash, err := app.backend.Commit(app.Receiver()) //app.Receiver()得到出块矿工的收款地址，如果改变策略成验证者，那么这个参数应该如何调整？
 	if err != nil {
 		// nolint: errcheck
 		app.logger.Error("Error getting latest ethereum state", "err", err)
@@ -226,9 +222,6 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		Data: blockHash[:],
 	}
 }
-
-
-// ceshi
 
 // Query queries the state of the EthermintApplication
 // #stable - 0.4.0
