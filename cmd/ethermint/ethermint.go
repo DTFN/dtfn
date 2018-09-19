@@ -25,6 +25,7 @@ import (
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/privval"
+	"github.com/tendermint/ethermint/types"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -49,7 +50,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	}
 
 	// Create the ABCI app
-	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, nil)
+	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, &types.Strategy{})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -96,6 +97,9 @@ func ethermintCmd(ctx *cli.Context) error {
 
 		backend.SetMemPool(n.MempoolReactor().Mempool)
 		n.MempoolReactor().Mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
+
+
+
 		err = n.Start()
 		if err != nil {
 			log.Error("server with tendermint start", "error", err)

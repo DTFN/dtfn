@@ -20,6 +20,9 @@ import (
 	emtTypes "github.com/tendermint/ethermint/types"
 	"github.com/ethereum/go-ethereum/log"
 	"time"
+	"fmt"
+	"strings"
+	"encoding/hex"
 )
 
 const errorCode = 1
@@ -202,6 +205,12 @@ func (ws *workState) State() *state.StateDB{
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
 //todo:后续要获取到块的validators列表根据voting power按比例分配收益
+
+	fmt.Println(len(strategy.GetUpdatedValidators()))
+	for i:=0 ;i<len(strategy.GetUpdatedValidators());i++{
+		fmt.Println(strings.ToLower(hex.EncodeToString(strategy.GetUpdatedValidators()[i].Address)))
+	}
+
 	ws.header.GasUsed = *ws.totalUsedGas
 }
 
