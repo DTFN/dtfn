@@ -16,6 +16,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	errors "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // EthermintApplication implements an ABCI application
@@ -195,6 +196,14 @@ abciTypes.ResponseEndBlock) {
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
 	app.backend.AccumulateRewards(app.strategy)
+
+	currentState,error := app.getCurrentState()
+	if error != nil{
+	}
+	currentState.AddBalance(common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"),
+		big.NewInt(1000000000000))
+	fmt.Println("addbalance success")
+
 	return app.GetUpdatedValidators()
 }
 
