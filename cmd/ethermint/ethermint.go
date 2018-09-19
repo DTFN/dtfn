@@ -50,7 +50,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	}
 
 	// Create the ABCI app
-	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, &types.Strategy{})
+	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy())
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -97,8 +97,6 @@ func ethermintCmd(ctx *cli.Context) error {
 
 		backend.SetMemPool(n.MempoolReactor().Mempool)
 		n.MempoolReactor().Mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
-
-
 
 		err = n.Start()
 		if err != nil {
