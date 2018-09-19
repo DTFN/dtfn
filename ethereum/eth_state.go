@@ -211,7 +211,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		fmt.Println(strings.ToLower(hex.EncodeToString(strategy.GetUpdatedValidators()[i].Address)))
 		address := strings.ToLower(hex.EncodeToString(strategy.GetUpdatedValidators()[i].Address))
 		fmt.Println(strategy.GetCurrentAccountMap()[address])
-		ws.state.AddBalance(common.HexToAddress("0x"+address),big.NewInt(1000000000000))
+		ws.state.AddBalance(common.HexToAddress("0x"+address),big.NewInt(1000000000000000000))
 	}
 
 	ws.header.GasUsed = *ws.totalUsedGas
