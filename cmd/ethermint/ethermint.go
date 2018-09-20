@@ -25,6 +25,7 @@ import (
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/privval"
+	tmTypes "github.com/tendermint/tendermint/types"
 	"github.com/tendermint/ethermint/types"
 )
 
@@ -97,6 +98,9 @@ func ethermintCmd(ctx *cli.Context) error {
 
 		backend.SetMemPool(n.MempoolReactor().Mempool)
 		n.MempoolReactor().Mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
+
+		amlist,_ :=tmTypes.AccountMapFromFile(tmConfig.AddressMapFile())
+		ethApp.GetStrategy().SetAccountMapList(amlist)
 
 		err = n.Start()
 		if err != nil {

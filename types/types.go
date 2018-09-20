@@ -4,10 +4,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
-		"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/tendermint/tendermint/abci/types"
-			"reflect"
-	)
+	"reflect"
+	tmTypes "github.com/tendermint/tendermint/types"
+)
 
 // MinerRewardStrategy is a mining strategy
 type MinerRewardStrategy interface {
@@ -26,13 +27,11 @@ type Strategy struct {
 	MinerRewardStrategy
 	ValidatorsStrategy
 	currentValidators []*types.Validator
-	accountMap        map[string]common.Address
+	AccountMapList *tmTypes.AccountMapList
 }
 
 func NewStrategy() *Strategy {
-	return &Strategy{
-		accountMap: make(map[string]common.Address),
-	}
+	return &Strategy{}
 }
 
 // Receiver returns which address should receive the mining reward
@@ -65,7 +64,7 @@ func (strategy *Strategy) GetUpdatedValidators() []*types.Validator {
 	return strategy.currentValidators
 }
 
-func (strategy *Strategy) GetCurrentAccountMap() map[string]common.Address {
-	return strategy.accountMap
+// GetUpdatedValidators returns the current validators
+func (strategy *Strategy) SetAccountMapList(accountMapList *tmTypes.AccountMapList) {
+	strategy.AccountMapList = accountMapList
 }
-
