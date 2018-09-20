@@ -209,13 +209,13 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	fmt.Println(len(strategy.GetUpdatedValidators()))
 	for i:=0 ;i<len(strategy.GetUpdatedValidators());i++{
 		address := strings.ToLower(hex.EncodeToString(strategy.GetUpdatedValidators()[i].Address))
-		fmt.Println(address)
-		fmt.Println(strategy.AccountMapList.MapList[address].Beneficiary)
-		fmt.Println(strategy.AccountMapList.MapList[address].Signer)
-		ws.state.AddBalance(common.HexToAddress("0x"+address),big.NewInt(1000000000000000000))
+		fmt.Println(strategy.AccountMapList.MapList[address].Beneficiary.String())
+		ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary,big.NewInt(1000000000000000000))
 	}
-
 	ws.header.GasUsed = *ws.totalUsedGas
+
+	fmt.Println("gasUsed")
+	fmt.Println(ws.header.GasUsed)
 }
 
 // Runs ApplyTransaction against the ethereum blockchain, fetches any logs,
