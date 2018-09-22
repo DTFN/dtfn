@@ -17,12 +17,11 @@ import (
 
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
-	emtTypes "github.com/tendermint/ethermint/types"
-	"github.com/ethereum/go-ethereum/log"
-	"time"
-	"fmt"
-	"strings"
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/log"
+	emtTypes "github.com/tendermint/ethermint/types"
+	"strings"
+	"time"
 )
 
 const errorCode = 1
@@ -206,16 +205,11 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
 //todo:后续要获取到块的validators列表根据voting power按比例分配收益
 
-	fmt.Println(len(strategy.GetUpdatedValidators()))
 	for i:=0 ;i<len(strategy.GetUpdatedValidators());i++{
 		address := strings.ToLower(hex.EncodeToString(strategy.GetUpdatedValidators()[i].Address))
-		fmt.Println(strategy.AccountMapList.MapList[address].Beneficiary.String())
 		ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary,big.NewInt(1000000000000000000))
 	}
 	ws.header.GasUsed = *ws.totalUsedGas
-
-	fmt.Println("gasUsed")
-	fmt.Println(ws.header.GasUsed)
 }
 
 // Runs ApplyTransaction against the ethereum blockchain, fetches any logs,
