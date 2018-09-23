@@ -39,8 +39,8 @@ func NewStrategy() *Strategy {
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
 	if s.ValidatorTmAddress == ""{
-		fmt.Println("7ef5a6135f1fd6a02593eedc869c6d41d934aef8")
-		return common.HexToAddress("7ef5a6135f1fd6a02593eedc869c6d41d934aef8")
+		fmt.Println("0000000000000000000000000000000000000002")
+		return common.HexToAddress("0000000000000000000000000000000000000002")
 	}else{
 		fmt.Println(s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary.String())
 		return s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary
