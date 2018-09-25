@@ -15,8 +15,8 @@ import (
 
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 
-	emtTypes "github.com/tendermint/ethermint/types"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
+	emtTypes "github.com/tendermint/ethermint/types"
 	"github.com/tendermint/tendermint/mempool"
 )
 
@@ -104,8 +104,8 @@ func (b *Backend) SetMemPool(memPool *mempool.Mempool) {
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
-	return b.es.DeliverTx(tx)
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, address common.Address) abciTypes.ResponseDeliverTx {
+	return b.es.DeliverTx(tx, &address)
 }
 
 // AccumulateRewards accumulates the rewards based on the given strategy
@@ -117,11 +117,11 @@ func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
 // Commit finalises the current block
 // #unstable
 func (b *Backend) Commit(receiver common.Address) (common.Hash, error) {
-	appHash,err:= b.es.Commit(receiver)
-/*	if err!=nil{
+	appHash, err := b.es.Commit(receiver)
+	/*	if err!=nil{
 		b.ethereum.TxPool().Loop()
 	}*/
-	return appHash,err
+	return appHash, err
 }
 
 // InitEthState initializes the EthState
