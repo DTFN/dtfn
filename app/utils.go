@@ -50,7 +50,7 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 
 // GetUpdatedValidators returns an updated validator set from the strategy
 // #unstable
-func (app *EthermintApplication) GetUpdatedValidators() abciTypes.ResponseEndBlock {
+func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.ResponseEndBlock {
 	//if app.strategy != nil {
 	//	var validatorsSlice []abciTypes.Validator
 	//	validators := app.strategy.GetUpdatedValidators()

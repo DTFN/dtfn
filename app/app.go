@@ -200,7 +200,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) (
 abciTypes.ResponseEndBlock) {
 	app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
 	app.backend.AccumulateRewards(app.strategy)
-	return app.GetUpdatedValidators()
+	return app.GetUpdatedValidators(endBlock.GetHeight())
 }
 
 // Commit commits the block and returns a hash of the current state
