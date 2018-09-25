@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -39,10 +38,8 @@ func NewStrategy() *Strategy {
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
 	if s.ValidatorTmAddress == ""{
-		fmt.Println("0000000000000000000000000000000000000002")
 		return common.HexToAddress("0000000000000000000000000000000000000002")
 	}else{
-		fmt.Println(s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary.String())
 		return s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary
 	}
 }
