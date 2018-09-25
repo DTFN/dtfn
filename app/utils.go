@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -52,69 +53,59 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
-		if height == 1 {
+		if len(app.committeeValidators) < 5 {
+			return abciTypes.ResponseEndBlock{}
+		} else if len(app.candidateValidators) <= 2 && height < 200 {
+			// height=1 ,all validators <0 ,doing nothing, bls not initialed
+			// height < 200 ,for test
+			return abciTypes.ResponseEndBlock{}
+		} else if height < 200 {
+			// len(candidate validators) >2 ,use height as random value.
 			var validatorsSlice []abciTypes.Validator
 			validators := app.strategy.GetUpdatedValidators()
-			for i := 0; i < len(validators); i++ {
-				validatorsSlice = append(validatorsSlice,
-					abciTypes.Validator{
-						Address: validators[i].Address,
-						Power:   int64(0),
-						PubKey:  validators[i].PubKey,
-					})
+			if height == 1 {
+				for i := 0; i < len(validators); i++ {
+					validatorsSlice = append(validatorsSlice,
+						abciTypes.Validator{
+							Address: validators[i].Address,
+							Power:   int64(0),
+							PubKey:  validators[i].PubKey,
+						})
+				}
+				for i := 0; i < 5; i++ {
+					validatorsSlice = append(validatorsSlice, *app.committeeValidators[i])
+				}
+				for j := 0; j < 2; j++ {
+					validatorsSlice = append(validatorsSlice,
+						*app.candidateValidators[(int(height)%(len(app.candidateValidators)-1))+j])
+					app.currentValidators = append(app.currentValidators,
+						app.candidateValidators[(int(height)%(len(app.candidateValidators)-1))+j])
+				}
+
+				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
+			} else {
+				for i := 0; i < 2; i++ {
+					fmt.Println(len(app.currentValidators))
+					validatorsSlice = append(validatorsSlice,
+						abciTypes.Validator{
+							Address: app.currentValidators[i].Address,
+							PubKey:  app.currentValidators[i].PubKey,
+							Power:   int64(0),
+						})
+				}
+				app.currentValidators = nil
+				for i := 0; i < 2; i++ {
+					validatorsSlice = append(validatorsSlice,
+						*app.candidateValidators[(int(height)%(len(app.candidateValidators)-1))+i])
+					app.currentValidators = append(app.currentValidators,
+						app.candidateValidators[(int(height)%(len(app.candidateValidators)-1))+i])
+				}
+				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 			}
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[0])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[1])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[2])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[3])
-			return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-		} else if height > 1 && int(height)%3 == 1 {
-			var validatorsSlice []abciTypes.Validator
-			for i := 0; i < 4; i++ {
-				validatorsSlice = append(validatorsSlice,
-					abciTypes.Validator{
-						Address: app.candidateValidators[i+2].Address,
-						Power:   int64(0),
-						PubKey:  app.candidateValidators[i+2].PubKey,
-					})
-			}
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[0])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[1])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[2])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[3])
-			return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-		} else if height > 1 && int(height)%3 == 2 {
-			var validatorsSlice []abciTypes.Validator
-			for i := 0; i < 4; i++ {
-				validatorsSlice = append(validatorsSlice,
-					abciTypes.Validator{
-						Address: app.candidateValidators[i].Address,
-						Power:   int64(0),
-						PubKey:  app.candidateValidators[i].PubKey,
-					})
-			}
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[1])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[2])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[3])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[4])
-			return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-		} else if height > 1 && int(height)%3 == 0 {
-			var validatorsSlice []abciTypes.Validator
-			for i := 0; i < 4; i++ {
-				validatorsSlice = append(validatorsSlice,
-					abciTypes.Validator{
-						Address: app.candidateValidators[i+1].Address,
-						Power:   int64(0),
-						PubKey:  app.candidateValidators[i+1].PubKey,
-					})
-			}
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[2])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[3])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[4])
-			validatorsSlice = append(validatorsSlice, *app.candidateValidators[5])
-			return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
+			return abciTypes.ResponseEndBlock{}
 		}
 	}
+
 	return abciTypes.ResponseEndBlock{}
 }
 
