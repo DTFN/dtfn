@@ -38,6 +38,9 @@ type EthermintApplication struct {
 	strategy *emtTypes.Strategy
 
 	logger tmLog.Logger
+
+	// validators of candidate ,will be changed by addValidatorTx and removeValidatorTx
+	candidateValidators []*abciTypes.Validator
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -129,6 +132,7 @@ abciTypes.ResponseInitChain) {
 		validators = append(validators, &req.GetValidators()[i])
 	}
 	app.SetValidators(validators)
+	app.candidateValidators = validators
 	return abciTypes.ResponseInitChain{}
 }
 
