@@ -139,8 +139,6 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 				3010,
 				app.strategy.ValidatorSet.NextCandidateValidators[i].Address,
 				app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
-
-			fmt.Println(app.strategy.AccountMapList.MapList[address].Beneficiary.String())
 		}
 	} else {
 		app.strategy.ValidatorSet.CommitteeValidators = validators

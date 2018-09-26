@@ -86,7 +86,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 	if app.strategy != nil {
 		if len(app.strategy.ValidatorSet.CommitteeValidators) < 5 {
 			return abciTypes.ResponseEndBlock{}
-		} else if len(app.strategy.ValidatorSet.CandidateValidators) <= 2 && height < 200 {
+		} else if len(app.strategy.ValidatorSet.NextCandidateValidators) <= 2 && height < 200 {
 			// height=1 ,all validators <0 ,doing nothing, bls not initialed
 			// height < 200 ,for test
 			return abciTypes.ResponseEndBlock{}
@@ -110,12 +110,12 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 				for j := 0; j < 2; j++ {
 					validatorsSlice = append(validatorsSlice,
 						*app.strategy.ValidatorSet.
-							CandidateValidators[(int(height)%(len(app.
-							strategy.ValidatorSet.CandidateValidators)-1))+j])
+							NextCandidateValidators[(int(height)%(len(app.
+							strategy.ValidatorSet.NextCandidateValidators)-1))+j])
 					app.strategy.ValidatorSet.CurrentValidators = append(app.
 						strategy.ValidatorSet.CurrentValidators,
-						app.strategy.ValidatorSet.CandidateValidators[(int(height)%(len(app.
-							strategy.ValidatorSet.CandidateValidators)-1))+j])
+						app.strategy.ValidatorSet.NextCandidateValidators[(int(height)%(len(app.
+							strategy.ValidatorSet.NextCandidateValidators)-1))+j])
 				}
 				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 			} else {
@@ -131,12 +131,12 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 				for i := 0; i < 2; i++ {
 					validatorsSlice = append(validatorsSlice,
 						*app.strategy.ValidatorSet.
-							CandidateValidators[(int(height)%(len(app.strategy.
-							ValidatorSet.CandidateValidators)-1))+i])
+							NextCandidateValidators[(int(height)%(len(app.strategy.
+							ValidatorSet.NextCandidateValidators)-1))+i])
 					app.strategy.ValidatorSet.CurrentValidators = append(app.strategy.
 						ValidatorSet.CurrentValidators,
-						app.strategy.ValidatorSet.CandidateValidators[(int(height)%(len(app.
-							strategy.ValidatorSet.CandidateValidators)-1))+i])
+						app.strategy.ValidatorSet.NextCandidateValidators[(int(height)%(len(app.
+							strategy.ValidatorSet.NextCandidateValidators)-1))+i])
 				}
 				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 			}
