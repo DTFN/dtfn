@@ -99,6 +99,10 @@ func (posTable *PosTable) SetThreShold(threShold int64) {
 	posTable.threshold = threShold
 }
 
+func (posTable *PosTable) selectItemByRandomValue(random int) posItem {
+	return *posTable.posItemMap[common.HexToAddress("0000000000000000000000000000000000000001")]
+}
+
 type posItem struct {
 	account common.Address
 	balance int64

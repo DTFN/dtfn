@@ -83,7 +83,6 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 						app.strategy.ValidatorSet.CandidateValidators[(int(height)%(len(app.
 							strategy.ValidatorSet.CandidateValidators)-1))+j])
 				}
-
 				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 			} else {
 				for i := 0; i < 2; i++ {
