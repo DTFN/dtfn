@@ -65,6 +65,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 				for i := 0; i < len(validators); i++ {
 					validatorsSlice = append(validatorsSlice,
 						abciTypes.Validator{
+							//Address : app.strategy.PosTable.SelectItemByRandomValue(int(height)).Address,
 							Address: validators[i].Address,
 							Power:   int64(0),
 							PubKey:  validators[i].PubKey,

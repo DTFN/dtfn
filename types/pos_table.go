@@ -34,17 +34,17 @@ func (posTable *PosTable) UpsertPosItem(account common.Address, balance int64, a
 
 	posOriginPtr, exist := posTable.posItemMap[account]
 	if exist {
-		originPos := int(posTable.posItemMap[account].balance / posTable.threshold)
+		originPos := int(posTable.posItemMap[account].Balance / posTable.threshold)
 		newPos := int(balance / posTable.threshold)
 		if originPos >= newPos {
 			return false, fmt.Errorf("address not upsert")
 		} else {
 			for i := 0; i < newPos-originPos; i++ {
 				posTable.posArray[posTable.posArraySize] = posOriginPtr
-				posOriginPtr.indexes[posTable.posArraySize] = true
+				posOriginPtr.Indexes[posTable.posArraySize] = true
 				posTable.posArraySize++
 			}
-			posTable.posItemMap[account].balance = balance
+			posTable.posItemMap[account].Balance = balance
 			return true, nil
 		}
 	}
@@ -55,7 +55,7 @@ func (posTable *PosTable) UpsertPosItem(account common.Address, balance int64, a
 	posTable.posItemMap[account] = posItemPtr
 	for i := 0; i < int(balance/posTable.threshold); i++ {
 		posTable.posArray[posTable.posArraySize] = posItemPtr
-		posItemPtr.indexes[posTable.posArraySize] = true
+		posItemPtr.Indexes[posTable.posArraySize] = true
 		posTable.posArraySize++
 	}
 	return true, nil
@@ -72,7 +72,7 @@ func (posTable *PosTable) RemovePosItem(account common.Address) (bool, error) {
 
 	posItemPtr := posTable.posItemMap[account]
 	var indexArray []int
-	for k, _ := range posItemPtr.indexes {
+	for k, _ := range posItemPtr.Indexes {
 		indexArray = append(indexArray, k)
 	}
 	sort.Ints(indexArray)
@@ -83,9 +83,9 @@ func (posTable *PosTable) RemovePosItem(account common.Address) (bool, error) {
 		} else {
 			newPosItem := posTable.posArray[posTable.posArraySize-1]
 			posTable.posArray[indexArray[i]] = newPosItem
-			newPosItem.indexes[indexArray[i]] = true
+			newPosItem.Indexes[indexArray[i]] = true
 
-			delete(newPosItem.indexes, posTable.posArraySize-1)
+			delete(newPosItem.Indexes, posTable.posArraySize-1)
 			posTable.posArraySize--
 		}
 	}
@@ -99,24 +99,24 @@ func (posTable *PosTable) SetThreShold(threShold int64) {
 	posTable.threshold = threShold
 }
 
-func (posTable *PosTable) selectItemByRandomValue(random int) posItem {
+func (posTable *PosTable) SelectItemByRandomValue(random int) posItem {
 	return *posTable.posItemMap[common.HexToAddress("0000000000000000000000000000000000000001")]
 }
 
 type posItem struct {
-	account common.Address
-	balance int64
-	pubKey  crypto.PubKey
-	indexes map[int]bool
-	address tmTypes.Address
+	Account common.Address
+	Balance int64
+	PubKey  crypto.PubKey
+	Indexes map[int]bool
+	Address tmTypes.Address
 }
 
 func newPosItem(account common.Address, balance int64, address tmTypes.Address, pubKey crypto.PubKey) *posItem {
 	return &posItem{
-		account: account,
-		balance: balance,
-		pubKey:  pubKey,
-		indexes: make(map[int]bool),
-		address: address,
+		Account: account,
+		Balance: balance,
+		PubKey:  pubKey,
+		Indexes: make(map[int]bool),
+		Address: address,
 	}
 }
