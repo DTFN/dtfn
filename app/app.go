@@ -39,14 +39,7 @@ type EthermintApplication struct {
 
 	logger tmLog.Logger
 
-	// validators of committee , used to support +2/3
-	committeeValidators []*abciTypes.Validator
 
-	// validators of candidate ,will be changed by addValidatorTx and removeValidatorTx
-	candidateValidators []*abciTypes.Validator
-
-	// validators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
-	currentValidators []*abciTypes.Validator
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -137,10 +130,10 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	}
 	app.SetValidators(validators)
 	if len(validators) > 5 {
-		app.committeeValidators = validators[0:5]
-		app.candidateValidators = validators[5:]
+		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
+		app.strategy.ValidatorSet.CandidateValidators = validators[5:]
 	} else {
-		app.committeeValidators = validators
+		app.strategy.ValidatorSet.CommitteeValidators = validators
 	}
 	return abciTypes.ResponseInitChain{}
 }

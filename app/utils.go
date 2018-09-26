@@ -3,8 +3,6 @@ package app
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -53,9 +51,9 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
-		if len(app.committeeValidators) < 5 {
+		if len(app.strategy.ValidatorSet.CommitteeValidators) < 5 {
 			return abciTypes.ResponseEndBlock{}
-		} else if len(app.candidateValidators) <= 2 && height < 200 {
+		} else if len(app.strategy.ValidatorSet.CandidateValidators) <= 2 && height < 200 {
 			// height=1 ,all validators <0 ,doing nothing, bls not initialed
 			// height < 200 ,for test
 			return abciTypes.ResponseEndBlock{}
@@ -73,32 +71,39 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 						})
 				}
 				for i := 0; i < 5; i++ {
-					validatorsSlice = append(validatorsSlice, *app.committeeValidators[i])
+					validatorsSlice = append(validatorsSlice, *app.strategy.ValidatorSet.CommitteeValidators[i])
 				}
 				for j := 0; j < 2; j++ {
 					validatorsSlice = append(validatorsSlice,
-						*app.candidateValidators[(int(height)%(len(app.candidateValidators)-1))+j])
-					app.currentValidators = append(app.currentValidators,
-						app.candidateValidators[(int(height)%(len(app.candidateValidators)-1))+j])
+						*app.strategy.ValidatorSet.
+							CandidateValidators[(int(height)%(len(app.
+							strategy.ValidatorSet.CandidateValidators)-1))+j])
+					app.strategy.ValidatorSet.CurrentValidators = append(app.
+						strategy.ValidatorSet.CurrentValidators,
+						app.strategy.ValidatorSet.CandidateValidators[(int(height)%(len(app.
+							strategy.ValidatorSet.CandidateValidators)-1))+j])
 				}
 
 				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 			} else {
 				for i := 0; i < 2; i++ {
-					fmt.Println(len(app.currentValidators))
 					validatorsSlice = append(validatorsSlice,
 						abciTypes.Validator{
-							Address: app.currentValidators[i].Address,
-							PubKey:  app.currentValidators[i].PubKey,
+							Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
+							PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
 							Power:   int64(0),
 						})
 				}
-				app.currentValidators = nil
+				app.strategy.ValidatorSet.CurrentValidators = nil
 				for i := 0; i < 2; i++ {
 					validatorsSlice = append(validatorsSlice,
-						*app.candidateValidators[(int(height)%(len(app.candidateValidators)-1))+i])
-					app.currentValidators = append(app.currentValidators,
-						app.candidateValidators[(int(height)%(len(app.candidateValidators)-1))+i])
+						*app.strategy.ValidatorSet.
+							CandidateValidators[(int(height)%(len(app.strategy.
+							ValidatorSet.CandidateValidators)-1))+i])
+					app.strategy.ValidatorSet.CurrentValidators = append(app.strategy.
+						ValidatorSet.CurrentValidators,
+						app.strategy.ValidatorSet.CandidateValidators[(int(height)%(len(app.
+							strategy.ValidatorSet.CandidateValidators)-1))+i])
 				}
 				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 			}
