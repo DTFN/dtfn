@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -16,7 +17,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	errors "github.com/cosmos/cosmos-sdk/types"
-)
+	)
 
 // EthermintApplication implements an ABCI application
 // #stable - 0.4.0
@@ -185,6 +186,7 @@ abciTypes.ResponseBeginBlock) {
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!br0ken!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
+	app.strategy.ValidatorTmAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 	return abciTypes.ResponseBeginBlock{}
 }
 
@@ -192,7 +194,6 @@ abciTypes.ResponseBeginBlock) {
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) (
 abciTypes.ResponseEndBlock) {
-
 	app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
 	app.backend.AccumulateRewards(app.strategy)
 	return app.GetUpdatedValidators()
@@ -340,4 +341,9 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	currentState.SetNonce(from, tx.Nonce()+1)
 
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
+}
+
+
+func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy{
+	return app.strategy
 }

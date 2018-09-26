@@ -1,10 +1,14 @@
 package types
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/tendermint/tendermint/abci/types"
+	tmTypes "github.com/tendermint/tendermint/types"
+	"reflect"
 )
 
 // MinerRewardStrategy is a mining strategy
@@ -23,4 +27,52 @@ type ValidatorsStrategy interface {
 type Strategy struct {
 	MinerRewardStrategy
 	ValidatorsStrategy
+	currentValidators []*types.Validator
+	AccountMapList *tmTypes.AccountMapList
+	ValidatorTmAddress string
+}
+
+func NewStrategy() *Strategy {
+	return &Strategy{}
+}
+
+// Receiver returns which address should receive the mining reward
+func (s *Strategy) Receiver() common.Address {
+	if s.ValidatorTmAddress == ""{
+		fmt.Println("0000000000000000000000000000000000000002")
+		return common.HexToAddress("0000000000000000000000000000000000000002")
+	}else{
+		fmt.Println(s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary.String())
+		return s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary
+	}
+}
+
+// SetValidators updates the current validators
+func (strategy *Strategy) SetValidators(validators []*types.Validator) {
+	strategy.currentValidators = validators
+}
+
+// CollectTx collects the rewards for a transaction
+func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
+	if reflect.DeepEqual(tx.To(), common.HexToAddress("0000000000000000000000000000000000000001")) {
+		log.Info("Adding validator", "data", tx.Data())
+		pubKey := types.PubKey{Data: tx.Data()}
+		strategy.currentValidators = append(
+			strategy.currentValidators,
+			&types.Validator{
+				PubKey: pubKey,
+				Power:  tx.Value().Int64(),
+			},
+		)
+	}
+}
+
+// GetUpdatedValidators returns the current validators
+func (strategy *Strategy) GetUpdatedValidators() []*types.Validator {
+	return strategy.currentValidators
+}
+
+// GetUpdatedValidators returns the current validators
+func (strategy *Strategy) SetAccountMapList(accountMapList *tmTypes.AccountMapList) {
+	strategy.AccountMapList = accountMapList
 }

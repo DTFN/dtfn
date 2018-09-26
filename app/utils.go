@@ -51,14 +51,14 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 // GetUpdatedValidators returns an updated validator set from the strategy
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators() abciTypes.ResponseEndBlock {
-	if app.strategy != nil {
-		var validatorsSlice []abciTypes.Validator
-		validators := app.strategy.GetUpdatedValidators()
-		for i:=0;i< len(validators);i++{
-			validatorsSlice=append(validatorsSlice,*validators[i])
-		}
-		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-	}
+	//if app.strategy != nil {
+	//	var validatorsSlice []abciTypes.Validator
+	//	validators := app.strategy.GetUpdatedValidators()
+	//	for i:=0;i< len(validators);i++{
+	//		validatorsSlice=append(validatorsSlice,*validators[i])
+	//	}
+	//	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
+	//}
 	return abciTypes.ResponseEndBlock{}
 }
 
