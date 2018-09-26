@@ -26,14 +26,15 @@ type Strategy struct {
 	MinerRewardStrategy
 	ValidatorsStrategy
 
-	currentValidators []*abciTypes.Validator
-	AccountMapList *tmTypes.AccountMapList
+	currentValidators  []*abciTypes.Validator
+	AccountMapList     *tmTypes.AccountMapList
 	ValidatorTmAddress string
 
 	ValidatorSet Validators
+	PosTable     *PosTable
 }
 
-type Validators struct{
+type Validators struct {
 	// validators of committee , used to support +2/3
 	CommitteeValidators []*abciTypes.Validator
 
@@ -45,14 +46,16 @@ type Validators struct{
 }
 
 func NewStrategy() *Strategy {
-	return &Strategy{}
+	return &Strategy{
+		PosTable: NewPosTable(int64(1000)),
+	}
 }
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
-	if s.ValidatorTmAddress == ""{
+	if s.ValidatorTmAddress == "" {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	}else{
+	} else {
 		return s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary
 	}
 }

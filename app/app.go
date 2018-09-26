@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/tendermint/crypto"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/core"
@@ -17,6 +19,7 @@ import (
 	errors "github.com/cosmos/cosmos-sdk/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
+	tmTypes "github.com/tendermint/tendermint/types"
 )
 
 // EthermintApplication implements an ABCI application
@@ -38,8 +41,6 @@ type EthermintApplication struct {
 	strategy *emtTypes.Strategy
 
 	logger tmLog.Logger
-
-
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -225,6 +226,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 	}
 }
 
+
 // Query queries the state of the EthermintApplication
 // #stable - 0.4.0
 func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.ResponseQuery {
@@ -347,4 +349,20 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 
 func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 	return app.strategy
+}
+
+
+func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64, address tmTypes.Address,
+	pubkey crypto.PubKey) (bool, error) {
+	bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, address, pubkey)
+	return bool, err
+}
+
+func (app *EthermintApplication) RemovePosItem(account common.Address) (bool, error) {
+	bool,err := app.strategy.PosTable.RemovePosItem(account)
+	return bool,err
+}
+
+func (app *EthermintApplication) SetThreShold(threShold int64) {
+	app.strategy.PosTable.SetThreShold(threShold)
 }
