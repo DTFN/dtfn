@@ -1,12 +1,10 @@
 package types
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tendermint/tendermint/abci/types"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmTypes "github.com/tendermint/tendermint/types"
 	"reflect"
 )
@@ -18,18 +16,32 @@ type MinerRewardStrategy interface {
 
 // ValidatorsStrategy is a validator strategy
 type ValidatorsStrategy interface {
-	SetValidators(validators []*types.Validator)
+	SetValidators(validators []*abciTypes.Validator)
 	CollectTx(tx *ethTypes.Transaction)
-	GetUpdatedValidators() []*types.Validator
+	GetUpdatedValidators() []*abciTypes.Validator
 }
 
 // Strategy encompasses all available strategies
 type Strategy struct {
 	MinerRewardStrategy
 	ValidatorsStrategy
-	currentValidators []*types.Validator
+
+	currentValidators []*abciTypes.Validator
 	AccountMapList *tmTypes.AccountMapList
 	ValidatorTmAddress string
+
+	ValidatorSet Validators
+}
+
+type Validators struct{
+	// validators of committee , used to support +2/3
+	CommitteeValidators []*abciTypes.Validator
+
+	// validators of candidate ,will be changed by addValidatorTx and removeValidatorTx
+	CandidateValidators []*abciTypes.Validator
+
+	// validators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
+	CurrentValidators []*abciTypes.Validator
 }
 
 func NewStrategy() *Strategy {
@@ -39,16 +51,14 @@ func NewStrategy() *Strategy {
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
 	if s.ValidatorTmAddress == ""{
-		fmt.Println("0000000000000000000000000000000000000002")
 		return common.HexToAddress("0000000000000000000000000000000000000002")
 	}else{
-		fmt.Println(s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary.String())
 		return s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary
 	}
 }
 
 // SetValidators updates the current validators
-func (strategy *Strategy) SetValidators(validators []*types.Validator) {
+func (strategy *Strategy) SetValidators(validators []*abciTypes.Validator) {
 	strategy.currentValidators = validators
 }
 
@@ -56,10 +66,10 @@ func (strategy *Strategy) SetValidators(validators []*types.Validator) {
 func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
 	if reflect.DeepEqual(tx.To(), common.HexToAddress("0000000000000000000000000000000000000001")) {
 		log.Info("Adding validator", "data", tx.Data())
-		pubKey := types.PubKey{Data: tx.Data()}
+		pubKey := abciTypes.PubKey{Data: tx.Data()}
 		strategy.currentValidators = append(
 			strategy.currentValidators,
-			&types.Validator{
+			&abciTypes.Validator{
 				PubKey: pubKey,
 				Power:  tx.Value().Int64(),
 			},
@@ -68,7 +78,7 @@ func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
 }
 
 // GetUpdatedValidators returns the current validators
-func (strategy *Strategy) GetUpdatedValidators() []*types.Validator {
+func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
 	return strategy.currentValidators
 }
 
