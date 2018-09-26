@@ -107,15 +107,25 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 				for i := 0; i < 5; i++ {
 					validatorsSlice = append(validatorsSlice, *app.strategy.ValidatorSet.CommitteeValidators[i])
 				}
-				for j := 0; j < 2; j++ {
-					validatorsSlice = append(validatorsSlice,
-						*app.strategy.ValidatorSet.
-							NextCandidateValidators[(int(height)%(len(app.
-							strategy.ValidatorSet.NextCandidateValidators)-1))+j])
-					app.strategy.ValidatorSet.CurrentValidators = append(app.
-						strategy.ValidatorSet.CurrentValidators,
-						app.strategy.ValidatorSet.NextCandidateValidators[(int(height)%(len(app.
-							strategy.ValidatorSet.NextCandidateValidators)-1))+j])
+
+				for j := 0; len(validatorsSlice) != 7+len(validators); j++ {
+					index := app.strategy.PosTable.PosArraySize
+					validator := abciTypes.Validator{
+						Address: app.strategy.PosTable.PosArray[(int(height)+j-1)%index].Address,
+						PubKey:  app.strategy.PosTable.PosArray[(int(height)+j-1)%index].PubKey,
+						Power:   1,
+					}
+					if j == 0 {
+						validatorsSlice = append(validatorsSlice, validator)
+						app.strategy.ValidatorSet.CurrentValidators = append(app.
+							strategy.ValidatorSet.CurrentValidators, &validator)
+					} else if bytes.Equal(validator.Address, validatorsSlice[5+len(validators)].Address) {
+						validatorsSlice[5+len(validators)].Power++
+					} else {
+						validatorsSlice = append(validatorsSlice, validator)
+						app.strategy.ValidatorSet.CurrentValidators = append(app.
+							strategy.ValidatorSet.CurrentValidators, &validator)
+					}
 				}
 				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 			} else {
@@ -128,15 +138,24 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 						})
 				}
 				app.strategy.ValidatorSet.CurrentValidators = nil
-				for i := 0; i < 2; i++ {
-					validatorsSlice = append(validatorsSlice,
-						*app.strategy.ValidatorSet.
-							NextCandidateValidators[(int(height)%(len(app.strategy.
-							ValidatorSet.NextCandidateValidators)-1))+i])
-					app.strategy.ValidatorSet.CurrentValidators = append(app.strategy.
-						ValidatorSet.CurrentValidators,
-						app.strategy.ValidatorSet.NextCandidateValidators[(int(height)%(len(app.
-							strategy.ValidatorSet.NextCandidateValidators)-1))+i])
+				for i := 0; len(validatorsSlice) != 4; i++ {
+					index := app.strategy.PosTable.PosArraySize
+					validator := abciTypes.Validator{
+						Address: app.strategy.PosTable.PosArray[(int(height)+i-1)%index].Address,
+						PubKey:  app.strategy.PosTable.PosArray[(int(height)+i-1)%index].PubKey,
+						Power:   1,
+					}
+					if i == 0 {
+						validatorsSlice = append(validatorsSlice, validator)
+						app.strategy.ValidatorSet.CurrentValidators = append(app.
+							strategy.ValidatorSet.CurrentValidators, &validator)
+					}else if bytes.Equal(validator.Address, validatorsSlice[2].Address) {
+						validatorsSlice[2].Power++
+					} else {
+						validatorsSlice = append(validatorsSlice, validator)
+						app.strategy.ValidatorSet.CurrentValidators = append(app.
+							strategy.ValidatorSet.CurrentValidators, &validator)
+					}
 				}
 				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 			}
