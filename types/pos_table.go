@@ -105,7 +105,6 @@ type posItem struct {
 	pubKey  crypto.PubKey
 	indexes map[int]bool
 	address tmTypes.Address
-	Power   int64
 }
 
 func newPosItem(account common.Address, balance int64, address tmTypes.Address, pubKey crypto.PubKey) *posItem {

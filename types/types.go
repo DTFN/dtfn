@@ -26,23 +26,43 @@ type Strategy struct {
 	MinerRewardStrategy
 	ValidatorsStrategy
 
+	//if height = 1 ,currentValidator come from genesis.json
+	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
 	currentValidators  []*abciTypes.Validator
 	AccountMapList     *tmTypes.AccountMapList
 	ValidatorTmAddress string
 
 	ValidatorSet Validators
+
+	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable     *PosTable
 }
 
 type Validators struct {
-	// validators of committee , used to support +2/3
+	// validators of committee , used to support +2/3 ,our node
 	CommitteeValidators []*abciTypes.Validator
 
-	// validators of candidate ,will be changed by addValidatorTx and removeValidatorTx
+	// current validators of candidate
 	CandidateValidators []*abciTypes.Validator
 
+	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
+	NextCandidateValidators []*abciTypes.Validator
+
 	// validators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
+	// will be select by postable.
+	// CurrentValidators is the true validators except commmittee validator when height != 1
+	// if height =1 ,CurrentValidator = nil
 	CurrentValidators []*abciTypes.Validator
+
+	// note : if we get a addValidatorsTx at height 101,
+	// we will put it into the NextCandidateValidators and move into postable
+	// NextCandidateValidator will used in the next height200
+	// postable will used in the next height 102
+
+	//note : if we get a removeValidatorsTx at height 101
+	// we will remove it from the NextCandidateValidators and remove from postable
+	// NextCandidateValidator will used in the next height200
+	// postable will used in the next height 102
 }
 
 func NewStrategy() *Strategy {
