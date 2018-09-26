@@ -11,7 +11,7 @@ import (
 
 type PosTable struct {
 	mtx          sync.RWMutex
-	m            map[common.Address]*posItem `json:"accounts"`
+	posItemMap   map[common.Address]*posItem `json:"accounts"`
 	posArray     []*posItem                  // All posItem
 	posArraySize int                         // real size of posArray
 	threshold    int64                       // threshold value of PosTable
@@ -20,7 +20,7 @@ type PosTable struct {
 func NewPosTable(threshold int64) *PosTable {
 	pa := make([]*posItem, 2000)
 	return &PosTable{
-		m:            make(map[common.Address]*posItem),
+		posItemMap:   make(map[common.Address]*posItem),
 		posArray:     pa,
 		posArraySize: 0,
 		threshold:    threshold,
@@ -32,9 +32,9 @@ func (posTable *PosTable) UpsertPosItem(account common.Address, balance int64, a
 	posTable.mtx.Lock()
 	defer posTable.mtx.Unlock()
 
-	posOriginPtr, exist := posTable.m[account]
+	posOriginPtr, exist := posTable.posItemMap[account]
 	if exist {
-		originPos := int(posTable.m[account].balance / posTable.threshold)
+		originPos := int(posTable.posItemMap[account].balance / posTable.threshold)
 		newPos := int(balance / posTable.threshold)
 		if originPos >= newPos {
 			return false, fmt.Errorf("address not upsert")
@@ -44,7 +44,7 @@ func (posTable *PosTable) UpsertPosItem(account common.Address, balance int64, a
 				posOriginPtr.indexes[posTable.posArraySize] = true
 				posTable.posArraySize++
 			}
-			posTable.m[account].balance = balance
+			posTable.posItemMap[account].balance = balance
 			return true, nil
 		}
 	}
@@ -52,7 +52,7 @@ func (posTable *PosTable) UpsertPosItem(account common.Address, balance int64, a
 		return false, fmt.Errorf("balance not enought")
 	}
 	posItemPtr := newPosItem(account, balance, address, pubkey)
-	posTable.m[account] = posItemPtr
+	posTable.posItemMap[account] = posItemPtr
 	for i := 0; i < int(balance/posTable.threshold); i++ {
 		posTable.posArray[posTable.posArraySize] = posItemPtr
 		posItemPtr.indexes[posTable.posArraySize] = true
@@ -65,12 +65,12 @@ func (posTable *PosTable) RemovePosItem(account common.Address) (bool, error) {
 	posTable.mtx.Lock()
 	defer posTable.mtx.Unlock()
 
-	_, exist := posTable.m[account]
+	_, exist := posTable.posItemMap[account]
 	if !exist {
 		return false, fmt.Errorf("address not existed in the postable")
 	}
 
-	posItemPtr := posTable.m[account]
+	posItemPtr := posTable.posItemMap[account]
 	var indexArray []int
 	for k, _ := range posItemPtr.indexes {
 		indexArray = append(indexArray, k)
@@ -90,7 +90,7 @@ func (posTable *PosTable) RemovePosItem(account common.Address) (bool, error) {
 		}
 	}
 
-	delete(posTable.m, account)
+	delete(posTable.posItemMap, account)
 
 	return true, nil
 }
