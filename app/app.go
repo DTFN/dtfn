@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/tendermint/crypto"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/core"
@@ -19,7 +18,6 @@ import (
 	errors "github.com/cosmos/cosmos-sdk/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
-	tmTypes "github.com/tendermint/tendermint/types"
 )
 
 // EthermintApplication implements an ABCI application
@@ -133,6 +131,13 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	if len(validators) > 5 {
 		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
 		app.strategy.ValidatorSet.CandidateValidators = validators[5:]
+		for i:=0;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
+			app.UpsertPosItem(
+				common.HexToAddress("0000000000000000000000000000000000000002"),
+				3010,
+				app.strategy.ValidatorSet.NextCandidateValidators[i].Address,
+				app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+		}
 	} else {
 		app.strategy.ValidatorSet.CommitteeValidators = validators
 	}
@@ -352,17 +357,3 @@ func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 }
 
 
-func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64, address tmTypes.Address,
-	pubkey crypto.PubKey) (bool, error) {
-	bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, address, pubkey)
-	return bool, err
-}
-
-func (app *EthermintApplication) RemovePosItem(account common.Address) (bool, error) {
-	bool,err := app.strategy.PosTable.RemovePosItem(account)
-	return bool,err
-}
-
-func (app *EthermintApplication) SetThreShold(threShold int64) {
-	app.strategy.PosTable.SetThreShold(threShold)
-}

@@ -3,8 +3,8 @@ package types
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/tendermint/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"sort"
 	"sync"
 )
@@ -28,7 +28,7 @@ func NewPosTable(threshold int64) *PosTable {
 }
 
 func (posTable *PosTable) UpsertPosItem(account common.Address, balance int64, address tmTypes.Address,
-	pubkey crypto.PubKey) (bool, error) {
+	pubkey abciTypes.PubKey) (bool, error) {
 	posTable.mtx.Lock()
 	defer posTable.mtx.Unlock()
 
@@ -106,12 +106,12 @@ func (posTable *PosTable) SelectItemByRandomValue(random int) posItem {
 type posItem struct {
 	Account common.Address
 	Balance int64
-	PubKey  crypto.PubKey
+	PubKey  abciTypes.PubKey
 	Indexes map[int]bool
 	Address tmTypes.Address
 }
 
-func newPosItem(account common.Address, balance int64, address tmTypes.Address, pubKey crypto.PubKey) *posItem {
+func newPosItem(account common.Address, balance int64, address tmTypes.Address, pubKey abciTypes.PubKey) *posItem {
 	return &posItem{
 		Account: account,
 		Balance: balance,

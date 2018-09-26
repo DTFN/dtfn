@@ -6,8 +6,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	tmTypes "github.com/tendermint/tendermint/types"
 )
 
 // format of query data
@@ -44,6 +44,39 @@ func (app *EthermintApplication) Receiver() common.Address {
 func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator) {
 	if app.strategy != nil {
 		app.strategy.SetValidators(validators)
+	}
+}
+
+func (app *EthermintApplication) AddValidatorTx(account common.Address, balance int64, address tmTypes.Address,
+	pubkey abciTypes.PubKey) (bool, error) {
+		return false,nil
+}
+
+func (app *EthermintApplication) RemoveValidatorTx(account common.Address, balance int64, address tmTypes.Address,
+	pubkey abciTypes.PubKey) (bool, error) {
+	return false,nil
+}
+
+func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64, address tmTypes.Address,
+	pubkey abciTypes.PubKey) (bool, error) {
+	if app.strategy != nil {
+		bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, address, pubkey)
+		return bool, err
+	}
+	return false,nil
+}
+
+func (app *EthermintApplication) RemovePosItem(account common.Address) (bool, error) {
+	if app.strategy != nil{
+		bool, err := app.strategy.PosTable.RemovePosItem(account)
+		return bool, err
+	}
+	return false,nil
+}
+
+func (app *EthermintApplication) SetThreShold(threShold int64) {
+	if app.strategy != nil{
+		app.strategy.PosTable.SetThreShold(threShold)
 	}
 }
 
