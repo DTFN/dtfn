@@ -49,12 +49,12 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 
 func (app *EthermintApplication) AddValidatorTx(account common.Address, balance int64, address tmTypes.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
-		return false,nil
+	return false, nil
 }
 
 func (app *EthermintApplication) RemoveValidatorTx(account common.Address, balance int64, address tmTypes.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
-	return false,nil
+	return false, nil
 }
 
 func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64, address tmTypes.Address,
@@ -63,19 +63,19 @@ func (app *EthermintApplication) UpsertPosItem(account common.Address, balance i
 		bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, address, pubkey)
 		return bool, err
 	}
-	return false,nil
+	return false, nil
 }
 
 func (app *EthermintApplication) RemovePosItem(account common.Address) (bool, error) {
-	if app.strategy != nil{
+	if app.strategy != nil {
 		bool, err := app.strategy.PosTable.RemovePosItem(account)
 		return bool, err
 	}
-	return false,nil
+	return false, nil
 }
 
 func (app *EthermintApplication) SetThreShold(threShold int64) {
-	if app.strategy != nil{
+	if app.strategy != nil {
 		app.strategy.PosTable.SetThreShold(threShold)
 	}
 }

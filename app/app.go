@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -130,13 +130,17 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	app.SetValidators(validators)
 	if len(validators) > 5 {
 		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
-		app.strategy.ValidatorSet.CandidateValidators = validators[5:]
+		app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
 		for i:=0;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
+			address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
+				NextCandidateValidators[i].Address))
 			app.UpsertPosItem(
-				common.HexToAddress("0000000000000000000000000000000000000002"),
+				app.strategy.AccountMapList.MapList[address].Beneficiary,
 				3010,
 				app.strategy.ValidatorSet.NextCandidateValidators[i].Address,
 				app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+
+			fmt.Println(app.strategy.AccountMapList.MapList[address].Beneficiary.String())
 		}
 	} else {
 		app.strategy.ValidatorSet.CommitteeValidators = validators
