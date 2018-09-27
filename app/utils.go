@@ -47,13 +47,13 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 	}
 }
 
-func (app *EthermintApplication) AddValidatorTx(account common.Address, balance int64, address tmTypes.Address,
-	pubkey abciTypes.PubKey) (bool, error) {
+func (app *EthermintApplication) AddValidatorTx(account common.Address, balance int64,
+	pubkey abciTypes.PubKey, beneficiary common.Address) (bool, error) {
 	return false, nil
 }
 
-func (app *EthermintApplication) RemoveValidatorTx(account common.Address, balance int64, address tmTypes.Address,
-	pubkey abciTypes.PubKey) (bool, error) {
+func (app *EthermintApplication) RemoveValidatorTx(account common.Address, balance int64,
+	pubkey abciTypes.PubKey, beneficiary common.Address) (bool, error) {
 	return false, nil
 }
 
@@ -149,7 +149,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 						validatorsSlice = append(validatorsSlice, validator)
 						app.strategy.ValidatorSet.CurrentValidators = append(app.
 							strategy.ValidatorSet.CurrentValidators, &validator)
-					}else if bytes.Equal(validator.Address, validatorsSlice[2].Address) {
+					} else if bytes.Equal(validator.Address, validatorsSlice[2].Address) {
 						validatorsSlice[2].Power++
 					} else {
 						validatorsSlice = append(validatorsSlice, validator)
