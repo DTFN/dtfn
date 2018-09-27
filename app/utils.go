@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
 	"strings"
 )
@@ -50,40 +51,38 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 }
 
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance int64,
-	pubkey abciTypes.PubKey, beneficiary common.Address) (bool, error) {
+	beneficiary common.Address,pubkey crypto.PubKey) (bool, error) {
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
-		tmPubKey, err := tmTypes.PB2TM.PubKey(pubkey)
-		if err != nil {
-			return false, err
-		}
-		tmAddress := strings.ToLower(hex.EncodeToString(tmPubKey.Address()))
+		abciPubKey:= tmTypes.TM2PB.PubKey(pubkey)
+
+		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
-			if bytes.Equal(tmPubKey.Address(), app.strategy.
+			if bytes.Equal(pubkey.Address(), app.strategy.
 				ValidatorSet.NextCandidateValidators[i].Address) {
 				origSigner := app.strategy.AccountMapList.MapList[tmAddress].Signer
 				if origSigner.String() != signer.String() {
-					return false, err
+					return false, nil
 				}
 				existFlag = true
 			}
 		}
 		// If is a valid addValidatorTx,change the data in the strategy
 		// Should change the maplist and postable and nextCandidateValidator
-		app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, pubkey)
+		app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 		app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
 		app.strategy.AccountMapList.MapList[tmAddress].Signer = signer
 		if !existFlag {
 			app.strategy.ValidatorSet.NextCandidateValidators = append(app.
 				strategy.ValidatorSet.NextCandidateValidators,
 				&abciTypes.Validator{
-					PubKey:  pubkey,
+					PubKey:  abciPubKey,
 					Power:   1,
-					Address: tmPubKey.Address(),
+					Address: pubkey.Address(),
 				})
 		}
 	}
@@ -91,21 +90,17 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 }
 
 func (app *EthermintApplication) RemoveValidatorTx(signer common.Address, balance int64,
-	beneficiary common.Address, pubkey abciTypes.PubKey) (bool, error) {
+	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	if app.strategy != nil {
 		// judge whether is a valid removeValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
-		tmPubKey, err := tmTypes.PB2TM.PubKey(pubkey)
-		if err != nil {
-			return false, err
-		}
-		tmAddress := strings.ToLower(hex.EncodeToString(tmPubKey.Address()))
+		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
 		markIndex := 0
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
-			if bytes.Equal(tmPubKey.Address(), app.strategy.
+			if bytes.Equal(pubkey.Address(), app.strategy.
 				ValidatorSet.NextCandidateValidators[i].Address) {
 				existFlag = true
 				markIndex = i
