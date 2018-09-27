@@ -49,11 +49,31 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 
 func (app *EthermintApplication) AddValidatorTx(account common.Address, balance int64,
 	pubkey abciTypes.PubKey, beneficiary common.Address) (bool, error) {
+	if app.strategy != nil {
+		// judge whether is valid addValidator Tx
+		// It is better to use NextCandidateValidators but not CandidateValidators
+		// because candidateValidator will changed at (height%200==0)
+		// but NextCandidateValidator will changed every height
+		for i:=0 ;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
+
+		}
+		// If is a valid addValidatorTx,change the data in the strategy
+	}
 	return false, nil
 }
 
 func (app *EthermintApplication) RemoveValidatorTx(account common.Address, balance int64,
 	pubkey abciTypes.PubKey, beneficiary common.Address) (bool, error) {
+	if app.strategy != nil {
+		// judge whether is valid removeValidator Tx
+		// It is better to use NextCandidateValidators but not CandidateValidators
+		// because candidateValidator will changed at (height%200==0)
+		// but NextCandidateValidator will changed every height
+		for i:=0 ;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
+
+		}
+		// If is a valid removeValidator,change the data in the strategy
+	}
 	return false, nil
 }
 
