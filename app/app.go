@@ -134,10 +134,11 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		for i:=0;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
 			address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
 				NextCandidateValidators[i].Address))
+			fmt.Println(app.strategy.ValidatorSet.NextCandidateValidators[i].Address)
 			app.UpsertPosItem(
-				app.strategy.AccountMapList.MapList[address].Beneficiary,
+				app.strategy.AccountMapList.MapList[address].Signer,
 				3010,
-				app.strategy.ValidatorSet.NextCandidateValidators[i].Address,
+				app.strategy.AccountMapList.MapList[address].Beneficiary,
 				app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
 		}
 	} else {

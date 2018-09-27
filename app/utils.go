@@ -56,42 +56,80 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
-		tmPubKey ,err := tmTypes.PB2TM.PubKey(pubkey)
-		if err != nil{
-			return false,err
+		tmPubKey, err := tmTypes.PB2TM.PubKey(pubkey)
+		if err != nil {
+			return false, err
 		}
 		tmAddress := strings.ToLower(hex.EncodeToString(tmPubKey.Address()))
-		for i:=0 ;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
-			if(bytes.Equal(tmPubKey.Address(),app.strategy.
-				ValidatorSet.NextCandidateValidators[i].Address)){
+		existFlag := false
+		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
+			if bytes.Equal(tmPubKey.Address(), app.strategy.
+				ValidatorSet.NextCandidateValidators[i].Address) {
 				origSigner := app.strategy.AccountMapList.MapList[tmAddress].Signer
-				if origSigner.String()!= signer.String(){
-					return false,err
+				if origSigner.String() != signer.String() {
+					return false, err
 				}
+				existFlag = true
 			}
 		}
 		// If is a valid addValidatorTx,change the data in the strategy
-		app.strategy.PosTable.UpsertPosItem(signer,balance,beneficiary,pubkey)
+		// Should change the maplist and postable and nextCandidateValidator
+		app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, pubkey)
+		app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
+		app.strategy.AccountMapList.MapList[tmAddress].Signer = signer
+		if !existFlag {
+			app.strategy.ValidatorSet.NextCandidateValidators = append(app.
+				strategy.ValidatorSet.NextCandidateValidators,
+				&abciTypes.Validator{
+					PubKey:  pubkey,
+					Power:   1,
+					Address: tmPubKey.Address(),
+				})
+		}
 	}
 	return false, nil
 }
 
 func (app *EthermintApplication) RemoveValidatorTx(signer common.Address, balance int64,
-	beneficiary common.Address,pubkey abciTypes.PubKey) (bool, error) {
+	beneficiary common.Address, pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
 		// judge whether is a valid removeValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
-		for i:=0 ;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
-
+		tmPubKey, err := tmTypes.PB2TM.PubKey(pubkey)
+		if err != nil {
+			return false, err
+		}
+		tmAddress := strings.ToLower(hex.EncodeToString(tmPubKey.Address()))
+		existFlag := false
+		markIndex := 0
+		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
+			if bytes.Equal(tmPubKey.Address(), app.strategy.
+				ValidatorSet.NextCandidateValidators[i].Address) {
+				existFlag = true
+				markIndex = i
+				break
+			}
+		}
+		if existFlag {
+			app.strategy.PosTable.RemovePosItem(signer)
+			delete(app.strategy.AccountMapList.MapList, tmAddress)
+			validatorPre := app.strategy.ValidatorSet.NextCandidateValidators[0:markIndex]
+			validatorNext := app.strategy.ValidatorSet.NextCandidateValidators[markIndex+1:]
+			app.strategy.ValidatorSet.NextCandidateValidators = validatorPre
+			for i := 0; i < len(validatorNext); i++ {
+				app.strategy.ValidatorSet.NextCandidateValidators = append(app.
+					strategy.ValidatorSet.NextCandidateValidators, validatorNext[i])
+			}
+			return false, nil
 		}
 		// If is a valid removeValidator,change the data in the strategy
 	}
 	return false, nil
 }
 
-func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64,  beneficiary common.Address,
+func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64, beneficiary common.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
 		bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
@@ -144,8 +182,9 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 
 				for j := 0; len(validatorsSlice) != 7+len(validators); j++ {
 					index := app.strategy.PosTable.PosArraySize
+					tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.PosArray[(int(height)+j-1)%index].PubKey)
 					validator := abciTypes.Validator{
-						Address: app.strategy.PosTable.PosArray[(int(height)+j-1)%index].Address,
+						Address: tmPubKey.Address(),
 						PubKey:  app.strategy.PosTable.PosArray[(int(height)+j-1)%index].PubKey,
 						Power:   1,
 					}
@@ -174,8 +213,9 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 				app.strategy.ValidatorSet.CurrentValidators = nil
 				for i := 0; len(validatorsSlice) != 4; i++ {
 					index := app.strategy.PosTable.PosArraySize
+					tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.PosArray[(int(height)+i-1)%index].PubKey)
 					validator := abciTypes.Validator{
-						Address: app.strategy.PosTable.PosArray[(int(height)+i-1)%index].Address,
+						Address: tmPubKey.Address(),
 						PubKey:  app.strategy.PosTable.PosArray[(int(height)+i-1)%index].PubKey,
 						Power:   1,
 					}
