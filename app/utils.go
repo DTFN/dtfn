@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -75,9 +74,6 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		// If is a valid addValidatorTx,change the data in the strategy
 		// Should change the maplist and postable and nextCandidateValidator
 		app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
-		fmt.Println(tmAddress)
-		fmt.Println(beneficiary)
-		fmt.Println(len(app.strategy.AccountMapList.MapList))
 		app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
 			Beneficiary: beneficiary,
 			Signer:      signer,
