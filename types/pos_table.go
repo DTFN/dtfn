@@ -3,7 +3,6 @@ package types
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	tmTypes "github.com/tendermint/tendermint/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"sort"
 	"sync"
@@ -27,14 +26,14 @@ func NewPosTable(threshold int64) *PosTable {
 	}
 }
 
-func (posTable *PosTable) UpsertPosItem(account common.Address, balance int64, address tmTypes.Address,
+func (posTable *PosTable) UpsertPosItem(signer common.Address, balance int64, beneficiary common.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
 	posTable.mtx.Lock()
 	defer posTable.mtx.Unlock()
 
-	posOriginPtr, exist := posTable.PosItemMap[account]
+	posOriginPtr, exist := posTable.PosItemMap[signer]
 	if exist {
-		originPos := int(posTable.PosItemMap[account].Balance / posTable.threshold)
+		originPos := int(posTable.PosItemMap[signer].Balance / posTable.threshold)
 		newPos := int(balance / posTable.threshold)
 		if originPos >= newPos {
 			return false, fmt.Errorf("address not upsert")
@@ -44,15 +43,15 @@ func (posTable *PosTable) UpsertPosItem(account common.Address, balance int64, a
 				posOriginPtr.Indexes[posTable.PosArraySize] = true
 				posTable.PosArraySize++
 			}
-			posTable.PosItemMap[account].Balance = balance
+			posTable.PosItemMap[signer].Balance = balance
 			return true, nil
 		}
 	}
 	if balance < posTable.threshold {
 		return false, fmt.Errorf("balance not enought")
 	}
-	posItemPtr := newPosItem(account, balance, address, pubkey)
-	posTable.PosItemMap[account] = posItemPtr
+	posItemPtr := newPosItem(signer, balance, beneficiary, pubkey)
+	posTable.PosItemMap[signer] = posItemPtr
 	for i := 0; i < int(balance/posTable.threshold); i++ {
 		posTable.PosArray[posTable.PosArraySize] = posItemPtr
 		posItemPtr.Indexes[posTable.PosArraySize] = true
@@ -105,19 +104,19 @@ func (posTable *PosTable) SelectItemByRandomValue(random int) posItem {
 }
 
 type posItem struct {
-	Account common.Address
-	Balance int64
-	PubKey  abciTypes.PubKey
-	Indexes map[int]bool
-	Address tmTypes.Address
+	Signer      common.Address
+	Balance     int64
+	PubKey      abciTypes.PubKey
+	Indexes     map[int]bool
+	Beneficiary common.Address
 }
 
-func newPosItem(account common.Address, balance int64, address tmTypes.Address, pubKey abciTypes.PubKey) *posItem {
+func newPosItem(signer common.Address, balance int64, beneficiary common.Address, pubKey abciTypes.PubKey) *posItem {
 	return &posItem{
-		Account: account,
-		Balance: balance,
-		PubKey:  pubKey,
-		Indexes: make(map[int]bool),
-		Address: address,
+		Signer:      signer,
+		Balance:     balance,
+		PubKey:      pubKey,
+		Indexes:     make(map[int]bool),
+		Beneficiary: beneficiary,
 	}
 }

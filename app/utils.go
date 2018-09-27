@@ -2,12 +2,14 @@ package app
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmTypes "github.com/tendermint/tendermint/types"
+	"strings"
 )
 
 // format of query data
@@ -47,27 +49,39 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 	}
 }
 
-func (app *EthermintApplication) AddValidatorTx(account common.Address, balance int64,
+func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance int64,
 	pubkey abciTypes.PubKey, beneficiary common.Address) (bool, error) {
 	if app.strategy != nil {
-		// judge whether is valid addValidator Tx
+		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
-		// because candidateValidator will changed at (height%200==0)
+		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
+		tmPubKey ,err := tmTypes.PB2TM.PubKey(pubkey)
+		if err != nil{
+			return false,err
+		}
+		tmAddress := strings.ToLower(hex.EncodeToString(tmPubKey.Address()))
 		for i:=0 ;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
-
+			if(bytes.Equal(tmPubKey.Address(),app.strategy.
+				ValidatorSet.NextCandidateValidators[i].Address)){
+				origSigner := app.strategy.AccountMapList.MapList[tmAddress].Signer
+				if origSigner.String()!= signer.String(){
+					return false,err
+				}
+			}
 		}
 		// If is a valid addValidatorTx,change the data in the strategy
+		app.strategy.PosTable.UpsertPosItem(signer,balance,beneficiary,pubkey)
 	}
 	return false, nil
 }
 
-func (app *EthermintApplication) RemoveValidatorTx(account common.Address, balance int64,
-	pubkey abciTypes.PubKey, beneficiary common.Address) (bool, error) {
+func (app *EthermintApplication) RemoveValidatorTx(signer common.Address, balance int64,
+	beneficiary common.Address,pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
-		// judge whether is valid removeValidator Tx
+		// judge whether is a valid removeValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
-		// because candidateValidator will changed at (height%200==0)
+		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
 		for i:=0 ;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
 
@@ -77,10 +91,10 @@ func (app *EthermintApplication) RemoveValidatorTx(account common.Address, balan
 	return false, nil
 }
 
-func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64, address tmTypes.Address,
+func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64,  beneficiary common.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
-		bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, address, pubkey)
+		bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
 		return bool, err
 	}
 	return false, nil
