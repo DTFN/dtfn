@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -51,13 +52,13 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 }
 
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance int64,
-	beneficiary common.Address,pubkey crypto.PubKey) (bool, error) {
+	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
-		abciPubKey:= tmTypes.TM2PB.PubKey(pubkey)
+		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
@@ -74,8 +75,13 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		// If is a valid addValidatorTx,change the data in the strategy
 		// Should change the maplist and postable and nextCandidateValidator
 		app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
-		app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
-		app.strategy.AccountMapList.MapList[tmAddress].Signer = signer
+		fmt.Println(tmAddress)
+		fmt.Println(beneficiary)
+		fmt.Println(len(app.strategy.AccountMapList.MapList))
+		app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
+			Beneficiary: beneficiary,
+			Signer:      signer,
+		}
 		if !existFlag {
 			app.strategy.ValidatorSet.NextCandidateValidators = append(app.
 				strategy.ValidatorSet.NextCandidateValidators,

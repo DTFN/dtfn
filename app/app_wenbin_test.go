@@ -3,9 +3,11 @@ package app
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
+	emtTypes "github.com/tendermint/ethermint/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	emtTypes "github.com/tendermint/ethermint/types"
+	tmTypes "github.com/tendermint/tendermint/types"
 	"strconv"
 	"testing"
 )
@@ -13,12 +15,25 @@ import (
 var pubkeylist [10]crypto.PubKey
 var SignerList, BeneList [10]common.Address
 
-func NewMockEthApplication(strategy *emtTypes.Strategy) (*EthermintApplication, error) {
+func TestUpsertValidator(t *testing.T) {
+	initPubKey()
 
-	app := &EthermintApplication{
-		strategy: strategy,
+	strategy := emtTypes.NewStrategy()
+	ethapp, err := NewMockEthApplication(strategy)
+
+	if err != nil {
+	} else {
+		fmt.Println(ethapp.strategy.Receiver())
 	}
-	return app, nil
+
+	MapList := make(map[string]*tmTypes.AccountMap)
+	AML := &tmTypes.AccountMapList{MapList: MapList}
+
+	ethapp.strategy.AccountMapList = AML
+
+	upsertFlag, err := ethapp.UpsertValidatorTx(SignerList[0], 300, BeneList[0], pubkeylist[0])
+	require.NoError(t, err)
+	require.Equal(t, false, upsertFlag)
 }
 
 func initPubKey() {
@@ -33,15 +48,9 @@ func initPubKey() {
 	}
 }
 
-func TestUpsertValidator(t *testing.T) {
-	initPubKey()
-
-	strategy := emtTypes.NewStrategy()
-	ethapp, err := NewMockEthApplication(strategy)
-
-	if err != nil {
-	} else {
-		fmt.Println(ethapp.strategy.Receiver())
+func NewMockEthApplication(strategy *emtTypes.Strategy) (*EthermintApplication, error) {
+	app := &EthermintApplication{
+		strategy: strategy,
 	}
-
+	return app, nil
 }
