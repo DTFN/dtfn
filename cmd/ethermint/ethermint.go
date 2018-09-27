@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"gopkg.in/urfave/cli.v1"
 	"os"
 	"strings"
-	"gopkg.in/urfave/cli.v1"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -20,13 +20,13 @@ import (
 	abciApp "github.com/tendermint/ethermint/app"
 	emtUtils "github.com/tendermint/ethermint/cmd/utils"
 	"github.com/tendermint/ethermint/ethereum"
-	"github.com/tendermint/tendermint/proxy"
-	tmNode "github.com/tendermint/tendermint/node"
+	"github.com/tendermint/ethermint/types"
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	tmNode "github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/privval"
+	"github.com/tendermint/tendermint/proxy"
 	tmTypes "github.com/tendermint/tendermint/types"
-	"github.com/tendermint/ethermint/types"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -57,32 +57,35 @@ func ethermintCmd(ctx *cli.Context) error {
 		os.Exit(1)
 	}
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "ethermint")
-	configLoggerLevel(ctx,&ethLogger)
+	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
+
+	amlist, _ := tmTypes.AccountMapFromFile(loadTMConfig(ctx).AddressMapFile())
+	ethApp.GetStrategy().SetAccountMapList(amlist)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make ethermint as self contained as possible.
 	// See Issue https://github.com/tendermint/ethermint/issues/244
 	canInvokeTendermintNode := canInvokeTendermint(ctx)
 	if canInvokeTendermintNode {
-/*		pauseDuration := 2 * time.Second
-		tendermintHome := tendermintHomeFromEthermint(ctx)
-		tendermintArgs := []string{"--home", tendermintHome, "node"}
-		log.Info("tendermint ready to init")
-		time.Sleep(pauseDuration)
-		if _, err := invokeTendermintNoTimeout(tendermintArgs...); err != nil {
-			// We shouldn't go *Fatal* because
-			// `tendermint node` might have already been invoked.
-			log.Info("tendermint init", "error", err)
-		} else {
-			log.Info("Successfully invoked `tendermint node`", "args",
-				tendermintArgs)
-		}*/
+		/*		pauseDuration := 2 * time.Second
+				tendermintHome := tendermintHomeFromEthermint(ctx)
+				tendermintArgs := []string{"--home", tendermintHome, "node"}
+				log.Info("tendermint ready to init")
+				time.Sleep(pauseDuration)
+				if _, err := invokeTendermintNoTimeout(tendermintArgs...); err != nil {
+					// We shouldn't go *Fatal* because
+					// `tendermint node` might have already been invoked.
+					log.Info("tendermint init", "error", err)
+				} else {
+					log.Info("Successfully invoked `tendermint node`", "args",
+						tendermintArgs)
+				}*/
 
-		tmConfig:=loadTMConfig(ctx)
-		clientCreator:=proxy.NewLocalClientCreator(ethApp)
+		tmConfig := loadTMConfig(ctx)
+		clientCreator := proxy.NewLocalClientCreator(ethApp)
 		tmLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "tendermint")
-		configLoggerLevel(ctx,&tmLogger)
+		configLoggerLevel(ctx, &tmLogger)
 
 		n, err := tmNode.NewNode(tmConfig,
 			privval.LoadOrGenFilePV(tmConfig.PrivValidatorFile()),
@@ -99,9 +102,6 @@ func ethermintCmd(ctx *cli.Context) error {
 		backend.SetMemPool(n.MempoolReactor().Mempool)
 		n.MempoolReactor().Mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
 
-		amlist,_ :=tmTypes.AccountMapFromFile(tmConfig.AddressMapFile())
-		ethApp.GetStrategy().SetAccountMapList(amlist)
-
 		err = n.Start()
 		if err != nil {
 			log.Error("server with tendermint start", "error", err)
@@ -110,7 +110,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		// Trap signal, run forever.
 		n.RunForever()
 		return nil
-	}else{
+	} else {
 		// Start the app on the ABCI server
 		srv, err := server.NewServer(addr, abci, ethApp)
 		if err != nil {
@@ -134,35 +134,34 @@ func ethermintCmd(ctx *cli.Context) error {
 }
 
 //加载tendermint相关的配置
-func loadTMConfig(ctx *cli.Context) *tmcfg.Config{
-	tmHome:=tendermintHomeFromEthermint(ctx)
-	baseConfig:=tmcfg.DefaultBaseConfig()
-	baseConfig.RootDir=tmHome
+func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
+	tmHome := tendermintHomeFromEthermint(ctx)
+	baseConfig := tmcfg.DefaultBaseConfig()
+	baseConfig.RootDir = tmHome
 
 	DefaultInstrumentationConfig := tmcfg.DefaultInstrumentationConfig()
 
-
 	defaultTmConfig := tmcfg.DefaultConfig()
-	defaultTmConfig.BaseConfig=baseConfig
-	defaultTmConfig.Mempool.RootDir=tmHome
-	defaultTmConfig.Mempool.Recheck=true  //fix nonce bug
-	defaultTmConfig.P2P.RootDir=tmHome
-	defaultTmConfig.RPC.RootDir=tmHome
-	defaultTmConfig.Consensus.RootDir=tmHome
+	defaultTmConfig.BaseConfig = baseConfig
+	defaultTmConfig.Mempool.RootDir = tmHome
+	defaultTmConfig.Mempool.Recheck = true //fix nonce bug
+	defaultTmConfig.P2P.RootDir = tmHome
+	defaultTmConfig.RPC.RootDir = tmHome
+	defaultTmConfig.Consensus.RootDir = tmHome
 	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
 
-	defaultTmConfig.FastSync=ctx.GlobalBool(emtUtils.FastSync.Name)
-	defaultTmConfig.PrivValidatorListenAddr=ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
-	defaultTmConfig.PrivValidator=ctx.GlobalString(emtUtils.PrivValidator.Name)
-	defaultTmConfig.P2P.AddrBook=ctx.GlobalString(emtUtils.AddrBook.Name)
-	defaultTmConfig.P2P.AddrBookStrict=ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
-	defaultTmConfig.P2P.PersistentPeers=ctx.GlobalString(emtUtils.PersistentPeers.Name)
-	defaultTmConfig.P2P.PrivatePeerIDs=ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
+	defaultTmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)
+	defaultTmConfig.PrivValidatorListenAddr = ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
+	defaultTmConfig.PrivValidator = ctx.GlobalString(emtUtils.PrivValidator.Name)
+	defaultTmConfig.P2P.AddrBook = ctx.GlobalString(emtUtils.AddrBook.Name)
+	defaultTmConfig.P2P.AddrBookStrict = ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
+	defaultTmConfig.P2P.PersistentPeers = ctx.GlobalString(emtUtils.PersistentPeers.Name)
+	defaultTmConfig.P2P.PrivatePeerIDs = ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
 
 	return defaultTmConfig
 }
 
-func configLoggerLevel(ctx *cli.Context,logger *tmlog.Logger) {
+func configLoggerLevel(ctx *cli.Context, logger *tmlog.Logger) {
 	switch ctx.GlobalString(emtUtils.LogLevelFlag.Name) {
 	case "error":
 		*logger = tmlog.NewFilter(*logger, tmlog.AllowError())

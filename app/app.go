@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -14,10 +15,10 @@ import (
 	"github.com/tendermint/ethermint/ethereum"
 	emtTypes "github.com/tendermint/ethermint/types"
 
+	errors "github.com/cosmos/cosmos-sdk/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
-	errors "github.com/cosmos/cosmos-sdk/types"
-	)
+)
 
 // EthermintApplication implements an ABCI application
 // #stable - 0.4.0
@@ -111,8 +112,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 
 // SetOption sets a configuration option
 // #stable - 0.4.0
-func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) (
-abciTypes.ResponseSetOption) {
+func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) abciTypes.ResponseSetOption {
 
 	app.logger.Debug("SetOption", "key", req.GetKey(), "value", req.GetValue()) // nolint: errcheck
 	return abciTypes.ResponseSetOption{}
@@ -120,8 +120,7 @@ abciTypes.ResponseSetOption) {
 
 // InitChain initializes the validator set
 // #stable - 0.4.0
-func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) (
-abciTypes.ResponseInitChain) {
+func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciTypes.ResponseInitChain {
 
 	app.logger.Debug("InitChain") // nolint: errcheck
 	var validators []*abciTypes.Validator
@@ -129,6 +128,22 @@ abciTypes.ResponseInitChain) {
 		validators = append(validators, &req.GetValidators()[i])
 	}
 	app.SetValidators(validators)
+	if len(validators) > 5 {
+		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
+		app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
+		for i:=0;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
+			address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
+				NextCandidateValidators[i].Address))
+			fmt.Println(app.strategy.ValidatorSet.NextCandidateValidators[i].Address)
+			app.UpsertPosItem(
+				app.strategy.AccountMapList.MapList[address].Signer,
+				3010,
+				app.strategy.AccountMapList.MapList[address].Beneficiary,
+				app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+		}
+	} else {
+		app.strategy.ValidatorSet.CommitteeValidators = validators
+	}
 	return abciTypes.ResponseInitChain{}
 }
 
@@ -163,7 +178,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	}
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx)
+	res := app.backend.DeliverTx(tx, app.Receiver())
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
@@ -179,8 +194,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 
 // BeginBlock starts a new Ethereum block
 // #stable - 0.4.0
-func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) (
-abciTypes.ResponseBeginBlock) {
+func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	header := beginBlock.GetHeader()
@@ -192,11 +206,10 @@ abciTypes.ResponseBeginBlock) {
 
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
-func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) (
-abciTypes.ResponseEndBlock) {
+func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
 	app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
 	app.backend.AccumulateRewards(app.strategy)
-	return app.GetUpdatedValidators()
+	return app.GetUpdatedValidators(endBlock.GetHeight())
 }
 
 // Commit commits the block and returns a hash of the current state
@@ -206,22 +219,21 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 	state, err := app.getCurrentState()
 	if err != nil {
 		app.logger.Error("Error getting latest state", "err", err) // nolint: errcheck
-		return abciTypes.ResponseCommit{
-		}
+		return abciTypes.ResponseCommit{}
 	}
 	app.checkTxState = state.Copy() //commit里会做recheck，需要先重置checkState,通过recheck也正好将checkState恢复到正确的状态
 	blockHash, err := app.backend.Commit(app.Receiver())
 	if err != nil {
 		// nolint: errcheck
 		app.logger.Error("Error getting latest ethereum state", "err", err)
-		return abciTypes.ResponseCommit{
-		}
+		return abciTypes.ResponseCommit{}
 	}
 
 	return abciTypes.ResponseCommit{
 		Data: blockHash[:],
 	}
 }
+
 
 // Query queries the state of the EthermintApplication
 // #stable - 0.4.0
@@ -343,7 +355,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
 
-
-func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy{
+func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 	return app.strategy
 }
+
+
