@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	emtTypes "github.com/tendermint/ethermint/types"
@@ -20,11 +19,7 @@ func TestUpsertValidator(t *testing.T) {
 
 	strategy := emtTypes.NewStrategy()
 	ethapp, err := NewMockEthApplication(strategy)
-
-	if err != nil {
-	} else {
-		fmt.Println(ethapp.strategy.Receiver())
-	}
+	require.NoError(t, err)
 
 	MapList := make(map[string]*tmTypes.AccountMap)
 	AML := &tmTypes.AccountMapList{MapList: MapList}
