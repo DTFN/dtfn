@@ -1,4 +1,4 @@
-package ethereum
+package types
 
 import (
 	"github.com/tendermint/go-amino"

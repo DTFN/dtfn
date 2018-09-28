@@ -268,7 +268,7 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 	if msg.To() != nil {
 		if blacklist.IsLockTx(*msg.To()) {
 			blacklist.BlacklistDB.Add(msg.From())
-			MarshalPubKey(string(msg.Data()))
+			types.MarshalPubKey(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From()).Int64()
 			args := append(make([]interface{}, 0, 4), msg.From(), balance, msg.From())
 			return &Wrap{
