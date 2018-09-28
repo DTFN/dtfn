@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/tendermint/ethermint/utils"
 	"gopkg.in/urfave/cli.v1"
+	"math/big"
 	"os"
 	"strings"
 
@@ -38,6 +40,13 @@ func ethermintCmd(ctx *cli.Context) error {
 	addr := ctx.GlobalString(emtUtils.ABCIAddrFlag.Name)
 	abci := ctx.GlobalString(emtUtils.ABCIProtocolFlag.Name)
 
+	ethGenesisJson := ethermintGenesisPath(ctx)
+	genesis := utils.ReadGenesis(ethGenesisJson)
+	totalBalanceInital := big.NewInt(0)
+	for key,_:= range genesis.Alloc{
+		totalBalanceInital.Add(totalBalanceInital,genesis.Alloc[key].Balance)
+		fmt.Println(genesis.Alloc[key].Balance)
+	}
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
 	if err := node.Service(&backend); err != nil {
@@ -51,7 +60,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	}
 
 	// Create the ABCI app
-	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy())
+	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy(totalBalanceInital))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
