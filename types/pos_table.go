@@ -101,8 +101,8 @@ func (posTable *PosTable) SetThreShold(threShold int64) {
 }
 
 func (posTable *PosTable) SelectItemByRandomValue(random int) posItem {
-	return *posTable.PosArray[random]
-	//return *posTable.PosItemMap[common.HexToAddress("0000000000000000000000000000000000000001")]
+	// for better justice select
+	return *posTable.PosArray[(posTable.PrimeArray.PrimeNumber[random%7])%(posTable.PosArraySize)]
 }
 
 type posItem struct {
