@@ -178,11 +178,10 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 				}
 
 				for j := 0; len(validatorsSlice) != 7+len(validators); j++ {
-					index := app.strategy.PosTable.PosArraySize
-					tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.PosArray[(int(height)+j-1)%index].PubKey)
+					tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height)+j-1).PubKey)
 					validator := abciTypes.Validator{
 						Address: tmPubKey.Address(),
-						PubKey:  app.strategy.PosTable.PosArray[(int(height)+j-1)%index].PubKey,
+						PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height)+j-1).PubKey,
 						Power:   1,
 					}
 					if j == 0 {
@@ -209,11 +208,10 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 				}
 				app.strategy.ValidatorSet.CurrentValidators = nil
 				for i := 0; len(validatorsSlice) != 4; i++ {
-					index := app.strategy.PosTable.PosArraySize
-					tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.PosArray[(int(height)+i-1)%index].PubKey)
+					tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height)+i-1).PubKey)
 					validator := abciTypes.Validator{
 						Address: tmPubKey.Address(),
-						PubKey:  app.strategy.PosTable.PosArray[(int(height)+i-1)%index].PubKey,
+						PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height)+i-1).PubKey,
 						Power:   1,
 					}
 					if i == 0 {
