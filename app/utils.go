@@ -111,15 +111,15 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 }
 
 func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool, error) {
-	//找到tmAddress，另这个的signer与输入相等
-	var tmAddress string
-	for k, v := range app.strategy.AccountMapList.MapList {
-		if v.Signer == signer {
-			tmAddress = k
-			break
-		}
-	}
 	if app.strategy != nil {
+		//找到tmAddress，另这个的signer与输入相等
+		var tmAddress string
+		for k, v := range app.strategy.AccountMapList.MapList {
+			if bytes.Equal(v.Signer.Bytes(),signer.Bytes()){
+				tmAddress = k
+				break
+			}
+		}
 		// judge whether is a valid removeValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
@@ -127,9 +127,12 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		//tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
 		markIndex := 0
+		tmBytes ,err := hex.DecodeString(tmAddress)
+		if err != nil{
+			return false,err
+		}
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
-			//pubkey.Address() 如何从tmAddress反变换回pubkey.Address()？
-			if bytes.Equal([]byte(tmAddress), app.strategy.
+			if bytes.Equal(tmBytes, app.strategy.
 				ValidatorSet.NextCandidateValidators[i].Address) {
 				existFlag = true
 				markIndex = i
