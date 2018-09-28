@@ -14,6 +14,7 @@ type PosTable struct {
 	PosArray     []*posItem                  // All posItem
 	PosArraySize int                         // real size of posArray
 	threshold    int64                       // threshold value of PosTable
+	PrimeArray   *PrimeArray
 }
 
 func NewPosTable(threshold int64) *PosTable {
@@ -23,6 +24,7 @@ func NewPosTable(threshold int64) *PosTable {
 		PosArray:     pa,
 		PosArraySize: 0,
 		threshold:    threshold,
+		PrimeArray:   NewPrimeArray(),
 	}
 }
 
@@ -99,8 +101,8 @@ func (posTable *PosTable) SetThreShold(threShold int64) {
 }
 
 func (posTable *PosTable) SelectItemByRandomValue(random int) posItem {
-	return *posTable.PosArray[random]
-	//return *posTable.PosItemMap[common.HexToAddress("0000000000000000000000000000000000000001")]
+	// for better justice select
+	return *posTable.PosArray[(posTable.PrimeArray.PrimeNumber[random%7])%(posTable.PosArraySize)]
 }
 
 type posItem struct {

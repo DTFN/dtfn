@@ -113,7 +113,6 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 // SetOption sets a configuration option
 // #stable - 0.4.0
 func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) abciTypes.ResponseSetOption {
-
 	app.logger.Debug("SetOption", "key", req.GetKey(), "value", req.GetValue()) // nolint: errcheck
 	return abciTypes.ResponseSetOption{}
 }

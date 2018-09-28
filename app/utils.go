@@ -51,13 +51,13 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 }
 
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance int64,
-	beneficiary common.Address,pubkey crypto.PubKey) (bool, error) {
+	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
-		abciPubKey:= tmTypes.TM2PB.PubKey(pubkey)
+		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
@@ -74,8 +74,10 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		// If is a valid addValidatorTx,change the data in the strategy
 		// Should change the maplist and postable and nextCandidateValidator
 		app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
-		app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
-		app.strategy.AccountMapList.MapList[tmAddress].Signer = signer
+		app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
+			Beneficiary: beneficiary,
+			Signer:      signer,
+		}
 		if !existFlag {
 			app.strategy.ValidatorSet.NextCandidateValidators = append(app.
 				strategy.ValidatorSet.NextCandidateValidators,
@@ -151,87 +153,14 @@ func (app *EthermintApplication) SetThreShold(threShold int64) {
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
-		if len(app.strategy.ValidatorSet.CommitteeValidators) < 5 {
-			return abciTypes.ResponseEndBlock{}
-		} else if len(app.strategy.ValidatorSet.NextCandidateValidators) <= 2 && height < 200 {
-			// height=1 ,all validators <0 ,doing nothing, bls not initialed
-			// height < 200 ,for test
-			return abciTypes.ResponseEndBlock{}
-		} else if height < 200 {
-			// len(candidate validators) >2 ,use height as random value.
-			var validatorsSlice []abciTypes.Validator
-			validators := app.strategy.GetUpdatedValidators()
-			if height == 1 {
-				for i := 0; i < len(validators); i++ {
-					validatorsSlice = append(validatorsSlice,
-						abciTypes.Validator{
-							//Address : app.strategy.PosTable.SelectItemByRandomValue(int(height)).Address,
-							Address: validators[i].Address,
-							Power:   int64(0),
-							PubKey:  validators[i].PubKey,
-						})
-				}
-				for i := 0; i < 5; i++ {
-					validatorsSlice = append(validatorsSlice, *app.strategy.ValidatorSet.CommitteeValidators[i])
-				}
-
-				for j := 0; len(validatorsSlice) != 7+len(validators); j++ {
-					index := app.strategy.PosTable.PosArraySize
-					tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.PosArray[(int(height)+j-1)%index].PubKey)
-					validator := abciTypes.Validator{
-						Address: tmPubKey.Address(),
-						PubKey:  app.strategy.PosTable.PosArray[(int(height)+j-1)%index].PubKey,
-						Power:   1,
-					}
-					if j == 0 {
-						validatorsSlice = append(validatorsSlice, validator)
-						app.strategy.ValidatorSet.CurrentValidators = append(app.
-							strategy.ValidatorSet.CurrentValidators, &validator)
-					} else if bytes.Equal(validator.Address, validatorsSlice[5+len(validators)].Address) {
-						validatorsSlice[5+len(validators)].Power++
-					} else {
-						validatorsSlice = append(validatorsSlice, validator)
-						app.strategy.ValidatorSet.CurrentValidators = append(app.
-							strategy.ValidatorSet.CurrentValidators, &validator)
-					}
-				}
-				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-			} else {
-				for i := 0; i < 2; i++ {
-					validatorsSlice = append(validatorsSlice,
-						abciTypes.Validator{
-							Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
-							PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
-							Power:   int64(0),
-						})
-				}
-				app.strategy.ValidatorSet.CurrentValidators = nil
-				for i := 0; len(validatorsSlice) != 4; i++ {
-					index := app.strategy.PosTable.PosArraySize
-					tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.PosArray[(int(height)+i-1)%index].PubKey)
-					validator := abciTypes.Validator{
-						Address: tmPubKey.Address(),
-						PubKey:  app.strategy.PosTable.PosArray[(int(height)+i-1)%index].PubKey,
-						Power:   1,
-					}
-					if i == 0 {
-						validatorsSlice = append(validatorsSlice, validator)
-						app.strategy.ValidatorSet.CurrentValidators = append(app.
-							strategy.ValidatorSet.CurrentValidators, &validator)
-					} else if bytes.Equal(validator.Address, validatorsSlice[2].Address) {
-						validatorsSlice[2].Power++
-					} else {
-						validatorsSlice = append(validatorsSlice, validator)
-						app.strategy.ValidatorSet.CurrentValidators = append(app.
-							strategy.ValidatorSet.CurrentValidators, &validator)
-					}
-				}
-				return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-			}
+		if int(height) == 1 {
+			return app.enterInitial(height)
+		} else if height%200 != 0 {
+			return app.enterSelectValidators(height)
+		} else {
 			return abciTypes.ResponseEndBlock{}
 		}
 	}
-
 	return abciTypes.ResponseEndBlock{}
 }
 
@@ -241,4 +170,96 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 	if app.strategy != nil {
 		app.strategy.CollectTx(tx)
 	}
+}
+
+func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEndBlock {
+	if len(app.strategy.ValidatorSet.NextCandidateValidators) == 0 {
+		// There is no nextCandidateValidators for initial height
+		return abciTypes.ResponseEndBlock{}
+	} else {
+		var validatorsSlice []abciTypes.Validator
+		validators := app.strategy.GetUpdatedValidators()
+
+		for i := 0; i < len(validators); i++ {
+			validatorsSlice = append(validatorsSlice,
+				abciTypes.Validator{
+					//Address : app.strategy.PosTable.SelectItemByRandomValue(int(height)).Address,
+					Address: validators[i].Address,
+					Power:   int64(0),
+					PubKey:  validators[i].PubKey,
+				})
+		}
+		for i := 0; i < len(app.strategy.ValidatorSet.CommitteeValidators); i++ {
+			validatorsSlice = append(validatorsSlice, *app.strategy.ValidatorSet.CommitteeValidators[i])
+		}
+
+		maxValidators := 0
+		if len(app.strategy.ValidatorSet.NextCandidateValidators) < 2 {
+			maxValidators = 6
+		} else {
+			maxValidators = 7
+		}
+
+		for j := 0; len(validatorsSlice) != maxValidators+len(validators); j++ {
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + j - 1).PubKey)
+			validator := abciTypes.Validator{
+				Address: tmPubKey.Address(),
+				PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + j - 1).PubKey,
+				Power:   1,
+			}
+			if j == 0 {
+				validatorsSlice = append(validatorsSlice, validator)
+				app.strategy.ValidatorSet.CurrentValidators = append(app.
+					strategy.ValidatorSet.CurrentValidators, &validator)
+			} else if bytes.Equal(validator.Address, validatorsSlice[5+len(validators)].Address) {
+				validatorsSlice[5+len(validators)].Power++
+			} else {
+				validatorsSlice = append(validatorsSlice, validator)
+				app.strategy.ValidatorSet.CurrentValidators = append(app.
+					strategy.ValidatorSet.CurrentValidators, &validator)
+			}
+		}
+		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
+	}
+}
+
+func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.ResponseEndBlock {
+	var validatorsSlice []abciTypes.Validator
+	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
+		validatorsSlice = append(validatorsSlice,
+			abciTypes.Validator{
+				Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
+				PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
+				Power:   int64(0),
+			})
+	}
+
+	maxValidatorSlice := 0
+	if len(app.strategy.ValidatorSet.NextCandidateValidators) < 2 {
+		maxValidatorSlice = 1 + len(app.strategy.ValidatorSet.CurrentValidators)
+	} else {
+		maxValidatorSlice = 2 + len(app.strategy.ValidatorSet.CurrentValidators)
+	}
+	app.strategy.ValidatorSet.CurrentValidators = nil
+
+	for i := 0; len(validatorsSlice) != maxValidatorSlice; i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey)
+		validator := abciTypes.Validator{
+			Address: tmPubKey.Address(),
+			PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey,
+			Power:   1,
+		}
+		if i == 0 {
+			validatorsSlice = append(validatorsSlice, validator)
+			app.strategy.ValidatorSet.CurrentValidators = append(app.
+				strategy.ValidatorSet.CurrentValidators, &validator)
+		} else if bytes.Equal(validator.Address, validatorsSlice[maxValidatorSlice-2].Address) {
+			validatorsSlice[maxValidatorSlice-2].Power++
+		} else {
+			validatorsSlice = append(validatorsSlice, validator)
+			app.strategy.ValidatorSet.CurrentValidators = append(app.
+				strategy.ValidatorSet.CurrentValidators, &validator)
+		}
+	}
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 }
