@@ -10,6 +10,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
+	"math/big"
 	"strings"
 )
 
@@ -50,7 +51,7 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 	}
 }
 
-func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance int64,
+func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
@@ -115,7 +116,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		//找到tmAddress，另这个的signer与输入相等
 		var tmAddress string
 		for k, v := range app.strategy.AccountMapList.MapList {
-			if bytes.Equal(v.Signer.Bytes(),signer.Bytes()){
+			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
 				tmAddress = k
 				break
 			}
@@ -127,9 +128,9 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		//tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
 		markIndex := 0
-		tmBytes ,err := hex.DecodeString(tmAddress)
-		if err != nil{
-			return false,err
+		tmBytes, err := hex.DecodeString(tmAddress)
+		if err != nil {
+			return false, err
 		}
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
 			if bytes.Equal(tmBytes, app.strategy.
@@ -156,7 +157,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 	return false, nil
 }
 
-func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64, beneficiary common.Address,
+func (app *EthermintApplication) UpsertPosItem(account common.Address, balance *big.Int, beneficiary common.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
 		bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
@@ -173,7 +174,7 @@ func (app *EthermintApplication) RemovePosItem(account common.Address) (bool, er
 	return false, nil
 }
 
-func (app *EthermintApplication) SetThreShold(threShold int64) {
+func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
 	if app.strategy != nil {
 		app.strategy.PosTable.SetThreShold(threShold)
 	}
@@ -257,7 +258,7 @@ func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.R
 	if len(app.strategy.ValidatorSet.NextCandidateValidators) == 0 {
 		// There is no nextCandidateValidators for initial height
 		return abciTypes.ResponseEndBlock{}
-	}else{
+	} else {
 		var validatorsSlice []abciTypes.Validator
 		for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
 			validatorsSlice = append(validatorsSlice,

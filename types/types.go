@@ -69,8 +69,9 @@ type Validators struct {
 }
 
 func NewStrategy(totalBalance *big.Int) *Strategy {
+	threshold := big.NewInt(1000)
 	return &Strategy{
-		PosTable:     NewPosTable(int64(1000)),
+		PosTable:     NewPosTable(threshold.Div(totalBalance,threshold)),
 		TotalBalance: totalBalance,
 	}
 }

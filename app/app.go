@@ -136,7 +136,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			fmt.Println(app.strategy.ValidatorSet.NextCandidateValidators[i].Address)
 			app.UpsertPosItem(
 				app.strategy.AccountMapList.MapList[address].Signer,
-				3010,
+				app.strategy.AccountMapList.MapList[address].SignerBalance,
 				app.strategy.AccountMapList.MapList[address].Beneficiary,
 				app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
 		}
