@@ -71,25 +71,45 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 				existFlag = true
 			}
 		}
-		// If is a valid addValidatorTx,change the data in the strategy
-		// Should change the maplist and postable and nextCandidateValidator
-		app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
-		origSigner := app.strategy.AccountMapList.MapList[tmAddress].Signer
-		if origSigner.String() == signer.String(){
-			return false, nil
+		//做这件事之前必须确认这个signer，不是MapList中已经存在的。
+		//1.signer相同，可能来作恶;  2.signer相同，可能不作恶，因为有相同maplist;  3.signer不相同
+		same := false
+		for _,v:=range app.strategy.AccountMapList.MapList{
+			if v.Signer==signer{
+				same=true
+			}
 		}
-		app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
-			Beneficiary: beneficiary,
-			Signer:      signer,
-		}
-		if !existFlag {
-			app.strategy.ValidatorSet.NextCandidateValidators = append(app.
-				strategy.ValidatorSet.NextCandidateValidators,
-				&abciTypes.Validator{
-					PubKey:  abciPubKey,
-					Power:   1,
-					Address: pubkey.Address(),
-				})
+
+		if same==false{
+			// signer不相同
+			// If is a valid addValidatorTx,change the data in the strategy
+			// Should change the maplist and postable and nextCandidateValidator
+			app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
+				Beneficiary: beneficiary,
+				Signer:      signer,
+			}
+			if !existFlag {
+				app.strategy.ValidatorSet.NextCandidateValidators = append(app.
+					strategy.ValidatorSet.NextCandidateValidators,
+					&abciTypes.Validator{
+						PubKey:  abciPubKey,
+						Power:   1,
+						Address: pubkey.Address(),
+					})
+			}
+		}else{
+			if existFlag{
+				//同singer，同MapList[tmAddress]，是来改动balance的
+				app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+				app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
+					Beneficiary: beneficiary,
+					Signer:      signer,
+				}
+			}else{
+				//同singer，不同MapList[tmAddress]，来捣乱的
+				return false, nil
+			}
 		}
 	}
 	return false, nil
@@ -113,6 +133,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		existFlag := false
 		markIndex := 0
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
+			//pubkey.Address() 如何从tmAddress反变换回pubkey.Address()？
 			if bytes.Equal([]byte(tmAddress), app.strategy.
 				ValidatorSet.NextCandidateValidators[i].Address) {
 				existFlag = true
