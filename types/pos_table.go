@@ -14,6 +14,7 @@ type PosTable struct {
 	PosArray     []*posItem                  // All posItem
 	PosArraySize int                         // real size of posArray
 	threshold    int64                       // threshold value of PosTable
+	PrimeArray   *PrimeArray
 }
 
 func NewPosTable(threshold int64) *PosTable {
@@ -23,6 +24,7 @@ func NewPosTable(threshold int64) *PosTable {
 		PosArray:     pa,
 		PosArraySize: 0,
 		threshold:    threshold,
+		PrimeArray:   NewPrimeArray(),
 	}
 }
 
