@@ -160,3 +160,8 @@ func tendermintHomeFromEthermint(ctx *cli.Context) string {
 	ethermintDataDir := emtUtils.MakeDataDir(ctx)
 	return filepath.Join(ethermintDataDir, "tendermint")
 }
+
+func ethermintGenesisPath(ctx *cli.Context) string {
+	ethermintDataDir := emtUtils.MakeDataDir(ctx)
+	return filepath.Join(ethermintDataDir, "ethermint/chaindata/genesis.json")
+}

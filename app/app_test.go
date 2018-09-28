@@ -69,6 +69,7 @@ func TestRemoveValidatorTx(t *testing.T) {
 	require.Equal(t, false, upsertFlag)
 
 	upsertFlag, err = ethapp.RemoveValidatorTx(SignerList[0])
+	require.Equal(t,1,len(ethapp.strategy.AccountMapList.MapList))
 }
 
 func TestComplicated(t *testing.T){
@@ -88,18 +89,12 @@ func TestComplicated(t *testing.T){
 	require.NoError(t, err)
 	require.Equal(t, false, upsertFlag)
 
-	upsertFlag, err = ethapp.UpsertValidatorTx(SignerList[0], 300, BeneList[0], pubkeylist[1])
-	require.Equal(t,[]byte(pubkeylist[0].Address()),ethapp.strategy.ValidatorSet.NextCandidateValidators[0].Address)
-	require.Equal(t,[]byte(pubkeylist[1].Address()),ethapp.strategy.ValidatorSet.NextCandidateValidators[1].Address)
-	require.Equal(t,2,len(ethapp.strategy.ValidatorSet.NextCandidateValidators))
+	upsertFlag, err = ethapp.RemoveValidatorTx(SignerList[0])
+	require.Equal(t,1,len(ethapp.strategy.AccountMapList.MapList))
 
-	require.Equal(t,BeneList[0],ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[1].Address()))].Beneficiary)
-	upsertFlag, err = ethapp.UpsertValidatorTx(SignerList[0], 300, BeneList[1], pubkeylist[1])
-	require.Equal(t,BeneList[1],ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[1].Address()))].Beneficiary)
-
-	upsertFlag, err = ethapp.UpsertValidatorTx(SignerList[1], 300, BeneList[0], pubkeylist[1])
+	upsertFlag, err = ethapp.UpsertValidatorTx(SignerList[1], 300, BeneList[1], pubkeylist[1])
 	require.Equal(t,SignerList[0],ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[0].Address()))].Signer)
-	require.Equal(t,SignerList[0],ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[1].Address()))].Signer)
+	require.Equal(t,SignerList[1],ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[1].Address()))].Signer)
 
 	//Complicated_RemoveValidatorTx
 	upsertFlag, err = ethapp.RemoveValidatorTx(SignerList[0])

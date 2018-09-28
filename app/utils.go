@@ -10,6 +10,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
+	"math/big"
 	"strings"
 )
 
@@ -50,7 +51,7 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 	}
 }
 
-func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance int64,
+func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
@@ -71,18 +72,25 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 				existFlag = true
 			}
 		}
-		// If is a valid addValidatorTx,change the data in the strategy
-		// Should change the maplist and postable and nextCandidateValidator
-		app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
-		origSigner := app.strategy.AccountMapList.MapList[tmAddress].Signer
-		if origSigner.String() == signer.String(){
-			return false, nil
+		//做这件事之前必须确认这个signer，不是MapList中已经存在的。
+		//1.signer相同，可能来作恶;  2.signer相同，可能不作恶，因为有相同maplist;  3.signer不相同
+		same := false
+		for _, v := range app.strategy.AccountMapList.MapList {
+			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
+				same = true
+				break
+			}
 		}
-		app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
-			Beneficiary: beneficiary,
-			Signer:      signer,
-		}
-		if !existFlag {
+
+		if !same && !existFlag {
+			// signer不相同
+			// If is a valid addValidatorTx,change the data in the strategy
+			// Should change the maplist and postable and nextCandidateValidator
+			app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
+				Beneficiary: beneficiary,
+				Signer:      signer,
+			}
 			app.strategy.ValidatorSet.NextCandidateValidators = append(app.
 				strategy.ValidatorSet.NextCandidateValidators,
 				&abciTypes.Validator{
@@ -90,21 +98,29 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 					Power:   1,
 					Address: pubkey.Address(),
 				})
+		} else if existFlag && same {
+			//同singer，同MapList[tmAddress]，是来改动balance的
+			app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
+		} else {
+			//同singer，不同MapList[tmAddress]，来捣乱的
+			return false, nil
 		}
+
 	}
 	return false, nil
 }
 
 func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool, error) {
-	//找到tmAddress，另这个的signer与输入相等
-	var tmAddress string
-	for k,v:=range app.strategy.AccountMapList.MapList{
-		if v.Signer == signer{
-			tmAddress=k
-			break
-		}
-	}
 	if app.strategy != nil {
+		//找到tmAddress，另这个的signer与输入相等
+		var tmAddress string
+		for k, v := range app.strategy.AccountMapList.MapList {
+			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
+				tmAddress = k
+				break
+			}
+		}
 		// judge whether is a valid removeValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
@@ -112,8 +128,12 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		//tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
 		markIndex := 0
+		tmBytes, err := hex.DecodeString(tmAddress)
+		if err != nil {
+			return false, err
+		}
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
-			if bytes.Equal([]byte(tmAddress), app.strategy.
+			if bytes.Equal(tmBytes, app.strategy.
 				ValidatorSet.NextCandidateValidators[i].Address) {
 				existFlag = true
 				markIndex = i
@@ -137,7 +157,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 	return false, nil
 }
 
-func (app *EthermintApplication) UpsertPosItem(account common.Address, balance int64, beneficiary common.Address,
+func (app *EthermintApplication) UpsertPosItem(account common.Address, balance *big.Int, beneficiary common.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
 		bool, err := app.strategy.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
@@ -154,7 +174,7 @@ func (app *EthermintApplication) RemovePosItem(account common.Address) (bool, er
 	return false, nil
 }
 
-func (app *EthermintApplication) SetThreShold(threShold int64) {
+func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
 	if app.strategy != nil {
 		app.strategy.PosTable.SetThreShold(threShold)
 	}
@@ -235,42 +255,47 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 }
 
 func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.ResponseEndBlock {
-	var validatorsSlice []abciTypes.Validator
-	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
-		validatorsSlice = append(validatorsSlice,
-			abciTypes.Validator{
-				Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
-				PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
-				Power:   int64(0),
-			})
-	}
-
-	maxValidatorSlice := 0
-	if len(app.strategy.ValidatorSet.NextCandidateValidators) < 2 {
-		maxValidatorSlice = 1 + len(app.strategy.ValidatorSet.CurrentValidators)
+	if len(app.strategy.ValidatorSet.NextCandidateValidators) == 0 {
+		// There is no nextCandidateValidators for initial height
+		return abciTypes.ResponseEndBlock{}
 	} else {
-		maxValidatorSlice = 2 + len(app.strategy.ValidatorSet.CurrentValidators)
-	}
-	app.strategy.ValidatorSet.CurrentValidators = nil
+		var validatorsSlice []abciTypes.Validator
+		for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
+			validatorsSlice = append(validatorsSlice,
+				abciTypes.Validator{
+					Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
+					PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
+					Power:   int64(0),
+				})
+		}
 
-	for i := 0; len(validatorsSlice) != maxValidatorSlice; i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey)
-		validator := abciTypes.Validator{
-			Address: tmPubKey.Address(),
-			PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey,
-			Power:   1,
-		}
-		if i == 0 {
-			validatorsSlice = append(validatorsSlice, validator)
-			app.strategy.ValidatorSet.CurrentValidators = append(app.
-				strategy.ValidatorSet.CurrentValidators, &validator)
-		} else if bytes.Equal(validator.Address, validatorsSlice[maxValidatorSlice-2].Address) {
-			validatorsSlice[maxValidatorSlice-2].Power++
+		maxValidatorSlice := 0
+		if len(app.strategy.ValidatorSet.NextCandidateValidators) < 2 {
+			maxValidatorSlice = 1 + len(app.strategy.ValidatorSet.CurrentValidators)
 		} else {
-			validatorsSlice = append(validatorsSlice, validator)
-			app.strategy.ValidatorSet.CurrentValidators = append(app.
-				strategy.ValidatorSet.CurrentValidators, &validator)
+			maxValidatorSlice = 2 + len(app.strategy.ValidatorSet.CurrentValidators)
 		}
+		app.strategy.ValidatorSet.CurrentValidators = nil
+
+		for i := 0; len(validatorsSlice) != maxValidatorSlice; i++ {
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey)
+			validator := abciTypes.Validator{
+				Address: tmPubKey.Address(),
+				PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey,
+				Power:   1,
+			}
+			if i == 0 {
+				validatorsSlice = append(validatorsSlice, validator)
+				app.strategy.ValidatorSet.CurrentValidators = append(app.
+					strategy.ValidatorSet.CurrentValidators, &validator)
+			} else if bytes.Equal(validator.Address, validatorsSlice[maxValidatorSlice-2].Address) {
+				validatorsSlice[maxValidatorSlice-2].Power++
+			} else {
+				validatorsSlice = append(validatorsSlice, validator)
+				app.strategy.ValidatorSet.CurrentValidators = append(app.
+					strategy.ValidatorSet.CurrentValidators, &validator)
+			}
+		}
+		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 	}
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 }

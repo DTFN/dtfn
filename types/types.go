@@ -36,7 +36,7 @@ type Strategy struct {
 	ValidatorSet Validators
 
 	// will be changed by addValidatorTx and removeValidatorTx.
-	PosTable     *PosTable
+	PosTable *PosTable
 
 	TotalBalance *big.Int
 }
@@ -68,9 +68,11 @@ type Validators struct {
 	// postable will used in the next height 102
 }
 
-func NewStrategy() *Strategy {
+func NewStrategy(totalBalance *big.Int) *Strategy {
+	threshold := big.NewInt(1000)
 	return &Strategy{
-		PosTable: NewPosTable(int64(1000)),
+		PosTable:     NewPosTable(threshold.Div(totalBalance,threshold)),
+		TotalBalance: totalBalance,
 	}
 }
 

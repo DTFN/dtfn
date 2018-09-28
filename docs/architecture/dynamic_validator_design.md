@@ -106,6 +106,24 @@ Goals
 ^^^^^
 This function excutes the Upsert of postable, when we call UpsertValidatorTx.
 
+Action
+^^^^^
+a). Signer is in the Postable
+Firstly, This function will check whether the signer is in the Postable, if it is, the function then compares the old votingpower and new votingpower of the signer, with the formula:
+                                          int(signer_new_balance / threshold) >= int(signer_old_Balance / threshold)
+Secondly, if the new is less than the old, we do nothing, else, we will add the number of (new_votingpower - old_votingpower) signer 'PosItem' at the end of the 'PosArray',
+and at the end of signer PosItem 'Indexes', we also turn the elements into 'true', which makes us get a map[int]bool:
+        * the key is the number presents the place in the 'PosArray' where the signer locates,
+        * and the value is 'true'.
+Then, change the PosItemMap[signer].Balance into new Banalce.
+
+b). Signer is not in the Postable
+if the signer is not in the Postable, the function will initial the signer 'PosIterm' and put it into 'PosItemMap'.
+we will add the number of votingpower(balance/threshold) signer 'PosItem' at the end of the 'PosArray'
+we also initial the signer PosItem 'Indexes' -- a map[int]bool:
+        * the number of keys is the balance/posTable.threshold, the value of the key is posTable.PosArraySize.
+        * and the value is 'true'.
+
 
 2.removePosItem
 ----------
@@ -113,6 +131,12 @@ This function excutes the Upsert of postable, when we call UpsertValidatorTx.
 Goals
 ^^^^^
 This function excutes the removation of the 'account' candidate in postable, when we call removeValidatorTx.
+
+Action
+^^^^^
+Firstly, this function checks whether signer is in the 'PosItemMap', then get the 'Indexes' keys from the 'PosItem'.
+Secondly, we make an array of the 'Indexes' keys, sort it -- called the 'indexArray'.
+Then,
 
 
 3.UpsertValidatorTx

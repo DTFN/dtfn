@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"math/big"
 	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -13,11 +15,11 @@ type PosTable struct {
 	PosItemMap   map[common.Address]*posItem `json:"accounts"`
 	PosArray     []*posItem                  // All posItem
 	PosArraySize int                         // real size of posArray
-	threshold    int64                       // threshold value of PosTable
+	threshold    *big.Int                    // threshold value of PosTable
 	PrimeArray   *PrimeArray
 }
 
-func NewPosTable(threshold int64) *PosTable {
+func NewPosTable(threshold *big.Int) *PosTable {
 	pa := make([]*posItem, 2000)
 	return &PosTable{
 		PosItemMap:   make(map[common.Address]*posItem),
@@ -28,15 +30,16 @@ func NewPosTable(threshold int64) *PosTable {
 	}
 }
 
-func (posTable *PosTable) UpsertPosItem(signer common.Address, balance int64, beneficiary common.Address,
+func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int, beneficiary common.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
 	posTable.mtx.Lock()
 	defer posTable.mtx.Unlock()
 
 	posOriginPtr, exist := posTable.PosItemMap[signer]
 	if exist {
-		originPos := int(posTable.PosItemMap[signer].Balance / posTable.threshold)
-		newPos := int(balance / posTable.threshold)
+		originPos, _ := strconv.Atoi(posTable.PosItemMap[signer].Balance.
+			Div(posTable.PosItemMap[signer].Balance, posTable.threshold).String())
+		newPos, _ := strconv.Atoi(balance.Div(balance, posTable.threshold).String())
 		if originPos >= newPos {
 			return false, fmt.Errorf("address not upsert")
 		} else {
@@ -49,12 +52,13 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance int64, be
 			return true, nil
 		}
 	}
-	if balance < posTable.threshold {
+	if balance.Cmp(posTable.threshold) < 0 {
 		return false, fmt.Errorf("balance not enought")
 	}
 	posItemPtr := newPosItem(signer, balance, beneficiary, pubkey)
 	posTable.PosItemMap[signer] = posItemPtr
-	for i := 0; i < int(balance/posTable.threshold); i++ {
+	posNumber,_ := strconv.Atoi(balance.Div(balance,posTable.threshold).String())
+	for i := 0; i < posNumber; i++ {
 		posTable.PosArray[posTable.PosArraySize] = posItemPtr
 		posItemPtr.Indexes[posTable.PosArraySize] = true
 		posTable.PosArraySize++
@@ -96,7 +100,7 @@ func (posTable *PosTable) RemovePosItem(account common.Address) (bool, error) {
 	return true, nil
 }
 
-func (posTable *PosTable) SetThreShold(threShold int64) {
+func (posTable *PosTable) SetThreShold(threShold *big.Int) {
 	posTable.threshold = threShold
 }
 
@@ -107,13 +111,13 @@ func (posTable *PosTable) SelectItemByRandomValue(random int) posItem {
 
 type posItem struct {
 	Signer      common.Address
-	Balance     int64
+	Balance     *big.Int
 	PubKey      abciTypes.PubKey
 	Indexes     map[int]bool
 	Beneficiary common.Address
 }
 
-func newPosItem(signer common.Address, balance int64, beneficiary common.Address, pubKey abciTypes.PubKey) *posItem {
+func newPosItem(signer common.Address, balance *big.Int, beneficiary common.Address, pubKey abciTypes.PubKey) *posItem {
 	return &posItem{
 		Signer:      signer,
 		Balance:     balance,
