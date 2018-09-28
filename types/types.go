@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmTypes "github.com/tendermint/tendermint/types"
+	"math/big"
 	"reflect"
 )
 
@@ -36,6 +37,8 @@ type Strategy struct {
 
 	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable     *PosTable
+
+	TotalBalance *big.Int
 }
 
 type Validators struct {
