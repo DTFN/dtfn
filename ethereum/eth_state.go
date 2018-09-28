@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 	"github.com/ethereum/go-ethereum/core/blacklist"
-	"github.com/tendermint/ethermint/app"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 const errorCode = 1
@@ -203,6 +203,11 @@ type Wrap struct {
 	Args []interface{}
 }
 
+type ValidatorTx interface {
+	UpsertValidatorTx(signer common.Address, balance int64, beneficiary common.Address, pubkey crypto.PubKey) (bool, error)
+	RemoveValidatorTx(signer common.Address) (bool, error)
+}
+
 func (w *Wrap) CallFunc() {
 	if len(w.Args) == 4 {
 		w.F.(func(...interface{}))(w.Args)
@@ -268,18 +273,18 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 	if msg.To() != nil {
 		if blacklist.IsLockTx(*msg.To()) {
 			blacklist.BlacklistDB.Add(msg.From())
-			types.MarshalPubKey(string(msg.Data()))
+			MarshalPubKey(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From()).Int64()
 			args := append(make([]interface{}, 0, 4), msg.From(), balance, msg.From())
 			return &Wrap{
-				F:    app.EthermintApplication.UpsertValidatorTx,
+				F:    ValidatorTx.UpsertValidatorTx,
 				Args: args,
 			}
 		} else if blacklist.IsUnlockTx(*msg.To()) {
 			blacklist.BlacklistDB.Remove(msg.From())
 			args := append(make([]interface{}, 0, 4), msg.From())
 			return &Wrap{
-				F:    (*app.EthermintApplication).UpsertValidatorTx,
+				F:    ValidatorTx.UpsertValidatorTx,
 				Args: args,
 			}
 		}
