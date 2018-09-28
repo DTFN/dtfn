@@ -1,4 +1,4 @@
-package types
+package ethereum
 
 import (
 	"github.com/tendermint/go-amino"
@@ -18,7 +18,7 @@ func RegisterBlockAmino(cdc *amino.Codec) {
 }
 
 
-func marshalPubKey(jsonStr string) (crypto.PubKey, error) {
+func MarshalPubKey(jsonStr string) (crypto.PubKey, error) {
 	jsonByte := []byte(jsonStr)
 	pv := &privval.FilePV{}
 	err := cdc.UnmarshalJSON(jsonByte, &pv)

@@ -22,6 +22,8 @@ import (
 	emtTypes "github.com/tendermint/ethermint/types"
 	"strings"
 	"time"
+	"github.com/ethereum/go-ethereum/core/blacklist"
+	"github.com/tendermint/ethermint/app"
 )
 
 const errorCode = 1
@@ -81,7 +83,7 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, address *common.Address) abciTypes.ResponseDeliverTx {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx, *Wrap) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
@@ -196,6 +198,19 @@ type workState struct {
 	gp           *core.GasPool
 }
 
+type Wrap struct {
+	F    interface{}
+	Args []interface{}
+}
+
+func (w *Wrap) CallFunc() {
+	if len(w.Args) == 4 {
+		w.F.(func(...interface{}))(w.Args)
+	} else if len(w.Args) == 1 {
+		w.F.(func(interface{}))(w.Args)
+	}
+}
+
 func (ws *workState) State() *state.StateDB {
 	return ws.state
 }
@@ -216,10 +231,10 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, address *common.Address) abciTypes.ResponseDeliverTx {
+	tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx, *Wrap) {
 
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
-	receipt, _, err := core.ApplyTransaction(
+	receipt, msg, _, err := core.ApplyTransactionFacade(
 		chainConfig,
 		blockchain,
 		address, // defaults to address of the author of the header
@@ -230,9 +245,12 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		ws.totalUsedGas,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
+
 	if err != nil {
-		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
+		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}, &Wrap{}
 	}
+
+	wrap := handleTx(ws.state, msg)
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -243,7 +261,30 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	ws.receipts = append(ws.receipts, receipt)
 	ws.allLogs = append(ws.allLogs, logs...)
 
-	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}
+	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}, wrap
+}
+
+func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
+	if msg.To() != nil {
+		if blacklist.IsLockTx(*msg.To()) {
+			blacklist.BlacklistDB.Add(msg.From())
+			MarshalPubKey(string(msg.Data()))
+			balance := statedb.GetBalance(msg.From()).Int64()
+			args := append(make([]interface{}, 0, 4), msg.From(), balance, msg.From())
+			return &Wrap{
+				F:    app.EthermintApplication.UpsertValidatorTx,
+				Args: args,
+			}
+		} else if blacklist.IsUnlockTx(*msg.To()) {
+			blacklist.BlacklistDB.Remove(msg.From())
+			args := append(make([]interface{}, 0, 4), msg.From())
+			return &Wrap{
+				F:    (*app.EthermintApplication).UpsertValidatorTx,
+				Args: args,
+			}
+		}
+	}
+	return &Wrap{}
 }
 
 // Commit the ethereum state, update the header, make a new block and add it to

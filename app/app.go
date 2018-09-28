@@ -179,12 +179,15 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	}
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx, app.Receiver())
+	res, w := app.backend.DeliverTx(tx, app.Receiver())
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
 			"err", err)
 		return res
+	}
+	if w.F != nil {
+		w.CallFunc()
 	}
 	app.CollectTx(tx)
 
