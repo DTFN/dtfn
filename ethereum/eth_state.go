@@ -237,7 +237,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx, *Wrap) {
-
+	log.Info("to:" + tx.To().Hex())
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, msg, _, err := core.ApplyTransactionFacade(
 		chainConfig,
@@ -254,8 +254,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}, &Wrap{}
 	}
-
+	log.Info("from:" + msg.From().Hex())
 	wrap := handleTx(ws.state, msg)
+	log.Info("handled tx")
 
 	logs := ws.state.GetLogs(tx.Hash())
 
