@@ -57,6 +57,7 @@ func (app *EthermintApplication) StartHttpServer() {
 
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
+	app.GetLogger().Info("You are upsertValidatorTxing")
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
@@ -109,10 +110,14 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 					Power:   1,
 					Address: pubkey.Address(),
 				})
+			app.GetLogger().Info("add Validator Tx success")
+			return true, nil
 		} else if existFlag && same {
 			//同singer，同MapList[tmAddress]，是来改动balance的
 			app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
+			app.GetLogger().Info("upsert Validator Tx success")
+			return true, nil
 		} else {
 			//同singer，不同MapList[tmAddress]，来捣乱的
 			return false, nil
@@ -123,6 +128,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 }
 
 func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool, error) {
+	app.GetLogger().Info("You are upsertValidatorTxing")
 	if app.strategy != nil {
 		//找到tmAddress，另这个的signer与输入相等
 		var tmAddress string
@@ -171,7 +177,8 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 				app.strategy.ValidatorSet.NextCandidateValidators = append(app.
 					strategy.ValidatorSet.NextCandidateValidators, validatorNext[i])
 			}
-			return false, nil
+			app.GetLogger().Info("remove validatorTx success")
+			return true, nil
 		}
 		// If is a valid removeValidator,change the data in the strategy
 	}
