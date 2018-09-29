@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -18,12 +19,12 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/tendermint/ethermint/types"
+	"github.com/tendermint/tendermint/crypto"
 	"strings"
 	"time"
-	"github.com/ethereum/go-ethereum/core/blacklist"
-	"github.com/tendermint/tendermint/crypto"
 )
 
 const errorCode = 1
@@ -214,11 +215,27 @@ func (ws *workState) State() *state.StateDB {
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
 	//todo:后续要获取到块的validators列表根据voting power按比例分配收益
-
-	for i := 0; i < len(strategy.GetUpdatedValidators()); i++ {
-		address := strings.ToLower(hex.EncodeToString(strategy.GetUpdatedValidators()[i].Address))
-		ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, big.NewInt(1000000000000000000))
+	var validators []*abciTypes.Validator
+	for i := 0; i < len(strategy.ValidatorSet.CurrentValidators); i++ {
+		validators = append(validators, strategy.ValidatorSet.CurrentValidators[i])
 	}
+	for i := 0; i < len(strategy.ValidatorSet.CommitteeValidators); i++ {
+		validators = append(validators, strategy.ValidatorSet.CommitteeValidators[i])
+	}
+
+	fmt.Println(len(validators))
+
+	for i := 0; i < len(validators); i++ {
+		address := strings.ToLower(hex.EncodeToString(validators[i].Address))
+		fmt.Println(address)
+
+		if strategy.AccountMapListTemp.MapList[address] != nil {
+			ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, big.NewInt(1000000000000000000))
+		} else {
+			ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, big.NewInt(1000000000000000000))
+		}
+	}
+
 	ws.header.GasUsed = *ws.totalUsedGas
 }
 
@@ -245,6 +262,8 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}, &Wrap{}
 	}
 	log.Info("from:" + msg.From().Hex())
+	fmt.Println("wenbin test")
+	fmt.Println(msg.To().Hex())
 	wrap := handleTx(ws.state, msg)
 	log.Info("handled tx")
 
