@@ -2,29 +2,28 @@ package ethereum
 
 import (
 	"github.com/tendermint/go-amino"
-	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/privval"
+	"encoding/json"
 )
 
 var cdc = amino.NewCodec()
 
 func init() {
-	RegisterBlockAmino(cdc)
-}
-
-func RegisterBlockAmino(cdc *amino.Codec) {
 	cryptoAmino.RegisterAmino(cdc)
 }
 
+type TxData struct {
+	Pv          *privval.FilePV
+	Beneficiary string
+}
 
-func MarshalPubKey(jsonStr string) (crypto.PubKey, error) {
+func MarshalTxData(jsonStr string) (*TxData, error) {
 	jsonByte := []byte(jsonStr)
+	d := &TxData{}
+	json.Unmarshal(jsonByte, d)
 	pv := &privval.FilePV{}
-	err := cdc.UnmarshalJSON(jsonByte, &pv)
-	if err != nil {
-		return nil, err
-	} else {
-		return pv.PubKey, nil
-	}
+	cdc.UnmarshalJSON(jsonByte, pv)
+	d.Pv = pv
+	return d, nil
 }

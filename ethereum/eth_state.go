@@ -24,7 +24,6 @@ import (
 	"time"
 	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 const errorCode = 1
@@ -277,10 +276,9 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 	if msg.To() != nil {
 		if blacklist.IsLockTx(*msg.To()) {
 			blacklist.BlacklistDB.Add(msg.From())
-			MarshalPubKey(string(msg.Data()))
+			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From()).Int64()
-			// TODO
-			args := append(make([]interface{}, 0, 4), msg.From(), balance, msg.From(), secp256k1.GenPrivKey().PubKey())
+			args := append(make([]interface{}, 0, 4), msg.From(), balance, common.HexToAddress(data.Beneficiary), data.Pv.PubKey)
 			return &Wrap{
 				F:    ValidatorTx.UpsertValidatorTx,
 				Args: args,
