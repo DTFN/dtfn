@@ -4,13 +4,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
-	"strings"
-
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/tendermint/ethermint/httpserver"
+	"math/big"
+	"strings"
 
 	"github.com/tendermint/ethermint/ethereum"
 	emtTypes "github.com/tendermint/ethermint/types"
@@ -38,6 +38,8 @@ type EthermintApplication struct {
 	// strategy for validator compensation
 	strategy *emtTypes.Strategy
 
+	httpServer *httpserver.BaseServer
+
 	logger tmLog.Logger
 }
 
@@ -57,6 +59,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		getCurrentState: backend.Es().State, //backend.Ethereum().BlockChain().State,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
+		httpServer:      httpserver.NewBaseServer(),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -130,10 +133,9 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	if len(validators) > 5 {
 		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
 		app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
-		for i:=0;i<len(app.strategy.ValidatorSet.NextCandidateValidators);i++{
+		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
 			address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
 				NextCandidateValidators[i].Address))
-			fmt.Println(app.strategy.ValidatorSet.NextCandidateValidators[i].Address)
 			app.UpsertPosItem(
 				app.strategy.AccountMapList.MapList[address].Signer,
 				app.strategy.AccountMapList.MapList[address].SignerBalance,
@@ -232,7 +234,6 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		Data: blockHash[:],
 	}
 }
-
 
 // Query queries the state of the EthermintApplication
 // #stable - 0.4.0
@@ -357,5 +358,3 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 	return app.strategy
 }
-
-
