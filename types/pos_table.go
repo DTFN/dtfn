@@ -12,17 +12,17 @@ import (
 
 type PosTable struct {
 	mtx          sync.RWMutex
-	PosItemMap   map[common.Address]*posItem `json:"accounts"`
-	PosArray     []*posItem                  // All posItem
+	PosItemMap   map[common.Address]*PosItem `json:"accounts"` //This isnt called by foreign struct except rpc
+	PosArray     []*PosItem                  // All posItem
 	PosArraySize int                         // real size of posArray
 	threshold    *big.Int                    // threshold value of PosTable
 	PrimeArray   *PrimeArray
 }
 
 func NewPosTable(threshold *big.Int) *PosTable {
-	pa := make([]*posItem, 2000)
+	pa := make([]*PosItem, 2000)
 	return &PosTable{
-		PosItemMap:   make(map[common.Address]*posItem),
+		PosItemMap:   make(map[common.Address]*PosItem),
 		PosArray:     pa,
 		PosArraySize: 0,
 		threshold:    threshold,
@@ -107,12 +107,12 @@ func (posTable *PosTable) SetThreShold(threShold *big.Int) {
 	posTable.threshold = threShold
 }
 
-func (posTable *PosTable) SelectItemByRandomValue(random int) posItem {
+func (posTable *PosTable) SelectItemByRandomValue(random int) PosItem {
 	// for better justice select
 	return *posTable.PosArray[(posTable.PrimeArray.PrimeNumber[random%7])%(posTable.PosArraySize)]
 }
 
-type posItem struct {
+type PosItem struct {
 	Signer      common.Address
 	Balance     *big.Int
 	PubKey      abciTypes.PubKey
@@ -120,8 +120,8 @@ type posItem struct {
 	Beneficiary common.Address
 }
 
-func newPosItem(signer common.Address, balance *big.Int, beneficiary common.Address, pubKey abciTypes.PubKey) *posItem {
-	return &posItem{
+func newPosItem(signer common.Address, balance *big.Int, beneficiary common.Address, pubKey abciTypes.PubKey) *PosItem {
+	return &PosItem{
 		Signer:      signer,
 		Balance:     balance,
 		PubKey:      pubKey,

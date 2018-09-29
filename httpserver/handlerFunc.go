@@ -1,8 +1,10 @@
 package httpserver
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	emtTypes "github.com/tendermint/ethermint/types"
+	tmTypes "github.com/tendermint/tendermint/types"
 	"io"
 	"net/http"
 )
@@ -34,30 +36,62 @@ func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (tHandler *THandler)test(w http.ResponseWriter, r *http.Request) {
+func (tHandler *THandler) test(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "this is test function")
 }
 
-func (tHandler *THandler)Hello(w http.ResponseWriter, req *http.Request) {
+func (tHandler *THandler) Hello(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("Hello"))
 }
 
 // This function will return the used data structure
-func (tHandler *THandler)IsUpsert(w http.ResponseWriter, req *http.Request){
-	jsonStr,err := json.Marshal(tHandler.strategy.AccountMapList)
-	if err != nil{
+func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
+	var nextValidators []*Validator
+	for i := 0; i < len(tHandler.strategy.ValidatorSet.NextCandidateValidators); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+		nextValidators = append(nextValidators, &Validator{
+			Address:       tHandler.strategy.ValidatorSet.NextCandidateValidators[i].Address,
+			PubKey:        tHandler.strategy.ValidatorSet.NextCandidateValidators[i].PubKey,
+			Power:         tHandler.strategy.ValidatorSet.NextCandidateValidators[i].Power,
+			AddressString: hex.EncodeToString(tmPubKey.Address()),
+		})
+	}
+
+	PosReceipt := &Pos{
+		PosItemMap:              tHandler.strategy.PosTable.PosItemMap,
+		AccountMapList:          tHandler.strategy.AccountMapList,
+		NextCandidateValidators: nextValidators,
+	}
+	jsonStr, err := json.Marshal(PosReceipt)
+	if err != nil {
 		w.Write([]byte("error occured when marshal into json"))
-	}else{
+	} else {
 		w.Write(jsonStr)
 	}
 }
 
 // This function will return the used data structure
-func (tHandler *THandler)IsRemove(w http.ResponseWriter, req *http.Request){
-	jsonStr,err := json.Marshal(tHandler.strategy.AccountMapList)
-	if err != nil{
+func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
+	var nextValidators []*Validator
+	for i := 0; i < len(tHandler.strategy.ValidatorSet.NextCandidateValidators); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+		nextValidators = append(nextValidators, &Validator{
+			Address:       tHandler.strategy.ValidatorSet.NextCandidateValidators[i].Address,
+			PubKey:        tHandler.strategy.ValidatorSet.NextCandidateValidators[i].PubKey,
+			Power:         tHandler.strategy.ValidatorSet.NextCandidateValidators[i].Power,
+			AddressString: hex.EncodeToString(tmPubKey.Address()),
+		})
+	}
+
+	PosReceipt := &Pos{
+		PosItemMap:              tHandler.strategy.PosTable.PosItemMap,
+		AccountMapList:          tHandler.strategy.AccountMapList,
+		NextCandidateValidators: nextValidators,
+	}
+	jsonStr, err := json.Marshal(PosReceipt)
+	if err != nil {
 		w.Write([]byte("error occured when marshal into json"))
-	}else{
+	} else {
 		w.Write(jsonStr)
 	}
 }
