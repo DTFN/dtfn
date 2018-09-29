@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"encoding/json"
 	emtTypes "github.com/tendermint/ethermint/types"
 	"io"
 	"net/http"
@@ -23,6 +24,8 @@ func NewTHandler(strategy *emtTypes.Strategy) *THandler {
 func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/hello"] = tHandler.Hello
 	tHandler.HandlersMap["/test"] = tHandler.test
+	tHandler.HandlersMap["/isUpsert"] = tHandler.IsUpsert
+	tHandler.HandlersMap["/isRemove"] = tHandler.IsRemove
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -40,11 +43,21 @@ func (tHandler *THandler)Hello(w http.ResponseWriter, req *http.Request) {
 }
 
 // This function will return the used data structure
-func (tHandler *THandler)CheckWhetherUpsert(w http.ResponseWriter, req *http.Request){
-
+func (tHandler *THandler)IsUpsert(w http.ResponseWriter, req *http.Request){
+	jsonStr,err := json.Marshal(tHandler.strategy.AccountMapList)
+	if err != nil{
+		w.Write([]byte("error occured when marshal into json"))
+	}else{
+		w.Write(jsonStr)
+	}
 }
 
 // This function will return the used data structure
-func (tHandler *THandler)CheckWhetherRemove(w http.ResponseWriter, req *http.Request){
-
+func (tHandler *THandler)IsRemove(w http.ResponseWriter, req *http.Request){
+	jsonStr,err := json.Marshal(tHandler.strategy.AccountMapList)
+	if err != nil{
+		w.Write([]byte("error occured when marshal into json"))
+	}else{
+		w.Write(jsonStr)
+	}
 }
