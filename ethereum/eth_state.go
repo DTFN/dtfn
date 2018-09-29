@@ -268,17 +268,17 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
 			return &Wrap{
-				t:           "upsert",
-				signer:      msg.From(),
-				balance:     balance,
-				beneficiary: common.HexToAddress(data.Beneficiary),
-				pubkey:      data.Pv.PubKey,
+				T:           "upsert",
+				Signer:      msg.From(),
+				Balance:     balance,
+				Beneficiary: common.HexToAddress(data.Beneficiary),
+				Pubkey:      data.Pv.PubKey,
 			}
 		} else if blacklist.IsUnlockTx(*msg.To()) {
 			blacklist.BlacklistDB.Remove(msg.From())
 			return &Wrap{
-				t:      "remove",
-				signer: msg.From(),
+				T:      "remove",
+				Signer: msg.From(),
 			}
 		}
 	}
