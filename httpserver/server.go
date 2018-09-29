@@ -3,14 +3,15 @@ package httpserver
 import (
 	"net/http"
 	"time"
+	emtTypes "github.com/tendermint/ethermint/types"
 )
 
 type BaseServer struct {
 	HttpServer *http.Server
 }
 
-func NewBaseServer() *BaseServer {
-	handler := NewTHandler()
+func NewBaseServer(strategy *emtTypes.Strategy) *BaseServer {
+	handler := NewTHandler(strategy)
 	handler.RegisterFunc()
 	return &BaseServer{
 		HttpServer: &http.Server{
