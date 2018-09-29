@@ -199,22 +199,11 @@ type workState struct {
 }
 
 type Wrap struct {
-	F    interface{}
-	Args []interface{}
-}
-
-type ValidatorTx interface {
-	UpsertValidatorTx(signer common.Address, balance int64, beneficiary common.Address, pubkey crypto.PubKey) (bool, error)
-	RemoveValidatorTx(signer common.Address) (bool, error)
-}
-
-func (w *Wrap) CallFunc(app interface{}) {
-	log.Info("call func.")
-	if len(w.Args) == 4 {
-		w.F.(func(app interface{}, args ...interface{}))(app, w.Args)
-	} else if len(w.Args) == 1 {
-		w.F.(func(app interface{}, args interface{}))(app, w.Args)
-	}
+	T           string
+	Signer      common.Address
+	Balance     *big.Int
+	Beneficiary common.Address
+	Pubkey      crypto.PubKey
 }
 
 func (ws *workState) State() *state.StateDB {
@@ -278,17 +267,18 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 			blacklist.BlacklistDB.Add(msg.From())
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
-			args := append(make([]interface{}, 0, 4), msg.From(), balance, common.HexToAddress(data.Beneficiary), data.Pv.PubKey)
 			return &Wrap{
-				F:    ValidatorTx.UpsertValidatorTx,
-				Args: args,
+				t:           "upsert",
+				signer:      msg.From(),
+				balance:     balance,
+				beneficiary: common.HexToAddress(data.Beneficiary),
+				pubkey:      data.Pv.PubKey,
 			}
 		} else if blacklist.IsUnlockTx(*msg.To()) {
 			blacklist.BlacklistDB.Remove(msg.From())
-			args := append(make([]interface{}, 0, 1), msg.From())
 			return &Wrap{
-				F:    ValidatorTx.RemoveValidatorTx,
-				Args: args,
+				t:      "remove",
+				signer: msg.From(),
 			}
 		}
 	}

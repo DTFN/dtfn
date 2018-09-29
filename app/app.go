@@ -186,9 +186,13 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 			"err", err)
 		return res
 	}
-	if w.F != nil {
-		w.CallFunc(app)
+
+	if w.T == "upsert" {
+		app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
+	} else if w.T == "remove" {
+		app.RemoveValidatorTx(w.Signer)
 	}
+
 	app.CollectTx(tx)
 
 	return abciTypes.ResponseDeliverTx{
