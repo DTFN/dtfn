@@ -51,6 +51,10 @@ func (app *EthermintApplication) SetValidators(validators []*abciTypes.Validator
 	}
 }
 
+func (app *EthermintApplication) StartHttpServer() {
+	go app.httpServer.HttpServer.ListenAndServe()
+}
+
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	if app.strategy != nil {

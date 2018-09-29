@@ -65,6 +65,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	ethApp.StartHttpServer()
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "ethermint")
 	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
