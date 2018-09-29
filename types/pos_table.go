@@ -35,15 +35,18 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	posTable.mtx.Lock()
 	defer posTable.mtx.Unlock()
 
+	balanceCopy := big.NewInt(1000)
+
 	posOriginPtr, exist := posTable.PosItemMap[signer]
 	if exist {
-		originPos, _ := strconv.Atoi(posTable.PosItemMap[signer].Balance.
+		posTableCopy := big.NewInt(1000)
+		originPosWeight, _ := strconv.Atoi(posTableCopy.
 			Div(posTable.PosItemMap[signer].Balance, posTable.threshold).String())
-		newPos, _ := strconv.Atoi(balance.Div(balance, posTable.threshold).String())
-		if originPos >= newPos {
+		newPosWeight, _ := strconv.Atoi(balanceCopy.Div(balance, posTable.threshold).String())
+		if originPosWeight >= newPosWeight {
 			return false, fmt.Errorf("address not upsert")
 		} else {
-			for i := 0; i < newPos-originPos; i++ {
+			for i := 0; i < newPosWeight-originPosWeight; i++ {
 				posTable.PosArray[posTable.PosArraySize] = posOriginPtr
 				posOriginPtr.Indexes[posTable.PosArraySize] = true
 				posTable.PosArraySize++
@@ -57,7 +60,7 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	}
 	posItemPtr := newPosItem(signer, balance, beneficiary, pubkey)
 	posTable.PosItemMap[signer] = posItemPtr
-	posNumber,_ := strconv.Atoi(balance.Div(balance,posTable.threshold).String())
+	posNumber,_ := strconv.Atoi(balanceCopy.Div(balance,posTable.threshold).String())
 	for i := 0; i < posNumber; i++ {
 		posTable.PosArray[posTable.PosArraySize] = posItemPtr
 		posItemPtr.Indexes[posTable.PosArraySize] = true

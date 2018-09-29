@@ -59,7 +59,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		getCurrentState: backend.Es().State, //backend.Ethereum().BlockChain().State,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
-		httpServer:      httpserver.NewBaseServer(),
+		httpServer:      httpserver.NewBaseServer(strategy),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
