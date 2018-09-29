@@ -272,12 +272,12 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 }
 
 func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
-	log.Info("handleTx")
+	log.Info("handleTx, to:" + msg.To().Hex())
 	if msg.To() != nil {
 		if blacklist.IsLockTx(*msg.To()) {
 			blacklist.BlacklistDB.Add(msg.From())
 			data, _ := MarshalTxData(string(msg.Data()))
-			balance := statedb.GetBalance(msg.From()).Int64()
+			balance := statedb.GetBalance(msg.From())
 			args := append(make([]interface{}, 0, 4), msg.From(), balance, common.HexToAddress(data.Beneficiary), data.Pv.PubKey)
 			return &Wrap{
 				F:    ValidatorTx.UpsertValidatorTx,
