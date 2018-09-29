@@ -64,6 +64,13 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		// but NextCandidateValidator will changed every height
 		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
+		for i := 0; i < len(app.strategy.ValidatorSet.CommitteeValidators); i++ {
+			if bytes.Equal(pubkey.Address(), app.strategy.
+				ValidatorSet.CommitteeValidators[i].Address) {
+				return false, nil
+			}
+		}
+
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
@@ -125,6 +132,16 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 				break
 			}
 		}
+
+		//return fail if tmAddress == commitValidatorAddress
+		for i := 0; i < len(app.strategy.ValidatorSet.CommitteeValidators); i++ {
+			commitValidatorAddress := hex.EncodeToString(app.strategy.ValidatorSet.
+				CommitteeValidators[i].Address)
+			if commitValidatorAddress == tmAddress {
+				return false, nil
+			}
+		}
+
 		// judge whether is a valid removeValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)

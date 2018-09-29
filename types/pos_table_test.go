@@ -3,56 +3,57 @@ package types
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"testing"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"math/big"
+	"testing"
 )
 
 func TestUpsertPosTable(t *testing.T) {
-	pubk:=abciTypes.PubKey{}
-	table := NewPosTable(1000)
-	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 300,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	pubk := abciTypes.PubKey{}
+	table := NewPosTable(big.NewInt(1000))
+	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(300), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 
 	require.Equal(t, 0, table.PosArraySize)
 	require.Equal(t, false, upsertFlag)
 	require.Error(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 1000,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(1000), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 1, table.PosArraySize)
 	require.Equal(t, true, upsertFlag)
 	require.NoError(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 3500,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(3500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 3, table.PosArraySize)
 	require.Equal(t, true, upsertFlag)
 	require.NoError(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), 6500,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(6500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 9, table.PosArraySize)
 	require.Equal(t, true, upsertFlag)
 	require.NoError(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), 500,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 9, table.PosArraySize)
 	require.Equal(t, false, upsertFlag)
 	require.Error(t, err)
 }
 
 func TestRemovePosTable(t *testing.T) {
-	pubk:=abciTypes.PubKey{}
-	table := NewPosTable(1000)
-	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 300,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	pubk := abciTypes.PubKey{}
+	table := NewPosTable(big.NewInt(1000))
+	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(300), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 
 	require.Equal(t, 0, table.PosArraySize)
 	require.Equal(t, false, upsertFlag)
 	require.Error(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 1000,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(1000), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 3500,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(3500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), 6500,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(6500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), 500,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 
 	table.RemovePosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"))
 	require.Equal(t, 3, table.PosArraySize)
@@ -62,16 +63,16 @@ func TestRemovePosTable(t *testing.T) {
 }
 
 func TestComplicated(t *testing.T) {
-	pubk:=abciTypes.PubKey{}
-	table := NewPosTable(1000)
+	pubk := abciTypes.PubKey{}
+	table := NewPosTable(big.NewInt(1000))
 
-	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 1000,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(1000), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 1, table.PosArraySize)
 	require.Equal(t, true, upsertFlag)
 	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[0].Signer)
 	require.NoError(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), 3200,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(3200), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 4, table.PosArraySize)
 	require.Equal(t, true, upsertFlag)
 	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[1].Signer)
@@ -79,21 +80,21 @@ func TestComplicated(t *testing.T) {
 	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[3].Signer)
 	require.NoError(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 3610,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(3610), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 6, table.PosArraySize)
 	require.Equal(t, true, upsertFlag)
 	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[4].Signer)
 	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[5].Signer)
 	require.NoError(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), 2116,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), big.NewInt(2116), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 8, table.PosArraySize)
 	require.Equal(t, true, upsertFlag)
 	require.Equal(t, common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), table.PosArray[6].Signer)
 	require.Equal(t, common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), table.PosArray[7].Signer)
 	require.NoError(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), 4610,common.HexToAddress("0x0000000000000000000000000000000000000001"),pubk)
+	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(4610), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
 	require.Equal(t, 9, table.PosArraySize)
 	require.Equal(t, true, upsertFlag)
 	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[0].Signer)
@@ -117,4 +118,3 @@ func TestComplicated(t *testing.T) {
 	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[1].Signer)
 	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[2].Signer)
 }
-

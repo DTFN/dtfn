@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"encoding/hex"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -8,6 +9,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	tmTypes "github.com/tendermint/tendermint/types"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,7 +21,7 @@ var SignerList, BeneList [10]common.Address
 func TestUpsertValidator(t *testing.T) {
 	initPubKey()
 
-	strategy := emtTypes.NewStrategy()
+	strategy := emtTypes.NewStrategy(big.NewInt(20000))
 	ethapp, err := NewMockEthApplication(strategy)
 	require.NoError(t, err)
 
@@ -28,7 +30,7 @@ func TestUpsertValidator(t *testing.T) {
 
 	ethapp.strategy.AccountMapList = AML
 
-	upsertFlag, err := ethapp.UpsertValidatorTx(SignerList[0], 300, BeneList[0], pubkeylist[0])
+	upsertFlag, err := ethapp.UpsertValidatorTx(SignerList[0], big.NewInt(300), BeneList[0], pubkeylist[0])
 	require.NoError(t, err)
 	require.Equal(t, false, upsertFlag)
 }
@@ -55,7 +57,7 @@ func NewMockEthApplication(strategy *emtTypes.Strategy) (*EthermintApplication, 
 func TestRemoveValidatorTx(t *testing.T) {
 	initPubKey()
 
-	strategy := emtTypes.NewStrategy()
+	strategy := emtTypes.NewStrategy(big.NewInt(20000))
 	ethapp, err := NewMockEthApplication(strategy)
 	require.NoError(t, err)
 
@@ -64,18 +66,18 @@ func TestRemoveValidatorTx(t *testing.T) {
 
 	ethapp.strategy.AccountMapList = AML
 
-	upsertFlag, err := ethapp.UpsertValidatorTx(SignerList[0], 1000, BeneList[0], pubkeylist[0])
+	upsertFlag, err := ethapp.UpsertValidatorTx(SignerList[0], big.NewInt(1000), BeneList[0], pubkeylist[0])
 	require.NoError(t, err)
 	require.Equal(t, false, upsertFlag)
 
 	upsertFlag, err = ethapp.RemoveValidatorTx(SignerList[0])
-	require.Equal(t,1,len(ethapp.strategy.AccountMapList.MapList))
+	require.Equal(t, 0, len(ethapp.strategy.AccountMapList.MapList))
 }
 
-func TestComplicated(t *testing.T){
+func TestComplicated(t *testing.T) {
 	initPubKey()
 
-	strategy := emtTypes.NewStrategy()
+	strategy := emtTypes.NewStrategy(big.NewInt(20000))
 	ethapp, err := NewMockEthApplication(strategy)
 	require.NoError(t, err)
 
@@ -85,22 +87,28 @@ func TestComplicated(t *testing.T){
 	ethapp.strategy.AccountMapList = AML
 
 	//Complicated_UpsertValidatorTX & Generate NextCandidateValidators
-	upsertFlag, err := ethapp.UpsertValidatorTx(SignerList[0], 300, BeneList[0], pubkeylist[0])
+	upsertFlag, err := ethapp.UpsertValidatorTx(SignerList[0], big.NewInt(300), BeneList[0], pubkeylist[0])
 	require.NoError(t, err)
 	require.Equal(t, false, upsertFlag)
 
 	upsertFlag, err = ethapp.RemoveValidatorTx(SignerList[0])
-	require.Equal(t,1,len(ethapp.strategy.AccountMapList.MapList))
+	require.Equal(t, 0, len(ethapp.strategy.AccountMapList.MapList))
 
-	upsertFlag, err = ethapp.UpsertValidatorTx(SignerList[1], 300, BeneList[1], pubkeylist[1])
-	require.Equal(t,SignerList[0],ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[0].Address()))].Signer)
-	require.Equal(t,SignerList[1],ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[1].Address()))].Signer)
+	upsertFlag, err = ethapp.UpsertValidatorTx(SignerList[1], big.NewInt(300), BeneList[0], pubkeylist[1])
+	require.Equal(t, SignerList[1], ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[1].Address()))].Signer)
 
 	//Complicated_RemoveValidatorTx
-	upsertFlag, err = ethapp.RemoveValidatorTx(SignerList[0])
-	require.Equal(t,1,len(ethapp.strategy.AccountMapList.MapList))
-	require.Equal(t,SignerList[0],ethapp.strategy.AccountMapList.MapList[strings.ToLower(hex.EncodeToString(pubkeylist[1].Address()))].Signer)
-	require.Equal(t,1,len(ethapp.strategy.ValidatorSet.NextCandidateValidators))
-	require.Equal(t,[]byte(pubkeylist[1].Address()),ethapp.strategy.ValidatorSet.NextCandidateValidators[0].Address)
-
+	//找到tmAddress，另这个的signer与输入相等
+	var tmAddress string
+	for k, v := range ethapp.strategy.AccountMapList.MapList {
+		if bytes.Equal(v.Signer.Bytes(), SignerList[1].Bytes()) {
+			tmAddress = k
+			break
+		}
+	}
+	require.Equal(t, SignerList[1], ethapp.strategy.AccountMapList.MapList[tmAddress].Signer)
+	require.Equal(t, []byte(pubkeylist[1].Address()), ethapp.strategy.ValidatorSet.NextCandidateValidators[0].Address)
+	upsertFlag, err = ethapp.RemoveValidatorTx(SignerList[1])
+	require.Equal(t, 0, len(ethapp.strategy.AccountMapList.MapList))
+	require.Equal(t, 0, len(ethapp.strategy.ValidatorSet.NextCandidateValidators))
 }

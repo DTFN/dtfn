@@ -6,6 +6,6 @@ type PrimeArray struct {
 
 func NewPrimeArray() *PrimeArray {
 	return &PrimeArray{
-		PrimeNumber:[]int{2781629,2781637,2781677,2781683,2781703,2781707,2781731},
+		PrimeNumber: []int{2781629, 2781637, 2781677, 2781683, 2781703, 2781707, 2781731},
 	}
 }

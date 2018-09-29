@@ -136,7 +136,9 @@ Action
 ^^^^^
 Firstly, this function checks whether signer is in the 'PosItemMap', then get the 'Indexes' keys from the 'PosItem'.
 Secondly, we make an array of the 'Indexes' keys, sort it -- called the 'indexArray'.
-Then,
+Then,we use the indexArray as the Pointer to the 'Indexes'. PosItem have more VotingPower, it has more indexArray elements(Pointer) pointing to the 'Indexex'.
+When we want to delete the PosItem Power in the 'Indexes', we use 'indexArray' by deleting the element in it.
+However, we will keep the elemnts in the PosArray undeleted, just only be overlapped.
 
 
 3.UpsertValidatorTx
