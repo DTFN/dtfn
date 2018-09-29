@@ -24,6 +24,7 @@ import (
 	"time"
 	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 const errorCode = 1
@@ -208,11 +209,12 @@ type ValidatorTx interface {
 	RemoveValidatorTx(signer common.Address) (bool, error)
 }
 
-func (w *Wrap) CallFunc() {
+func (w *Wrap) CallFunc(app interface{}) {
+	log.Info("call func.")
 	if len(w.Args) == 4 {
-		w.F.(func(...interface{}))(w.Args)
+		w.F.(func(app interface{}, args ...interface{}))(app, w.Args)
 	} else if len(w.Args) == 1 {
-		w.F.(func(interface{}))(w.Args)
+		w.F.(func(app interface{}, args interface{}))(app, w.Args)
 	}
 }
 
@@ -271,21 +273,23 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 }
 
 func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
+	log.Info("handleTx")
 	if msg.To() != nil {
 		if blacklist.IsLockTx(*msg.To()) {
 			blacklist.BlacklistDB.Add(msg.From())
 			MarshalPubKey(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From()).Int64()
-			args := append(make([]interface{}, 0, 4), msg.From(), balance, msg.From())
+			// TODO
+			args := append(make([]interface{}, 0, 4), msg.From(), balance, msg.From(), secp256k1.GenPrivKey().PubKey())
 			return &Wrap{
 				F:    ValidatorTx.UpsertValidatorTx,
 				Args: args,
 			}
 		} else if blacklist.IsUnlockTx(*msg.To()) {
 			blacklist.BlacklistDB.Remove(msg.From())
-			args := append(make([]interface{}, 0, 4), msg.From())
+			args := append(make([]interface{}, 0, 1), msg.From())
 			return &Wrap{
-				F:    ValidatorTx.UpsertValidatorTx,
+				F:    ValidatorTx.RemoveValidatorTx,
 				Args: args,
 			}
 		}

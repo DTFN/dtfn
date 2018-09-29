@@ -187,7 +187,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 		return res
 	}
 	if w.F != nil {
-		w.CallFunc()
+		w.CallFunc(app)
 	}
 	app.CollectTx(tx)
 
