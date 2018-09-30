@@ -8,12 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/tendermint/ethermint/ethereum"
 	"github.com/tendermint/ethermint/httpserver"
+	emtTypes "github.com/tendermint/ethermint/types"
 	"math/big"
 	"strings"
-
-	"github.com/tendermint/ethermint/ethereum"
-	emtTypes "github.com/tendermint/ethermint/types"
 
 	errors "github.com/cosmos/cosmos-sdk/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
@@ -134,13 +133,15 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
 		app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
-			address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
-				NextCandidateValidators[i].Address))
-			app.UpsertPosItem(
-				app.strategy.AccountMapList.MapList[address].Signer,
-				app.strategy.AccountMapList.MapList[address].SignerBalance,
-				app.strategy.AccountMapList.MapList[address].Beneficiary,
-				app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+			if i < len(app.strategy.AccountMapList.MapList) {
+				address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
+					NextCandidateValidators[i].Address))
+				app.UpsertPosItem(
+					app.strategy.AccountMapList.MapList[address].Signer,
+					app.strategy.AccountMapList.MapList[address].SignerBalance,
+					app.strategy.AccountMapList.MapList[address].Beneficiary,
+					app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+			}
 		}
 	} else {
 		app.strategy.ValidatorSet.CommitteeValidators = validators
