@@ -14,7 +14,7 @@
 */**/*tx_database*
 */**/*dapps*
 build/_vendor/pkg
-
+build/*
 #*
 .#*
 *#
@@ -45,3 +45,4 @@ profile.cov
 /dashboard/assets/package-lock.json
 
 **/yarn-error.log
+/build/

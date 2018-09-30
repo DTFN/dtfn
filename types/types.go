@@ -29,8 +29,13 @@ type Strategy struct {
 
 	//if height = 1 ,currentValidator come from genesis.json
 	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
-	currentValidators  []*abciTypes.Validator
-	AccountMapList     *tmTypes.AccountMapList
+	currentValidators []*abciTypes.Validator
+	AccountMapList    *tmTypes.AccountMapList
+
+	//This map was used when some validator was removed and didnt existed in the accountMapList
+	// we should remember it for balance bonus and then clear it
+	AccountMapListTemp *tmTypes.AccountMapList
+
 	ValidatorTmAddress string
 
 	ValidatorSet Validators
@@ -71,7 +76,7 @@ type Validators struct {
 func NewStrategy(totalBalance *big.Int) *Strategy {
 	threshold := big.NewInt(1000)
 	return &Strategy{
-		PosTable:     NewPosTable(threshold.Div(totalBalance,threshold)),
+		PosTable:     NewPosTable(threshold.Div(totalBalance, threshold)),
 		TotalBalance: totalBalance,
 	}
 }
@@ -80,8 +85,10 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 func (s *Strategy) Receiver() common.Address {
 	if s.ValidatorTmAddress == "" {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	} else {
+	} else if s.AccountMapList.MapList[s.ValidatorTmAddress] != nil {
 		return s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary
+	} else {
+		return s.AccountMapListTemp.MapList[s.ValidatorTmAddress].Beneficiary
 	}
 }
 
@@ -113,4 +120,7 @@ func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
 // GetUpdatedValidators returns the current validators
 func (strategy *Strategy) SetAccountMapList(accountMapList *tmTypes.AccountMapList) {
 	strategy.AccountMapList = accountMapList
+	strategy.AccountMapListTemp = &tmTypes.AccountMapList{
+		MapList: make(map[string]*tmTypes.AccountMap),
+	}
 }

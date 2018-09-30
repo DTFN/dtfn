@@ -179,13 +179,20 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	}
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx, app.Receiver())
+	res, w := app.backend.DeliverTx(tx, app.Receiver())
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
 			"err", err)
 		return res
 	}
+
+	if w.T == "upsert" {
+		app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
+	} else if w.T == "remove" {
+		app.RemoveValidatorTx(w.Signer)
+	}
+
 	app.CollectTx(tx)
 
 	return abciTypes.ResponseDeliverTx{
@@ -202,6 +209,12 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	// update the eth header with the tendermint header!br0ken!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.ValidatorTmAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
+
+	// before next bonus ,clear accountMapListTemp
+	for key, _ := range app.strategy.AccountMapListTemp.MapList {
+		delete(app.strategy.AccountMapListTemp.MapList, key)
+	}
+
 	return abciTypes.ResponseBeginBlock{}
 }
 
