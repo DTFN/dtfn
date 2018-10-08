@@ -59,6 +59,9 @@ func (app *EthermintApplication) StartHttpServer() {
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
+	if len(app.strategy.ValidatorSet.CommitteeValidators) < 5 {
+		return false, errors.New("Not support for upsertValidatorTx because of not enough committeeValidators")
+	}
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
@@ -199,7 +202,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 
 			if len(app.strategy.ValidatorSet.NextCandidateValidators) == 1 {
 				app.strategy.ValidatorSet.NextCandidateValidators = nil
-			} else if markIndex == 0  {
+			} else if markIndex == 0 {
 				app.strategy.ValidatorSet.NextCandidateValidators = app.strategy.ValidatorSet.NextCandidateValidators[1:]
 			} else if markIndex == len(app.strategy.ValidatorSet.NextCandidateValidators)-1 {
 				app.strategy.ValidatorSet.NextCandidateValidators = app.strategy.ValidatorSet.
