@@ -22,12 +22,6 @@ var (
 		Usage: "This is the address that ethermint will use to connect to the tendermint core node. Please provide a port.",
 	}
 
-	TendermintP2PFlag = cli.StringFlag{
-		Name:  "tendermint_p2paddr",
-		Value: "tcp://localhost:26656",
-		Usage: "This is the address that tendermint will use to connect other tendermint port.",
-	}
-
 	// ABCIAddrFlag is the address that ethermint will use to listen to incoming ABCI connections
 	// #stable - 0.4.0
 	ABCIAddrFlag = cli.StringFlag{
@@ -121,4 +115,10 @@ var (
 		Usage: "Set true to enable the peer-exchange reactor",
 	}
 	// Comma separated list of peer IDs to keep private (will not be gossiped to other peers)
+
+	TendermintP2PListenAddress = cli.StringFlag{
+		Name:  "tendermint_p2paddr",
+		Value: "tcp://localhost:26656",
+		Usage: "This is the address that tendermint will use to connect other tendermint port.",
+	}
 )

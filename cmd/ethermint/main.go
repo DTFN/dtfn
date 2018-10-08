@@ -80,6 +80,7 @@ var (
 		utils.AddrBook,
 		utils.RoutabilityStrict,
 		utils.PrivatePeerIDs,
+		utils.TendermintP2PListenAddress,
 	}
 )
 
