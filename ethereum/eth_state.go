@@ -289,6 +289,7 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 				Pubkey:      data.Pv.PubKey,
 			}
 		} else if blacklist.IsUnlockTx(*msg.To()) {
+			log.Info("Remove")
 			blacklist.BlacklistDB.Remove(msg.From())
 			return &Wrap{
 				T:      "remove",
