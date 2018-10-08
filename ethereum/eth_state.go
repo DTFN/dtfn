@@ -223,8 +223,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		validators = append(validators, strategy.ValidatorSet.CommitteeValidators[i])
 	}
 
-	fmt.Println(len(validators))
-
 	for i := 0; i < len(validators); i++ {
 		address := strings.ToLower(hex.EncodeToString(validators[i].Address))
 		fmt.Println(address)
@@ -262,10 +260,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}, &Wrap{}
 	}
 	log.Info("from:" + msg.From().Hex())
-	fmt.Println("wenbin test")
-	fmt.Println(msg.To().Hex())
 	wrap := handleTx(ws.state, msg)
-	log.Info("handled tx")
 
 	logs := ws.state.GetLogs(tx.Hash())
 
