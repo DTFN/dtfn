@@ -16,6 +16,7 @@ import (
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
 	"strings"
+	"github.com/ethereum/go-ethereum/core/blacklist"
 )
 
 // EthermintApplication implements an ABCI application
@@ -201,7 +202,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 // BeginBlock starts a new Ethereum block
 // #stable - 0.4.0
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
-
+	blacklist.BlacklistDB.SetCurrentHeight(beginBlock.Header.Height)
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!br0ken!!
