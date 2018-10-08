@@ -277,7 +277,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 	log.Info("handleTx, to:" + msg.To().Hex())
 	if msg.To() != nil {
-		if blacklist.IsLockTx(*msg.To()) {
+		if blacklist.IsLockTx(msg.To().Hex()) {
 			blacklist.BlacklistDB.Add(msg.From())
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
@@ -288,7 +288,7 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 				Beneficiary: common.HexToAddress(data.Beneficiary),
 				Pubkey:      data.Pv.PubKey,
 			}
-		} else if blacklist.IsUnlockTx(*msg.To()) {
+		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
 			log.Info("Remove")
 			blacklist.BlacklistDB.Remove(msg.From())
 			return &Wrap{
