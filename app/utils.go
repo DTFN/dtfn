@@ -60,6 +60,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
 	if len(app.strategy.ValidatorSet.CommitteeValidators) < 5 {
+		app.GetLogger().Info("upsert failed for len(committeeValidators) less than 5")
 		return false, errors.New("Not support for upsertValidatorTx because of not enough committeeValidators")
 	}
 	if app.strategy != nil {
