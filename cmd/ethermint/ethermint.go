@@ -45,7 +45,6 @@ func ethermintCmd(ctx *cli.Context) error {
 	totalBalanceInital := big.NewInt(0)
 	for key,_:= range genesis.Alloc{
 		totalBalanceInital.Add(totalBalanceInital,genesis.Alloc[key].Balance)
-		fmt.Println(genesis.Alloc[key].Balance)
 	}
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
