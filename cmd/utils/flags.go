@@ -117,7 +117,7 @@ var (
 	// Comma separated list of peer IDs to keep private (will not be gossiped to other peers)
 
 	TendermintP2PListenAddress = cli.StringFlag{
-		Name:  "laddr",
+		Name:  "tendermint_p2paddr",
 		Value: "",
 		Usage: "This is the address that tendermint will use to connect other tendermint port.",
 	}
