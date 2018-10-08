@@ -314,7 +314,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 				app.strategy.ValidatorSet.CurrentValidators = append(app.
 					strategy.ValidatorSet.CurrentValidators, &validator)
 			} else if bytes.Equal(validator.Address, validatorsSlice[5+len(validators)].Address) {
-				validatorsSlice[5+len(validators)].Power++
+				//validatorsSlice[5+len(validators)].Power++
 			} else {
 				validatorsSlice = append(validatorsSlice, validator)
 				app.strategy.ValidatorSet.CurrentValidators = append(app.
@@ -360,7 +360,7 @@ func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.R
 			app.strategy.ValidatorSet.CurrentValidators = append(app.
 				strategy.ValidatorSet.CurrentValidators, &validator)
 		} else if bytes.Equal(validator.Address, validatorsSlice[maxValidatorSlice-2].Address) {
-			validatorsSlice[maxValidatorSlice-2].Power++
+			//validatorsSlice[maxValidatorSlice-2].Power++
 		} else {
 			validatorsSlice = append(validatorsSlice, validator)
 			app.strategy.ValidatorSet.CurrentValidators = append(app.
