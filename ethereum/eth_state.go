@@ -25,7 +25,6 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"strings"
 	"time"
-	"strconv"
 )
 
 const errorCode = 1
@@ -276,11 +275,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 }
 
 func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int) *Wrap {
-	log.Info("handleTx, to:" + msg.To().Hex())
-	log.Info("msg.to:" + strconv.FormatBool(msg.To() != nil))
 	if msg.To() != nil {
-		log.Info("is lock:" + strconv.FormatBool(blacklist.IsLockTx(msg.To().Hex())))
-		log.Info("is unlock:" + strconv.FormatBool(blacklist.IsUnlockTx(msg.To().Hex())))
 		if blacklist.IsLockTx(msg.To().Hex()) {
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
