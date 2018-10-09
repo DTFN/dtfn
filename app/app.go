@@ -15,8 +15,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/core/blacklist"
 )
 
 // EthermintApplication implements an ABCI application
@@ -184,14 +183,13 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 			//b, e := app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
 			b := true
 			if e == nil && b {
-				db.SetState(w.Signer, common.BytesToHash([]byte("LOCK_INFO")), common.BigToHash(big.NewInt(-1)))
+				blacklist.Lock(db, w.Signer)
 			}
 		} else if w.T == "remove" {
 			//b, e := app.RemoveValidatorTx(w.Signer)
 			b := true
 			if e == nil && b {
-				log.Info("h:", w.Height)
-				db.SetState(w.Signer, common.BytesToHash([]byte("LOCK_INFO")), common.BigToHash(w.Height))
+				blacklist.Unlock(db, w.Signer, w.Height)
 			}
 		}
 	}
