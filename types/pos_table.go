@@ -60,7 +60,7 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	}
 	posItemPtr := newPosItem(signer, balance, beneficiary, pubkey)
 	posTable.PosItemMap[signer] = posItemPtr
-	posNumber,_ := strconv.Atoi(balanceCopy.Div(balance,posTable.threshold).String())
+	posNumber, _ := strconv.Atoi(balanceCopy.Div(balance, posTable.threshold).String())
 	for i := 0; i < posNumber; i++ {
 		posTable.PosArray[posTable.PosArraySize] = posItemPtr
 		posItemPtr.Indexes[posTable.PosArraySize] = true
