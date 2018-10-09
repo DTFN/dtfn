@@ -369,6 +369,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 				tmAddress := hex.EncodeToString(app.strategy.ValidatorSet.
 					InitialValidators[j].Address)
 				delete(app.strategy.AccountMapList.MapList, tmAddress)
+				app.GetLogger().Info("remove not enough balance validators")
 			}
 		}
 
