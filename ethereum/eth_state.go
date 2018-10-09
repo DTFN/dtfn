@@ -281,8 +281,6 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 		log.Info("is lock:" + strconv.FormatBool(blacklist.IsLockTx(msg.To().Hex())))
 		log.Info("is unlock:" + strconv.FormatBool(blacklist.IsUnlockTx(msg.To().Hex())))
 		if blacklist.IsLockTx(msg.To().Hex()) {
-			log.Info("Add")
-			blacklist.BlacklistDB.Add(msg.From())
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
 			return &Wrap{
@@ -293,8 +291,6 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 				Pubkey:      data.Pv.PubKey,
 			}
 		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
-			log.Info("Remove")
-			blacklist.BlacklistDB.Remove(msg.From())
 			return &Wrap{
 				T:      "remove",
 				Signer: msg.From(),

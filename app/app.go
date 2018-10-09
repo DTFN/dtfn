@@ -188,9 +188,15 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	}
 
 	if w.T == "upsert" {
-		app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
+		b, e := app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
+		if e == nil && b {
+			blacklist.BlacklistDB.Add(w.Signer)
+		}
 	} else if w.T == "remove" {
-		app.RemoveValidatorTx(w.Signer)
+		b, e := app.RemoveValidatorTx(w.Signer)
+		if e == nil && b {
+			blacklist.BlacklistDB.Remove(w.Signer)
+		}
 	}
 
 	app.CollectTx(tx)
@@ -203,7 +209,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 // BeginBlock starts a new Ethereum block
 // #stable - 0.4.0
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
-	blacklist.BlacklistDB.SetCurrentHeight(beginBlock.Header.Height)
+
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!br0ken!!
