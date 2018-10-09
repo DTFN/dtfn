@@ -25,7 +25,6 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"strings"
 	"time"
-	"strconv"
 )
 
 const errorCode = 1
@@ -206,6 +205,7 @@ type Wrap struct {
 	Balance     *big.Int
 	Beneficiary common.Address
 	Pubkey      crypto.PubKey
+	Height      *big.Int
 }
 
 func (ws *workState) State() *state.StateDB {
@@ -260,7 +260,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}, &Wrap{}
 	}
 	log.Info("from:" + msg.From().Hex())
-	wrap := handleTx(ws.state, msg)
+	wrap := handleTx(ws.state, msg, ws.header.Number)
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -274,12 +274,8 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}, wrap
 }
 
-func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
-	log.Info("handleTx, to:" + msg.To().Hex())
-	log.Info("msg.to:" + strconv.FormatBool(msg.To() != nil))
+func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int) *Wrap {
 	if msg.To() != nil {
-		log.Info("is lock:" + strconv.FormatBool(blacklist.IsLockTx(msg.To().Hex())))
-		log.Info("is unlock:" + strconv.FormatBool(blacklist.IsUnlockTx(msg.To().Hex())))
 		if blacklist.IsLockTx(msg.To().Hex()) {
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
@@ -289,11 +285,13 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 				Balance:     balance,
 				Beneficiary: common.HexToAddress(data.Beneficiary),
 				Pubkey:      data.Pv.PubKey,
+				Height:      h,
 			}
 		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
 			return &Wrap{
 				T:      "remove",
 				Signer: msg.From(),
+				Height: h,
 			}
 		}
 	}
