@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
+	"math/rand"
 	"sort"
 	"strconv"
 	"sync"
@@ -108,8 +109,8 @@ func (posTable *PosTable) SetThreShold(threShold *big.Int) {
 }
 
 func (posTable *PosTable) SelectItemByRandomValue(random int) PosItem {
-	// for better justice select
-	return *posTable.PosArray[(posTable.PrimeArray.PrimeNumber[random%7])%(posTable.PosArraySize)]
+	r := rand.New(rand.NewSource(int64(random)))
+	return *posTable.PosArray[r.Intn(posTable.PosArraySize)]
 }
 
 type PosItem struct {
