@@ -56,6 +56,9 @@ type Validators struct {
 	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
 	NextCandidateValidators []*abciTypes.Validator
 
+	// Initial validators , only use for once
+	InitialValidators []*abciTypes.Validator
+
 	// validators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
 	// will be select by postable.
 	// CurrentValidators is the true validators except commmittee validator when height != 1

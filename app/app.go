@@ -132,6 +132,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	if len(validators) > 5 {
 		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
 		app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
+		app.strategy.ValidatorSet.InitialValidators = validators[5:]
 		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
 			address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
 				NextCandidateValidators[i].Address))
