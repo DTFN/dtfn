@@ -25,6 +25,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"strings"
 	"time"
+	"strconv"
 )
 
 const errorCode = 1
@@ -242,7 +243,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx, *Wrap) {
-	log.Info("to:" + tx.To().Hex())
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, msg, _, err := core.ApplyTransactionFacade(
 		chainConfig,
@@ -276,8 +276,12 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 
 func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 	log.Info("handleTx, to:" + msg.To().Hex())
+	log.Info("msg.to:" + strconv.FormatBool(msg.To() != nil))
 	if msg.To() != nil {
-		if blacklist.IsLockTx(*msg.To()) {
+		log.Info("is lock:" + strconv.FormatBool(blacklist.IsLockTx(msg.To().Hex())))
+		log.Info("is unlock:" + strconv.FormatBool(blacklist.IsUnlockTx(msg.To().Hex())))
+		if blacklist.IsLockTx(msg.To().Hex()) {
+			log.Info("Add")
 			blacklist.BlacklistDB.Add(msg.From())
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
@@ -288,7 +292,8 @@ func handleTx(statedb *state.StateDB, msg core.Message) *Wrap {
 				Beneficiary: common.HexToAddress(data.Beneficiary),
 				Pubkey:      data.Pv.PubKey,
 			}
-		} else if blacklist.IsUnlockTx(*msg.To()) {
+		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
+			log.Info("Remove")
 			blacklist.BlacklistDB.Remove(msg.From())
 			return &Wrap{
 				T:      "remove",
