@@ -6,6 +6,7 @@ import (
 	"fmt"
 	errors "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -15,8 +16,6 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
-	"strings"
-	"github.com/ethereum/go-ethereum/core/blacklist"
 )
 
 // EthermintApplication implements an ABCI application
@@ -131,17 +130,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	app.SetValidators(validators)
 	if len(validators) > 5 {
 		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
-		app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
+		//app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
 		app.strategy.ValidatorSet.InitialValidators = validators[5:]
-		for i := 0; i < len(app.strategy.ValidatorSet.NextCandidateValidators); i++ {
-			address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
-				NextCandidateValidators[i].Address))
-			app.UpsertPosItem(
-				app.strategy.AccountMapList.MapList[address].Signer,
-				app.strategy.AccountMapList.MapList[address].SignerBalance,
-				app.strategy.AccountMapList.MapList[address].Beneficiary,
-				app.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
-		}
 	} else {
 		app.strategy.ValidatorSet.CommitteeValidators = validators
 	}
