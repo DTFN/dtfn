@@ -21,7 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/tendermint/ethermint/types"
 	"github.com/tendermint/tendermint/crypto"
-	"strconv"
 	"strings"
 	"time"
 )

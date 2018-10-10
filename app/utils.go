@@ -264,8 +264,10 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 		//}
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else {
+		} else if int(height)%200 != 0 {
 			return app.enterSelectValidators(height)
+		} else {
+			return app.blsValidators(height)
 		}
 	}
 	return abciTypes.ResponseEndBlock{}
@@ -395,4 +397,46 @@ func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.R
 	}
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 
+}
+
+func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
+
+	var validatorsSlice []abciTypes.Validator
+	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
+		validatorsSlice = append(validatorsSlice,
+			abciTypes.Validator{
+				Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
+				PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
+				Power:   int64(0),
+			})
+	}
+
+	app.strategy.ValidatorSet.CurrentValidators = nil
+
+	for i := 0; i < len(app.strategy.ValidatorSet.CommitteeValidators); i++ {
+		validatorsSlice = append(validatorsSlice,
+			abciTypes.Validator{
+				Address: app.strategy.ValidatorSet.CommitteeValidators[i].Address,
+				PubKey:  app.strategy.ValidatorSet.CommitteeValidators[i].PubKey,
+				Power:   int64(1),
+			})
+	}
+
+	for i := 0; i < len(app.strategy.ValidatorSet.NextHeightCandidateValidators); i++ {
+		app.strategy.ValidatorSet.CurrentValidators = append(app.
+			strategy.ValidatorSet.CurrentValidators, &abciTypes.Validator{
+			Address: app.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address,
+			PubKey:  app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
+			Power:   int64(1),
+		})
+
+		validatorsSlice = append(validatorsSlice,
+			abciTypes.Validator{
+				Address: app.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address,
+				PubKey:  app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
+				Power:   int64(1),
+			})
+	}
+
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 }
