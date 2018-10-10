@@ -264,7 +264,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.Re
 		//}
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else if int(height)%20 != 0 {
+		} else if int(height)%200 != 0 {
 			return app.enterSelectValidators(height)
 		} else {
 			return app.blsValidators(height)
