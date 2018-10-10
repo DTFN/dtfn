@@ -255,13 +255,6 @@ func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
-		//if int(height) == 1 {
-		//	return app.enterInitial(height)
-		//} else if height%200 != 0 {
-		//	return app.enterSelectValidators(height)
-		//} else {
-		//	return abciTypes.ResponseEndBlock{}
-		//}
 		if int(height) == 1 {
 			return app.enterInitial(height)
 		} else if int(height)%200 != 0 {
