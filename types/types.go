@@ -36,7 +36,7 @@ type Strategy struct {
 	// we should remember it for balance bonus and then clear it
 	AccountMapListTemp *tmTypes.AccountMapList
 
-	ValidatorTmAddress string
+	ProposerAddress string
 
 	ValidatorSet Validators
 
@@ -51,10 +51,10 @@ type Validators struct {
 	CommitteeValidators []*abciTypes.Validator
 
 	// current validators of candidate
-	CandidateValidators []*abciTypes.Validator
+	BlsCandidateValidators []*abciTypes.Validator
 
 	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
-	NextCandidateValidators []*abciTypes.Validator
+	NextHeightCandidateValidators []*abciTypes.Validator
 
 	// Initial validators , only use for once
 	InitialValidators []*abciTypes.Validator
@@ -86,12 +86,12 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
-	if s.ValidatorTmAddress == "" {
+	if s.ProposerAddress == "" {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	} else if s.AccountMapList.MapList[s.ValidatorTmAddress] != nil {
-		return s.AccountMapList.MapList[s.ValidatorTmAddress].Beneficiary
+	} else if s.AccountMapList.MapList[s.ProposerAddress] != nil {
+		return s.AccountMapList.MapList[s.ProposerAddress].Beneficiary
 	} else {
-		return s.AccountMapListTemp.MapList[s.ValidatorTmAddress].Beneficiary
+		return s.AccountMapListTemp.MapList[s.ProposerAddress].Beneficiary
 	}
 }
 

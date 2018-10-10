@@ -47,12 +47,12 @@ func (tHandler *THandler) Hello(w http.ResponseWriter, req *http.Request) {
 // This function will return the used data structure
 func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
 	var nextValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.ValidatorSet.NextCandidateValidators); i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+	for i := 0; i < len(tHandler.strategy.ValidatorSet.NextHeightCandidateValidators); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey)
 		nextValidators = append(nextValidators, &Validator{
-			Address:       tHandler.strategy.ValidatorSet.NextCandidateValidators[i].Address,
-			PubKey:        tHandler.strategy.ValidatorSet.NextCandidateValidators[i].PubKey,
-			Power:         tHandler.strategy.ValidatorSet.NextCandidateValidators[i].Power,
+			Address:       tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address,
+			PubKey:        tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
+			Power:         tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].Power,
 			AddressString: hex.EncodeToString(tmPubKey.Address()),
 		})
 	}
@@ -73,12 +73,12 @@ func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
 // This function will return the used data structure
 func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 	var nextValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.ValidatorSet.NextCandidateValidators); i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.ValidatorSet.NextCandidateValidators[i].PubKey)
+	for i := 0; i < len(tHandler.strategy.ValidatorSet.NextHeightCandidateValidators); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey)
 		nextValidators = append(nextValidators, &Validator{
-			Address:       tHandler.strategy.ValidatorSet.NextCandidateValidators[i].Address,
-			PubKey:        tHandler.strategy.ValidatorSet.NextCandidateValidators[i].PubKey,
-			Power:         tHandler.strategy.ValidatorSet.NextCandidateValidators[i].Power,
+			Address:       tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address,
+			PubKey:        tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
+			Power:         tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].Power,
 			AddressString: hex.EncodeToString(tmPubKey.Address()),
 		})
 	}

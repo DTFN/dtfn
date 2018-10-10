@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -12,7 +11,6 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth"
-	//"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 
@@ -23,9 +21,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/tendermint/ethermint/types"
 	"github.com/tendermint/tendermint/crypto"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 )
 
 const errorCode = 1
@@ -226,7 +224,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 
 	for i := 0; i < len(validators); i++ {
 		address := strings.ToLower(hex.EncodeToString(validators[i].Address))
-		fmt.Println(address)
 
 		if strategy.AccountMapListTemp.MapList[address] != nil {
 			ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, big.NewInt(1000000000000000000))

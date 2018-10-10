@@ -204,7 +204,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!br0ken!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
-	app.strategy.ValidatorTmAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
+	app.strategy.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 
 	// before next bonus ,clear accountMapListTemp
 	for key, _ := range app.strategy.AccountMapListTemp.MapList {
