@@ -218,8 +218,8 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	for i := 0; i < len(strategy.ValidatorSet.CurrentValidators); i++ {
 		validators = append(validators, strategy.ValidatorSet.CurrentValidators[i])
 	}
-	for i := 0; i < len(strategy.ValidatorSet.CommitteeValidators); i++ {
-		validators = append(validators, strategy.ValidatorSet.CommitteeValidators[i])
+	for i := 0; i < len(strategy.ValidatorSet.CornerStoneValidators); i++ {
+		validators = append(validators, strategy.ValidatorSet.CornerStoneValidators[i])
 	}
 
 	for i := 0; i < len(validators); i++ {

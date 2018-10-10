@@ -48,7 +48,7 @@ type Strategy struct {
 
 type Validators struct {
 	// validators of committee , used to support +2/3 ,our node
-	CommitteeValidators []*abciTypes.Validator
+	CornerStoneValidators []*abciTypes.Validator
 
 	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
 	NextHeightCandidateValidators []*abciTypes.Validator

@@ -129,11 +129,11 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	}
 	app.SetValidators(validators)
 	if len(validators) > 5 {
-		app.strategy.ValidatorSet.CommitteeValidators = validators[0:5]
+		app.strategy.ValidatorSet.CornerStoneValidators = validators[0:5]
 		//app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
 		app.strategy.ValidatorSet.InitialValidators = validators[5:]
 	} else {
-		app.strategy.ValidatorSet.CommitteeValidators = validators
+		app.strategy.ValidatorSet.CornerStoneValidators = validators
 	}
 	return abciTypes.ResponseInitChain{}
 }

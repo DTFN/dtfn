@@ -59,7 +59,7 @@ func (app *EthermintApplication) StartHttpServer() {
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
-	if len(app.strategy.ValidatorSet.CommitteeValidators) < 5 {
+	if len(app.strategy.ValidatorSet.CornerStoneValidators) < 5 {
 		app.GetLogger().Info("upsert failed for len(committeeValidators) less than 5")
 		return false, errors.New("Not support for upsertValidatorTx because of not enough committeeValidators")
 	}
@@ -74,9 +74,9 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		}
 		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
-		for i := 0; i < len(app.strategy.ValidatorSet.CommitteeValidators); i++ {
+		for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
 			if bytes.Equal(pubkey.Address(), app.strategy.
-				ValidatorSet.CommitteeValidators[i].Address) {
+				ValidatorSet.CornerStoneValidators[i].Address) {
 				app.GetLogger().Info("can not use committee validator")
 				return false, nil
 			}
@@ -162,9 +162,9 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		}
 
 		//return fail if tmAddress == commitValidatorAddress
-		for i := 0; i < len(app.strategy.ValidatorSet.CommitteeValidators); i++ {
+		for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
 			commitValidatorAddress := hex.EncodeToString(app.strategy.ValidatorSet.
-				CommitteeValidators[i].Address)
+				CornerStoneValidators[i].Address)
 			if commitValidatorAddress == tmAddress {
 				app.GetLogger().Info("can not use committee validator")
 				return false, nil
@@ -299,8 +299,8 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 				})
 		}
 
-		for i := 0; i < len(app.strategy.ValidatorSet.CommitteeValidators); i++ {
-			validatorsSlice = append(validatorsSlice, *app.strategy.ValidatorSet.CommitteeValidators[i])
+		for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
+			validatorsSlice = append(validatorsSlice, *app.strategy.ValidatorSet.CornerStoneValidators[i])
 		}
 
 		for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
@@ -321,6 +321,9 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 				delete(app.strategy.AccountMapList.MapList, tmAddress)
 				app.GetLogger().Info("remove not enough balance validators")
 			}
+		}
+		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0{
+			return abciTypes.ResponseEndBlock{}
 		}
 
 		maxValidators := 0
@@ -413,11 +416,11 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 
 	app.strategy.ValidatorSet.CurrentValidators = nil
 
-	for i := 0; i < len(app.strategy.ValidatorSet.CommitteeValidators); i++ {
+	for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
 		validatorsSlice = append(validatorsSlice,
 			abciTypes.Validator{
-				Address: app.strategy.ValidatorSet.CommitteeValidators[i].Address,
-				PubKey:  app.strategy.ValidatorSet.CommitteeValidators[i].PubKey,
+				Address: app.strategy.ValidatorSet.CornerStoneValidators[i].Address,
+				PubKey:  app.strategy.ValidatorSet.CornerStoneValidators[i].PubKey,
 				Power:   int64(1),
 			})
 	}
