@@ -43,7 +43,7 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 			Div(posTable.PosItemMap[signer].Balance, posTable.threshold).String())
 		newPosWeight, _ := strconv.Atoi(balanceCopy.Div(balance, posTable.threshold).String())
 		if originPosWeight >= newPosWeight {
-			return false, fmt.Errorf("address not upsert")
+			return false, fmt.Errorf("situation should happened in real world")
 		} else {
 			for i := 0; i < newPosWeight-originPosWeight; i++ {
 				posTable.PosArray[posTable.PosArraySize] = posOriginPtr

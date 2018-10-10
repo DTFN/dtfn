@@ -59,9 +59,9 @@ func (app *EthermintApplication) StartHttpServer() {
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
-	if len(app.strategy.ValidatorSet.CornerStoneValidators) < 5 {
-		app.GetLogger().Info("upsert failed for len(committeeValidators) less than 5")
-		return false, errors.New("Not support for upsertValidatorTx because of not enough committeeValidators")
+	if len(app.strategy.ValidatorSet.CornerStoneValidators) < 4 {
+		app.GetLogger().Info("upsert failed for len(cornerStoneValidator) less than 5")
+		return false, errors.New("Not support for upsertValidatorTx because of not enough cornerStoneValidator")
 	}
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
@@ -77,7 +77,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
 			if bytes.Equal(pubkey.Address(), app.strategy.
 				ValidatorSet.CornerStoneValidators[i].Address) {
-				app.GetLogger().Info("can not use committee validator")
+				app.GetLogger().Info("can not use cornerStoneValidator validator")
 				return false, nil
 			}
 		}
@@ -111,7 +111,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 			// Should change the maplist and postable and nextCandidateValidator
 			upsertFlag, err := app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
-				app.GetLogger().Info("posTable upsert failed")
+				app.GetLogger().Info(err.Error())
 				return false, nil
 			}
 			app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
@@ -132,7 +132,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 			//同singer，同MapList[tmAddress]，是来改动balance的
 			upsertFlag, err := app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
-				app.GetLogger().Info("posTable upsert failed")
+				app.GetLogger().Info(err.Error())
 				return false, nil
 			}
 			app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
@@ -322,16 +322,36 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 				app.GetLogger().Info("remove not enough balance validators")
 			}
 		}
-		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0{
+		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0 {
 			return abciTypes.ResponseEndBlock{}
 		}
 
+		// if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) >0
+		// len(app.strategy.ValidatorSet.InitialValidators) must >0
+		// so len(app.strategy.ValidatorSet.InitialValidators) must = 4
+		// while we are initingChain,we process the following code
+		// if len(validators) > 4 {
+		//	app.strategy.ValidatorSet.CornerStoneValidators = validators[0:4]
+		//	app.strategy.ValidatorSet.InitialValidators = validators[4:]
+		//}
+
+		// and maxValidators must <= 7 and >= 4
+		// if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) >=3
+		// maxValidators =7
 		maxValidators := 0
-		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 2 {
-			maxValidators = 6
+		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 3 {
+			maxValidators = len(app.strategy.ValidatorSet.NextHeightCandidateValidators) +
+				len(app.strategy.ValidatorSet.CornerStoneValidators)
 		} else {
 			maxValidators = 7
 		}
+
+		// len(validators) = all initial validators write in the genesis.json file
+		// maxValidators = next height validators who take part in consensus
+		// all validators has been put into the validatorSlice,
+		// we just need to put the voted validator into validatorSlice
+		// we use map to remember which validators voted has put into validatorSlice
+		votedValidators := make(map[string]bool)
 
 		for j := 0; len(validatorsSlice) != maxValidators+len(validators); j++ {
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + j - 1).PubKey)
@@ -340,13 +360,10 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 				PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + j - 1).PubKey,
 				Power:   1,
 			}
-			if j == 0 {
-				validatorsSlice = append(validatorsSlice, validator)
-				app.strategy.ValidatorSet.CurrentValidators = append(app.
-					strategy.ValidatorSet.CurrentValidators, &validator)
-			} else if bytes.Equal(validator.Address, validatorsSlice[5+len(validators)].Address) {
-				//validatorsSlice[5+len(validators)].Power++
+			if votedValidators[tmPubKey.Address().String()] {
+				// existed,do nothing
 			} else {
+				votedValidators[tmPubKey.Address().String()] = true
 				validatorsSlice = append(validatorsSlice, validator)
 				app.strategy.ValidatorSet.CurrentValidators = append(app.
 					strategy.ValidatorSet.CurrentValidators, &validator)
@@ -368,16 +385,30 @@ func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.R
 			})
 	}
 
+	// app.strategy.ValidatorSet.CurrentValidators not include cornerStoneValidators
+	// len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0
+	// we should just remove all the currentValidators
+
+	// if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) >= 3
+	// we must keep the maxValidatorSlice = 7 (cornerStoneValidator should equal 4)
+	// cornerStoneValidator should not be remove by removeValidatorTx
+	// and all the upsertValidatorTx should be failed when len(cornerStoneValidator) < 4
+	//
+
 	maxValidatorSlice := 0
 	if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0 {
 		app.strategy.ValidatorSet.CurrentValidators = nil
 		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-	} else if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 2 {
-		maxValidatorSlice = 1 + len(app.strategy.ValidatorSet.CurrentValidators)
+	} else if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 3 {
+		maxValidatorSlice = len(app.strategy.ValidatorSet.NextHeightCandidateValidators) +
+			len(app.strategy.ValidatorSet.CurrentValidators)
 	} else {
-		maxValidatorSlice = 2 + len(app.strategy.ValidatorSet.CurrentValidators)
+		maxValidatorSlice = 3 + len(app.strategy.ValidatorSet.CurrentValidators)
 	}
 	app.strategy.ValidatorSet.CurrentValidators = nil
+
+	// we use map to remember which validators voted has put into validatorSlice
+	votedValidators := make(map[string]bool)
 
 	for i := 0; len(validatorsSlice) != maxValidatorSlice; i++ {
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey)
@@ -386,13 +417,10 @@ func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.R
 			PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey,
 			Power:   1,
 		}
-		if i == 0 {
-			validatorsSlice = append(validatorsSlice, validator)
-			app.strategy.ValidatorSet.CurrentValidators = append(app.
-				strategy.ValidatorSet.CurrentValidators, &validator)
-		} else if bytes.Equal(validator.Address, validatorsSlice[maxValidatorSlice-2].Address) {
-			//validatorsSlice[maxValidatorSlice-2].Power++
+		if votedValidators[tmPubKey.Address().String()] {
+			// existed,do nothing
 		} else {
+			votedValidators[tmPubKey.Address().String()] = true
 			validatorsSlice = append(validatorsSlice, validator)
 			app.strategy.ValidatorSet.CurrentValidators = append(app.
 				strategy.ValidatorSet.CurrentValidators, &validator)
