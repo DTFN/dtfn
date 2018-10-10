@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/ethermint/utils"
 	"gopkg.in/urfave/cli.v1"
 	"math/big"
@@ -28,6 +30,7 @@ import (
 	tmNode "github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
+	tmState "github.com/tendermint/tendermint/state"
 	tmTypes "github.com/tendermint/tendermint/types"
 )
 
@@ -43,8 +46,8 @@ func ethermintCmd(ctx *cli.Context) error {
 	ethGenesisJson := ethermintGenesisPath(ctx)
 	genesis := utils.ReadGenesis(ethGenesisJson)
 	totalBalanceInital := big.NewInt(0)
-	for key,_:= range genesis.Alloc{
-		totalBalanceInital.Add(totalBalanceInital,genesis.Alloc[key].Balance)
+	for key, _ := range genesis.Alloc {
+		totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
 	}
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
@@ -69,7 +72,32 @@ func ethermintCmd(ctx *cli.Context) error {
 	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
 
-	amlist, _ := tmTypes.AccountMapFromFile(loadTMConfig(ctx).AddressMapFile())
+	amlist, err := tmTypes.AccountMapFromFile(loadTMConfig(ctx).AddressMapFile())
+	if err != nil {
+		//这里需要自己构造一个新的accountmaplist来用，构造来自tendermint的genesis.json
+		tmConfig := loadTMConfig(ctx)
+		genDocFile := tmConfig.GenesisFile()
+
+		genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
+		if err != nil {
+			fmt.Println(err)
+		}
+		validators := genDoc.Validators
+		var tmAddress [4]string
+		amlist = &tmTypes.AccountMapList{
+			MapList: make(map[string]*tmTypes.AccountMap),
+		}
+		for i := 0; i < 4; i++ {
+			tmAddress[i] = strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address()))
+			fmt.Println(tmAddress[i])
+			amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
+				common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"),
+				big.NewInt(0),
+				big.NewInt(0),
+				common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+			}
+		}
+	}
 	ethApp.GetStrategy().SetAccountMapList(amlist)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
