@@ -6,7 +6,6 @@ import (
 	"fmt"
 	errors "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -16,6 +15,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
+	"github.com/ethereum/go-ethereum/core/blacklist"
 )
 
 // EthermintApplication implements an ABCI application
@@ -177,15 +177,18 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 		return res
 	}
 
-	if w.T == "upsert" {
-		b, e := app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
-		if e == nil && b {
-			blacklist.BlacklistDB.Add(w.Signer)
-		}
-	} else if w.T == "remove" {
-		b, e := app.RemoveValidatorTx(w.Signer)
-		if e == nil && b {
-			blacklist.BlacklistDB.Remove(w.Signer)
+	db, e := app.getCurrentState()
+	if e == nil {
+		if w.T == "upsert" {
+			b, e := app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
+			if e == nil && b {
+				blacklist.Lock(db, w.Signer)
+			}
+		} else if w.T == "remove" {
+			b, e := app.RemoveValidatorTx(w.Signer)
+			if e == nil && b {
+				blacklist.Unlock(db, w.Signer, w.Height)
+			}
 		}
 	}
 
