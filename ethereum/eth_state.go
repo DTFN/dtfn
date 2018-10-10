@@ -206,6 +206,7 @@ type Wrap struct {
 	Beneficiary common.Address
 	Pubkey      crypto.PubKey
 	Height      *big.Int
+	Receipt     *ethTypes.Receipt
 }
 
 func (ws *workState) State() *state.StateDB {
@@ -260,7 +261,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}, &Wrap{}
 	}
 	log.Info("from:" + msg.From().Hex())
-	wrap := handleTx(ws.state, msg, ws.header.Number)
+	wrap := handleTx(ws.state, msg, ws.header.Number, receipt)
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -274,7 +275,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}, wrap
 }
 
-func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int) *Wrap {
+func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int, receipt *ethTypes.Receipt) *Wrap {
 	if msg.To() != nil {
 		if blacklist.IsLockTx(msg.To().Hex()) {
 			data, _ := MarshalTxData(string(msg.Data()))
@@ -286,12 +287,14 @@ func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int) *Wrap {
 				Beneficiary: common.HexToAddress(data.Beneficiary),
 				Pubkey:      data.Pv.PubKey,
 				Height:      h,
+				Receipt:     receipt,
 			}
 		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
 			return &Wrap{
-				T:      "remove",
-				Signer: msg.From(),
-				Height: h,
+				T:       "remove",
+				Signer:  msg.From(),
+				Height:  h,
+				Receipt: receipt,
 			}
 		}
 	}

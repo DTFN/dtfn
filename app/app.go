@@ -183,6 +183,10 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 			b, e := app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
 			if e == nil && b {
 				blacklist.Lock(db, w.Signer)
+			} else {
+				w.Receipt.Status = ethTypes.ReceiptStatusFailed
+				log := &ethTypes.Log{Address: w.Signer, Data: []byte(e.Error())}
+				w.Receipt.Logs = append(w.Receipt.Logs, log)
 			}
 		} else if w.T == "remove" {
 			b, e := app.RemoveValidatorTx(w.Signer)
