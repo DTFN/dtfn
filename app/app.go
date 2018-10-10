@@ -169,7 +169,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	}
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res, w := app.backend.DeliverTx(tx, app.Receiver())
+	res, wrap := app.backend.DeliverTx(tx, app.Receiver())
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
@@ -179,15 +179,19 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 
 	db, e := app.getCurrentState()
 	if e == nil {
-		if w.T == "upsert" {
-			b, e := app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
+		if wrap.Type == "upsert" {
+			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Balance, wrap.Beneficiary, wrap.Pubkey)
 			if e == nil && b {
-				blacklist.Lock(db, w.Signer)
+				blacklist.Lock(db, wrap.Signer)
+			} else {
+				wrap.Receipt.Status = ethTypes.ReceiptStatusFailed
+				log := &ethTypes.Log{Address: wrap.Signer, Data: []byte(e.Error())}
+				wrap.Receipt.Logs = append(wrap.Receipt.Logs, log)
 			}
-		} else if w.T == "remove" {
-			b, e := app.RemoveValidatorTx(w.Signer)
+		} else if wrap.Type == "remove" {
+			b, e := app.RemoveValidatorTx(wrap.Signer)
 			if e == nil && b {
-				blacklist.Unlock(db, w.Signer, w.Height)
+				blacklist.Unlock(db, wrap.Signer, wrap.Height)
 			}
 		}
 	}
