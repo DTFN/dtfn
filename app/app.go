@@ -180,14 +180,12 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	db, e := app.getCurrentState()
 	if e == nil {
 		if w.T == "upsert" {
-			//b, e := app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
-			b := true
+			b, e := app.UpsertValidatorTx(w.Signer, w.Balance, w.Beneficiary, w.Pubkey)
 			if e == nil && b {
 				blacklist.Lock(db, w.Signer)
 			}
 		} else if w.T == "remove" {
-			//b, e := app.RemoveValidatorTx(w.Signer)
-			b := true
+			b, e := app.RemoveValidatorTx(w.Signer)
 			if e == nil && b {
 				blacklist.Unlock(db, w.Signer, w.Height)
 			}
