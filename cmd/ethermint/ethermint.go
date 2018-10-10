@@ -83,15 +83,15 @@ func ethermintCmd(ctx *cli.Context) error {
 			fmt.Println(err)
 		}
 		validators := genDoc.Validators
-		var tmAddress [4]string
+		var tmAddress []string
 		amlist = &tmTypes.AccountMapList{
 			MapList: make(map[string]*tmTypes.AccountMap),
 		}
-		for i := 0; i < 4; i++ {
-			tmAddress[i] = strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address()))
+		for i := 0; i < len(validators); i++ {
+			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
 			fmt.Println(tmAddress[i])
 			amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-				common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"),
+				common.HexToAddress("0x0000000000000000000000000000000000000001"),
 				big.NewInt(0),
 				big.NewInt(0),
 				common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
