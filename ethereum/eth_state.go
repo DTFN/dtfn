@@ -200,7 +200,7 @@ type workState struct {
 }
 
 type Wrap struct {
-	T           string
+	Type        string
 	Signer      common.Address
 	Balance     *big.Int
 	Beneficiary common.Address
@@ -281,7 +281,7 @@ func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int, receipt *eth
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
 			return &Wrap{
-				T:           "upsert",
+				Type:        "upsert",
 				Signer:      msg.From(),
 				Balance:     balance,
 				Beneficiary: common.HexToAddress(data.Beneficiary),
@@ -291,7 +291,7 @@ func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int, receipt *eth
 			}
 		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
 			return &Wrap{
-				T:       "remove",
+				Type:    "remove",
 				Signer:  msg.From(),
 				Height:  h,
 				Receipt: receipt,
