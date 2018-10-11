@@ -253,12 +253,18 @@ func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
 
 // GetUpdatedValidators returns an updated validator set from the strategy
 // #unstable
-func (app *EthermintApplication) GetUpdatedValidators(height int64) abciTypes.ResponseEndBlock {
+func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
 		} else if int(height)%200 != 0 {
-			return app.enterSelectValidators(height)
+			if seed != nil {
+				//seed 存在的时，优先seed
+				return app.enterSelectValidators(seed, -1)
+			} else {
+				//seed 不存在，选取height
+				return app.enterSelectValidators(nil, height)
+			}
 		} else {
 			return app.blsValidators(height)
 		}
@@ -347,10 +353,10 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		votedValidators := make(map[string]bool)
 
 		for j := 0; len(validatorsSlice) != maxValidators+len(validators); j++ {
-			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + j - 1).PubKey)
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey)
 			validator := abciTypes.Validator{
 				Address: tmPubKey.Address(),
-				PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + j - 1).PubKey,
+				PubKey:  app.strategy.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey,
 				Power:   1,
 			}
 			if votedValidators[tmPubKey.Address().String()] {
@@ -366,7 +372,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 	}
 }
 
-func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.ResponseEndBlock {
+func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64) abciTypes.ResponseEndBlock {
 
 	var validatorsSlice []abciTypes.Validator
 	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
@@ -404,12 +410,26 @@ func (app *EthermintApplication) enterSelectValidators(height int64) abciTypes.R
 	votedValidators := make(map[string]bool)
 
 	for i := 0; len(validatorsSlice) != maxValidatorSlice; i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey)
-		validator := abciTypes.Validator{
-			Address: tmPubKey.Address(),
-			PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + i - 1).PubKey,
-			Power:   1,
+		var tmPubKey crypto.PubKey
+		var validator abciTypes.Validator
+		if height == -1 {
+			//height=-1 表示 seed 存在，使用seed
+			tmPubKey, _ = tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemBySeedValue(seed, i).PubKey)
+			validator = abciTypes.Validator{
+				Address: tmPubKey.Address(),
+				PubKey:  app.strategy.PosTable.SelectItemBySeedValue(seed, i).PubKey,
+				Power:   1,
+			}
+		} else {
+			//seed 不存在，使用height
+			tmPubKey, _ = tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByHeightValue(int(height) + i - 1).PubKey)
+			validator = abciTypes.Validator{
+				Address: tmPubKey.Address(),
+				PubKey:  app.strategy.PosTable.SelectItemByHeightValue(int(height) + i - 1).PubKey,
+				Power:   1,
+			}
 		}
+
 		if votedValidators[tmPubKey.Address().String()] {
 			// existed,do nothing
 		} else {

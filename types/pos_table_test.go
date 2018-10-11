@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
@@ -119,14 +120,34 @@ func TestComplicated(t *testing.T) {
 	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[2].Signer)
 }
 
-func TestSelectItemByRandomValue(t *testing.T) {
+func TestSelectItemByHeightValue(t *testing.T) {
 	pubk := abciTypes.PubKey{}
 	table := NewPosTable(big.NewInt(1000))
 	table.PosArray[0] = newPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(500), common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), pubk)
 	table.PosArray[1] = newPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(1500), common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), pubk)
 	table.PosArraySize = 2
 	for height := 200; height <= 210; height++ {
-		testItem := table.SelectItemByRandomValue(height)
+		testItem := table.SelectItemByHeightValue(height)
+		// 根据SelectItemByRandomValue逻辑，我们已经设定PosArray的具体长度为2,内部元素为table.PosArray[0]与[1]
+		// 所以随机选取时,肯定在table.PosArray[0]与[1]中选,那么Balance的值不是500就是1500
+		if testItem.Signer == common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d") {
+			require.Equal(t, big.NewInt(500), testItem.Balance)
+		} else {
+			require.Equal(t, big.NewInt(1500), testItem.Balance)
+		}
+	}
+}
+
+func TestSelectItemBySeedValue(t *testing.T) {
+	pubk := abciTypes.PubKey{}
+	table := NewPosTable(big.NewInt(1000))
+
+	vrf, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
+	table.PosArray[0] = newPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(500), common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), pubk)
+	table.PosArray[1] = newPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(1500), common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), pubk)
+	table.PosArraySize = 2
+	for i := 200; i <= 210; i++ {
+		testItem := table.SelectItemBySeedValue(vrf, i)
 		// 根据SelectItemByRandomValue逻辑，我们已经设定PosArray的具体长度为2,内部元素为table.PosArray[0]与[1]
 		// 所以随机选取时,肯定在table.PosArray[0]与[1]中选,那么Balance的值不是500就是1500
 		if testItem.Signer == common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d") {
