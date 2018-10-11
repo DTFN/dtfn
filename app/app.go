@@ -184,8 +184,12 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 			if e == nil && b {
 				blacklist.Lock(db, wrap.Signer)
 			} else {
+				eMsg := "error"
+				if e != nil {
+					eMsg = e.Error()
+				}
 				wrap.Receipt.Status = ethTypes.ReceiptStatusFailed
-				log := &ethTypes.Log{Address: wrap.Signer, Data: []byte(e.Error())}
+				log := &ethTypes.Log{Address: wrap.Signer, Data: []byte(eMsg)}
 				wrap.Receipt.Logs = append(wrap.Receipt.Logs, log)
 			}
 		} else if wrap.Type == "remove" {
