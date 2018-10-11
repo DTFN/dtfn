@@ -6,6 +6,7 @@ import (
 	"fmt"
 	errors "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -15,7 +16,6 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
-	"github.com/ethereum/go-ethereum/core/blacklist"
 )
 
 // EthermintApplication implements an ABCI application
@@ -224,9 +224,13 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
-	app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
+	if endBlock.GetSeed() != nil {
+		app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
+	}
+
+	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
 	app.backend.AccumulateRewards(app.strategy)
-	return app.GetUpdatedValidators(endBlock.GetHeight())
+	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
 // Commit commits the block and returns a hash of the current state

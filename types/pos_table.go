@@ -106,9 +106,30 @@ func (posTable *PosTable) SetThreShold(threShold *big.Int) {
 	posTable.threshold = threShold
 }
 
-func (posTable *PosTable) SelectItemByRandomValue(random int) PosItem {
+func (posTable *PosTable) SelectItemByHeightValue(random int) PosItem {
 	r := rand.New(rand.NewSource(int64(random)))
 	return *posTable.PosArray[r.Intn(posTable.PosArraySize)]
+}
+
+func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, i int) PosItem {
+
+	var v1, v2 uint32
+	k := uint32(i)
+	bIdx := k / 8
+	bits1 := k % 8
+	bits2 := 8 + bits1 // L - 8 + bits1
+
+	v1 = uint32(vrf[bIdx]) >> bits1
+	if bIdx+1 < uint32(len(vrf)) {
+		v2 = uint32(vrf[bIdx+1])
+	} else {
+		v2 = uint32(vrf[0])
+	}
+
+	v2 = v2 & ((1 << bits2) - 1)
+	v := (v2 << (8 - bits1)) + v1
+	v = v % uint32(len(posTable.PosArray))
+	return *posTable.PosArray[v]
 }
 
 type PosItem struct {
