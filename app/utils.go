@@ -78,7 +78,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 			if bytes.Equal(pubkey.Address(), app.strategy.
 				ValidatorSet.CornerStoneValidators[i].Address) {
 				app.GetLogger().Info("can not use cornerStoneValidator validator")
-				return false, nil
+				return false, errors.New("can not use cornerStoneValidator validator")
 			}
 		}
 
@@ -90,7 +90,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 				origSigner := app.strategy.AccountMapList.MapList[tmAddress].Signer
 				if origSigner.String() != signer.String() {
 					app.GetLogger().Info("validator was voted by another signer")
-					return false, nil
+					return false, errors.New("can not use cornerStoneValidator validator")
 				}
 				existFlag = true
 			}
@@ -112,7 +112,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 			upsertFlag, err := app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
 				app.GetLogger().Info(err.Error())
-				return false, nil
+				return false, err
 			}
 			app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
 				Beneficiary:   beneficiary,
@@ -133,7 +133,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 			upsertFlag, err := app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
 				app.GetLogger().Info(err.Error())
-				return false, nil
+				return false, err
 			}
 			app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
 			app.strategy.AccountMapList.MapList[tmAddress].SignerBalance = balance
@@ -142,11 +142,11 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		} else {
 			//同singer，不同MapList[tmAddress]，来捣乱的
 			app.GetLogger().Info("signer has voted")
-			return false, nil
+			return false, errors.New("signer has voted")
 		}
 
 	}
-	return false, nil
+	return false, errors.New("upsertFailed for unknown reason")
 }
 
 func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool, error) {
@@ -166,8 +166,8 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 			commitValidatorAddress := hex.EncodeToString(app.strategy.ValidatorSet.
 				CornerStoneValidators[i].Address)
 			if commitValidatorAddress == tmAddress {
-				app.GetLogger().Info("can not use committee validator")
-				return false, nil
+				app.GetLogger().Info("can not use cornerStoneValidator validator")
+				return false, errors.New("can not use cornerStoneValidator validator")
 			}
 		}
 
@@ -194,7 +194,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 			removeFlag, err := app.strategy.PosTable.RemovePosItem(signer)
 			if err != nil || !removeFlag {
 				app.GetLogger().Info("posTable remove failed")
-				return false, nil
+				return false, errors.New("posTable remove failed")
 			}
 			app.strategy.AccountMapListTemp.MapList[tmAddress] = app.strategy.AccountMapList.MapList[tmAddress]
 			delete(app.strategy.AccountMapList.MapList, tmAddress)
@@ -225,7 +225,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		}
 		// If is a valid removeValidator,change the data in the strategy
 	}
-	return false, nil
+	return false, errors.New("app strategy nil")
 }
 
 func (app *EthermintApplication) UpsertPosItem(account common.Address, balance *big.Int, beneficiary common.Address,
