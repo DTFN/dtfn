@@ -353,10 +353,10 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		votedValidators := make(map[string]bool)
 
 		for j := 0; len(validatorsSlice) != maxValidators+len(validators); j++ {
-			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByRandomValue(int(height) + j - 1).PubKey)
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey)
 			validator := abciTypes.Validator{
 				Address: tmPubKey.Address(),
-				PubKey:  app.strategy.PosTable.SelectItemByRandomValue(int(height) + j - 1).PubKey,
+				PubKey:  app.strategy.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey,
 				Power:   1,
 			}
 			if votedValidators[tmPubKey.Address().String()] {
