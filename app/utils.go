@@ -11,6 +11,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
+	ethmintTypes "github.com/tendermint/ethermint/types"
 	"math/big"
 	"strings"
 )
@@ -127,6 +128,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 					Address: pubkey.Address(),
 				})
 			app.GetLogger().Info("add Validator Tx success")
+			app.strategy.PosTable.ChangedFlagThisBlock = true
 			return true, nil
 		} else if existFlag && same {
 			//同singer，同MapList[tmAddress]，是来改动balance的
@@ -138,6 +140,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 			app.strategy.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
 			app.strategy.AccountMapList.MapList[tmAddress].SignerBalance = balance
 			app.GetLogger().Info("upsert Validator Tx success")
+			app.strategy.PosTable.ChangedFlagThisBlock = true
 			return true, nil
 		} else {
 			//同singer，不同MapList[tmAddress]，来捣乱的
@@ -219,6 +222,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 			}
 			//if validator is exist in the currentValidators,it must be removed
 			app.GetLogger().Info("remove validatorTx success")
+			app.strategy.PosTable.ChangedFlagThisBlock = true
 			return true, nil
 		} else {
 			app.GetLogger().Info("signer address not existed")
@@ -483,4 +487,54 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	}
 
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
+}
+
+func (app *EthermintApplication) InitialPos() {
+	app.logger.Info("BeginBlock")
+	// marshal map to jsonBytes,is it sorted?
+	wsState, _ := app.backend.Es().State()
+	app.logger.Info("Read accountMap")
+	accountMap := wsState.GetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"))
+	if len(accountMap) == 0 {
+		// no predata existed
+	} else {
+		accountmaplist := tmTypes.AccountMapList{}
+		err := json.Unmarshal(accountMap,&accountmaplist)
+		if err != nil{
+			panic("initial accountmap error")
+		}else{
+			app.strategy.AccountMapList = &accountmaplist
+		}
+	}
+
+	app.logger.Info("Read Pos Table")
+	posTable := wsState.GetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"))
+	if len(posTable) == 0 {
+		// no predata existed
+	} else {
+		app.logger.Info("PosTable Not nil")
+		posTableInitial := ethmintTypes.PosTable{}
+		err := json.Unmarshal(posTable,&posTableInitial)
+		if err != nil{
+			panic("initial postable error")
+		}else{
+			app.strategy.PosTable = &posTableInitial
+		}
+	}
+}
+
+func (app *EthermintApplication) PersistencePos() {
+	app.logger.Info("EndBlock")
+	if app.strategy.PosTable.ChangedFlagThisBlock{
+		app.logger.Info("PosTable has changed")
+		app.strategy.PosTable.ChangedFlagThisBlock = false;
+		app.logger.Info("write accountMap")
+		accountMapBytes ,_ := json.Marshal(app.strategy.AccountMapList)
+		posTableBytes ,_ := json.Marshal(app.strategy.PosTable)
+		wsState, _ := app.backend.Es().State()
+		wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"),accountMapBytes)
+		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"),posTableBytes)
+	}else{
+		app.logger.Info("PosTable hasn't changed")
+	}
 }

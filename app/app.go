@@ -217,6 +217,8 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 
+	app.InitialPos()
+
 	// before next bonus ,clear accountMapListTemp
 	for key, _ := range app.strategy.AccountMapListTemp.MapList {
 		delete(app.strategy.AccountMapListTemp.MapList, key)
@@ -234,6 +236,9 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
 	app.backend.AccumulateRewards(app.strategy)
+
+	app.PersistencePos()
+
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
