@@ -195,6 +195,7 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.P2P.PersistentPeers = ctx.GlobalString(emtUtils.PersistentPeers.Name)
 	defaultTmConfig.P2P.PrivatePeerIDs = ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
 	defaultTmConfig.P2P.ListenAddress = ctx.GlobalString(emtUtils.TendermintP2PListenAddress.Name)
+	defaultTmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
 
 	return defaultTmConfig
 }
