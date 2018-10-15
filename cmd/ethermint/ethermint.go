@@ -105,20 +105,6 @@ func ethermintCmd(ctx *cli.Context) error {
 	// See Issue https://github.com/tendermint/ethermint/issues/244
 	canInvokeTendermintNode := canInvokeTendermint(ctx)
 	if canInvokeTendermintNode {
-		/*		pauseDuration := 2 * time.Second
-				tendermintHome := tendermintHomeFromEthermint(ctx)
-				tendermintArgs := []string{"--home", tendermintHome, "node"}
-				log.Info("tendermint ready to init")
-				time.Sleep(pauseDuration)
-				if _, err := invokeTendermintNoTimeout(tendermintArgs...); err != nil {
-					// We shouldn't go *Fatal* because
-					// `tendermint node` might have already been invoked.
-					log.Info("tendermint init", "error", err)
-				} else {
-					log.Info("Successfully invoked `tendermint node`", "args",
-						tendermintArgs)
-				}*/
-
 		tmConfig := loadTMConfig(ctx)
 		clientCreator := proxy.NewLocalClientCreator(ethApp)
 		tmLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "tendermint")
