@@ -242,8 +242,6 @@ func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
 // GetUpdatedValidators returns an updated validator set from the strategy
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
-	fmt.Println("wenbin test")
-	fmt.Println(len(app.strategy.AccountMapList.MapList))
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
