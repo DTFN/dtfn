@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -47,8 +48,6 @@ type Strategy struct {
 }
 
 type Validators struct {
-	// validators of committee , used to support +2/3 ,our node
-	CornerStoneValidators []*abciTypes.Validator
 
 	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
 	NextHeightCandidateValidators []*abciTypes.Validator
@@ -83,11 +82,15 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
-	if s.ProposerAddress == "" {
+	if s.ProposerAddress == "" || len(s.AccountMapList.MapList) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
 	} else if s.AccountMapList.MapList[s.ProposerAddress] != nil {
+		fmt.Println(s.AccountMapList.MapList[s.ProposerAddress].Signer.String())
 		return s.AccountMapList.MapList[s.ProposerAddress].Beneficiary
 	} else {
+		fmt.Println(s.ProposerAddress)
+		fmt.Println(len(s.AccountMapList.MapList))
+		fmt.Println(s.AccountMapList.MapList[s.ProposerAddress].Signer.String())
 		return s.AccountMapListTemp.MapList[s.ProposerAddress].Beneficiary
 	}
 }

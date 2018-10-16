@@ -5,13 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	ethmintTypes "github.com/tendermint/ethermint/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
-	ethmintTypes "github.com/tendermint/ethermint/types"
 	"math/big"
 	"strings"
 )
@@ -60,10 +61,6 @@ func (app *EthermintApplication) StartHttpServer() {
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
-	if len(app.strategy.ValidatorSet.CornerStoneValidators) < 4 {
-		app.GetLogger().Info("upsert failed for len(cornerStoneValidator) less than 5")
-		return false, errors.New("Not support for upsertValidatorTx because of not enough cornerStoneValidator")
-	}
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
@@ -75,14 +72,6 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		}
 		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
-		for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
-			if bytes.Equal(pubkey.Address(), app.strategy.
-				ValidatorSet.CornerStoneValidators[i].Address) {
-				app.GetLogger().Info("can not use cornerStoneValidator validator")
-				return false, errors.New("can not use cornerStoneValidator validator")
-			}
-		}
-
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
 		for i := 0; i < len(app.strategy.ValidatorSet.NextHeightCandidateValidators); i++ {
@@ -91,7 +80,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 				origSigner := app.strategy.AccountMapList.MapList[tmAddress].Signer
 				if origSigner.String() != signer.String() {
 					app.GetLogger().Info("validator was voted by another signer")
-					return false, errors.New("can not use cornerStoneValidator validator")
+					return false, errors.New("validator was voted by another signer")
 				}
 				existFlag = true
 			}
@@ -164,14 +153,9 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 			}
 		}
 
-		//return fail if tmAddress == commitValidatorAddress
-		for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
-			commitValidatorAddress := hex.EncodeToString(app.strategy.ValidatorSet.
-				CornerStoneValidators[i].Address)
-			if commitValidatorAddress == tmAddress {
-				app.GetLogger().Info("can not use cornerStoneValidator validator")
-				return false, errors.New("can not use cornerStoneValidator validator")
-			}
+		if len(app.strategy.ValidatorSet.CurrentValidators) <= 4 {
+			app.GetLogger().Info("can not remove validator for error-tolerant")
+			return false, errors.New("can not remove validator for error-tolerant")
 		}
 
 		// judge whether is a valid removeValidator Tx
@@ -258,6 +242,8 @@ func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
 // GetUpdatedValidators returns an updated validator set from the strategy
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
+	fmt.Println("wenbin test")
+	fmt.Println(len(app.strategy.AccountMapList.MapList))
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
@@ -285,6 +271,8 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 }
 
 func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEndBlock {
+	fmt.Println("wenbin test enterInitail")
+	fmt.Println(len(app.strategy.ValidatorSet.InitialValidators))
 	if len(app.strategy.ValidatorSet.InitialValidators) == 0 {
 		// There is no nextCandidateValidators for initial height
 		return abciTypes.ResponseEndBlock{}
@@ -300,10 +288,6 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 					Power:   int64(0),
 					PubKey:  validators[i].PubKey,
 				})
-		}
-
-		for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
-			validatorsSlice = append(validatorsSlice, *app.strategy.ValidatorSet.CornerStoneValidators[i])
 		}
 
 		for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
@@ -342,9 +326,8 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		// if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) >=3
 		// maxValidators =7
 		maxValidators := 0
-		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 3 {
-			maxValidators = len(app.strategy.ValidatorSet.NextHeightCandidateValidators) +
-				len(app.strategy.ValidatorSet.CornerStoneValidators)
+		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 7 {
+			maxValidators = len(app.strategy.ValidatorSet.NextHeightCandidateValidators)
 		} else {
 			maxValidators = 7
 		}
@@ -399,14 +382,13 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	//
 
 	maxValidatorSlice := 0
-	if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0 {
-		app.strategy.ValidatorSet.CurrentValidators = nil
-		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-	} else if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 3 {
+	if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) <= 4 {
+		return abciTypes.ResponseEndBlock{}
+	} else if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 7 {
 		maxValidatorSlice = len(app.strategy.ValidatorSet.NextHeightCandidateValidators) +
 			len(app.strategy.ValidatorSet.CurrentValidators)
 	} else {
-		maxValidatorSlice = 3 + len(app.strategy.ValidatorSet.CurrentValidators)
+		maxValidatorSlice = 7 + len(app.strategy.ValidatorSet.CurrentValidators)
 	}
 	app.strategy.ValidatorSet.CurrentValidators = nil
 
@@ -461,15 +443,6 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 
 	app.strategy.ValidatorSet.CurrentValidators = nil
 
-	for i := 0; i < len(app.strategy.ValidatorSet.CornerStoneValidators); i++ {
-		validatorsSlice = append(validatorsSlice,
-			abciTypes.Validator{
-				Address: app.strategy.ValidatorSet.CornerStoneValidators[i].Address,
-				PubKey:  app.strategy.ValidatorSet.CornerStoneValidators[i].PubKey,
-				Power:   int64(1),
-			})
-	}
-
 	for i := 0; i < len(app.strategy.ValidatorSet.NextHeightCandidateValidators); i++ {
 		app.strategy.ValidatorSet.CurrentValidators = append(app.
 			strategy.ValidatorSet.CurrentValidators, &abciTypes.Validator{
@@ -499,10 +472,10 @@ func (app *EthermintApplication) InitialPos() {
 		// no predata existed
 	} else {
 		accountmaplist := tmTypes.AccountMapList{}
-		err := json.Unmarshal(accountMap,&accountmaplist)
-		if err != nil{
+		err := json.Unmarshal(accountMap, &accountmaplist)
+		if err != nil {
 			panic("initial accountmap error")
-		}else{
+		} else {
 			app.strategy.AccountMapList = &accountmaplist
 		}
 	}
@@ -514,10 +487,10 @@ func (app *EthermintApplication) InitialPos() {
 	} else {
 		app.logger.Info("PosTable Not nil")
 		posTableInitial := ethmintTypes.PosTable{}
-		err := json.Unmarshal(posTable,&posTableInitial)
-		if err != nil{
+		err := json.Unmarshal(posTable, &posTableInitial)
+		if err != nil {
 			panic("initial postable error")
-		}else{
+		} else {
 			app.strategy.PosTable = &posTableInitial
 		}
 	}
@@ -525,16 +498,16 @@ func (app *EthermintApplication) InitialPos() {
 
 func (app *EthermintApplication) PersistencePos() {
 	app.logger.Info("EndBlock")
-	if app.strategy.PosTable.ChangedFlagThisBlock{
+	if app.strategy.PosTable.ChangedFlagThisBlock {
 		app.logger.Info("PosTable has changed")
-		app.strategy.PosTable.ChangedFlagThisBlock = false;
+		app.strategy.PosTable.ChangedFlagThisBlock = false
 		app.logger.Info("write accountMap")
-		accountMapBytes ,_ := json.Marshal(app.strategy.AccountMapList)
-		posTableBytes ,_ := json.Marshal(app.strategy.PosTable)
+		accountMapBytes, _ := json.Marshal(app.strategy.AccountMapList)
+		posTableBytes, _ := json.Marshal(app.strategy.PosTable)
 		wsState, _ := app.backend.Es().State()
-		wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"),accountMapBytes)
-		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"),posTableBytes)
-	}else{
+		wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"), accountMapBytes)
+		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), posTableBytes)
+	} else {
 		app.logger.Info("PosTable hasn't changed")
 	}
 }
