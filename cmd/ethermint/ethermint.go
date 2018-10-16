@@ -90,13 +90,54 @@ func ethermintCmd(ctx *cli.Context) error {
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
 			fmt.Println(tmAddress[i])
-			amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-				common.HexToAddress("0x0000000000000000000000000000000000000001"),
-				big.NewInt(0),
-				big.NewInt(0),
-				common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+			accountBalance := big.NewInt(1)
+			accountBalance.Div(totalBalanceInital, big.NewInt(100))
+			switch i {
+			case 0:
+				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"),
+					accountBalance,
+					big.NewInt(0),
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+				}
+				fmt.Println(amlist.MapList[tmAddress[i]].Signer.String())
+			case 1:
+				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
+					common.HexToAddress("0x8423328b8016fbe31938a461b5647de696bdbf71"),
+					accountBalance,
+					big.NewInt(0),
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+				}
+				fmt.Println(amlist.MapList[tmAddress[i]].Signer.String())
+			case 2:
+				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
+					common.HexToAddress("0x4eba28c09155a61503b2be9cbd3dacf8b84dcfb8"),
+					accountBalance,
+					big.NewInt(0),
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+				}
+				fmt.Println(amlist.MapList[tmAddress[i]].Signer.String())
+			case 3:
+				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
+					common.HexToAddress("0xfc6e050a795ca66139262ddc36bbf8b11ab1911e"),
+					accountBalance,
+					big.NewInt(0),
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+				}
+				fmt.Println(amlist.MapList[tmAddress[i]].Signer.String())
+			default:
+				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
+					common.HexToAddress("0x0000000000000000000000000000000000000001"),
+					big.NewInt(0),
+					big.NewInt(0),
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+				}
+				fmt.Println(amlist.MapList[tmAddress[i]].Signer.String())
 			}
+			fmt.Println(amlist.MapList[tmAddress[i]].Signer.String())
 		}
+
+		fmt.Println(len(amlist.MapList))
 	}
 	ethApp.GetStrategy().SetAccountMapList(amlist)
 
