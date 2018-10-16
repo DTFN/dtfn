@@ -81,6 +81,7 @@ var (
 		utils.RoutabilityStrict,
 		utils.PrivatePeerIDs,
 		utils.TendermintP2PListenAddress,
+		utils.TendermintP2PExternalAddress,
 	}
 )
 

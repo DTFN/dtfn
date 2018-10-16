@@ -121,4 +121,10 @@ var (
 		Value: "",
 		Usage: "This is the address that tendermint will use to connect other tendermint port.",
 	}
+
+	TendermintP2PExternalAddress = cli.StringFlag{
+		Name:  "tm_external_addr",
+		Value: "",
+		Usage: "Address to advertise to peers for them to dial.If empty, will use the same port as the laddr",
+	}
 )
