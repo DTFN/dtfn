@@ -89,7 +89,6 @@ func ethermintCmd(ctx *cli.Context) error {
 		}
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
-			fmt.Println(tmAddress[i])
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
 			switch i {
@@ -128,12 +127,8 @@ func ethermintCmd(ctx *cli.Context) error {
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
 				}
-				fmt.Println(amlist.MapList[tmAddress[i]].Signer.String())
 			}
-			fmt.Println(amlist.MapList[tmAddress[i]].Signer.String())
 		}
-
-		fmt.Println(len(amlist.MapList))
 	}
 	ethApp.GetStrategy().SetAccountMapList(amlist)
 

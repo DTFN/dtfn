@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -242,8 +241,6 @@ func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
 // GetUpdatedValidators returns an updated validator set from the strategy
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
-	fmt.Println("wenbin test")
-	fmt.Println(len(app.strategy.AccountMapList.MapList))
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
@@ -271,8 +268,6 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 }
 
 func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEndBlock {
-	fmt.Println("wenbin test enterInitail")
-	fmt.Println(len(app.strategy.ValidatorSet.InitialValidators))
 	if len(app.strategy.ValidatorSet.InitialValidators) == 0 {
 		// There is no nextCandidateValidators for initial height
 		return abciTypes.ResponseEndBlock{}
@@ -290,25 +285,6 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 				})
 		}
 
-		for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
-			address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
-				InitialValidators[j].Address))
-			upsertFlag, _ := app.UpsertPosItem(
-				app.strategy.AccountMapList.MapList[address].Signer,
-				app.strategy.AccountMapList.MapList[address].SignerBalance,
-				app.strategy.AccountMapList.MapList[address].Beneficiary,
-				app.strategy.ValidatorSet.InitialValidators[j].PubKey)
-			if upsertFlag {
-				app.strategy.ValidatorSet.NextHeightCandidateValidators = append(app.
-					strategy.ValidatorSet.NextHeightCandidateValidators, app.
-					strategy.ValidatorSet.InitialValidators[j])
-			} else {
-				tmAddress := hex.EncodeToString(app.strategy.ValidatorSet.
-					InitialValidators[j].Address)
-				delete(app.strategy.AccountMapList.MapList, tmAddress)
-				app.GetLogger().Info("remove not enough balance validators")
-			}
-		}
 		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0 {
 			return abciTypes.ResponseEndBlock{}
 		}
@@ -338,6 +314,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		// we just need to put the voted validator into validatorSlice
 		// we use map to remember which validators voted has put into validatorSlice
 		votedValidators := make(map[string]bool)
+		votedValidatorsIndex := make(map[string]int)
 
 		for j := 0; len(validatorsSlice) != maxValidators+len(validators); j++ {
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey)
@@ -348,7 +325,9 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 			}
 			if votedValidators[tmPubKey.Address().String()] {
 				// existed,do nothing
+				app.logger.Info("validators existed")
 			} else {
+				votedValidatorsIndex[tmPubKey.Address().String()] = j
 				votedValidators[tmPubKey.Address().String()] = true
 				validatorsSlice = append(validatorsSlice, validator)
 				app.strategy.ValidatorSet.CurrentValidators = append(app.
@@ -394,6 +373,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 
 	// we use map to remember which validators voted has put into validatorSlice
 	votedValidators := make(map[string]bool)
+	votedValidatorsIndex := make(map[string]int)
 
 	for i := 0; len(validatorsSlice) != maxValidatorSlice; i++ {
 		var tmPubKey crypto.PubKey
@@ -417,8 +397,10 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		}
 
 		if votedValidators[tmPubKey.Address().String()] {
+			app.logger.Info("validators existed")
 			// existed,do nothing
 		} else {
+			votedValidatorsIndex[tmPubKey.Address().String()] = i
 			votedValidators[tmPubKey.Address().String()] = true
 			validatorsSlice = append(validatorsSlice, validator)
 			app.strategy.ValidatorSet.CurrentValidators = append(app.

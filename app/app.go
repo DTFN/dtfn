@@ -16,6 +16,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
+	"strings"
 )
 
 // EthermintApplication implements an ABCI application
@@ -136,6 +137,28 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	//} else {
 	//	app.strategy.ValidatorSet.CornerStoneValidators = validators
 	//}
+	for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
+		address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
+			InitialValidators[j].Address))
+		upsertFlag, _ := app.UpsertPosItem(
+			app.strategy.AccountMapList.MapList[address].Signer,
+			app.strategy.AccountMapList.MapList[address].SignerBalance,
+			app.strategy.AccountMapList.MapList[address].Beneficiary,
+			app.strategy.ValidatorSet.InitialValidators[j].PubKey)
+		if upsertFlag {
+			app.strategy.ValidatorSet.NextHeightCandidateValidators = append(app.
+				strategy.ValidatorSet.NextHeightCandidateValidators, app.
+				strategy.ValidatorSet.InitialValidators[j])
+		} else {
+			app.strategy.FirstInitial = true
+			tmAddress := hex.EncodeToString(app.strategy.ValidatorSet.
+				InitialValidators[j].Address)
+			app.strategy.AccountMapListTemp.MapList[tmAddress] = app.strategy.AccountMapList.MapList[tmAddress]
+			delete(app.strategy.AccountMapList.MapList, tmAddress)
+			app.GetLogger().Info("remove not enough balance validators")
+		}
+	}
+
 	return abciTypes.ResponseInitChain{}
 }
 
@@ -220,10 +243,15 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.InitialPos()
 
-	// before next bonus ,clear accountMapListTemp
-	for key, _ := range app.strategy.AccountMapListTemp.MapList {
-		delete(app.strategy.AccountMapListTemp.MapList, key)
+	if !app.strategy.FirstInitial{
+		// before next bonus ,clear accountMapListTemp
+		for key, _ := range app.strategy.AccountMapListTemp.MapList {
+			delete(app.strategy.AccountMapListTemp.MapList, key)
+		}
+	}else{
+		app.strategy.FirstInitial = false
 	}
+
 
 	return abciTypes.ResponseBeginBlock{}
 }

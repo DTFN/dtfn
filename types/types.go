@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -36,6 +35,8 @@ type Strategy struct {
 	//This map was used when some validator was removed and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
 	AccountMapListTemp *tmTypes.AccountMapList
+
+	FirstInitial bool
 
 	ProposerAddress string
 
@@ -85,12 +86,8 @@ func (s *Strategy) Receiver() common.Address {
 	if s.ProposerAddress == "" || len(s.AccountMapList.MapList) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
 	} else if s.AccountMapList.MapList[s.ProposerAddress] != nil {
-		fmt.Println(s.AccountMapList.MapList[s.ProposerAddress].Signer.String())
 		return s.AccountMapList.MapList[s.ProposerAddress].Beneficiary
 	} else {
-		fmt.Println(s.ProposerAddress)
-		fmt.Println(len(s.AccountMapList.MapList))
-		fmt.Println(s.AccountMapList.MapList[s.ProposerAddress].Signer.String())
 		return s.AccountMapListTemp.MapList[s.ProposerAddress].Beneficiary
 	}
 }
