@@ -321,13 +321,14 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 			validator := abciTypes.Validator{
 				Address: tmPubKey.Address(),
 				PubKey:  app.strategy.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey,
-				Power:   1,
+				Power:   1000,
 			}
 			if votedValidators[tmPubKey.Address().String()] {
-				// existed,do nothing
-				app.logger.Info("validators existed")
+				validatorsSlice[votedValidatorsIndex[tmPubKey.Address().String()]].Power++
 			} else {
-				votedValidatorsIndex[tmPubKey.Address().String()] = j
+				//Remember tmPubKey.Address 's index in the currentValidators Array
+				votedValidatorsIndex[tmPubKey.Address().String()] = len(validatorsSlice)
+
 				votedValidators[tmPubKey.Address().String()] = true
 				validatorsSlice = append(validatorsSlice, validator)
 				app.strategy.ValidatorSet.CurrentValidators = append(app.
@@ -384,7 +385,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			validator = abciTypes.Validator{
 				Address: tmPubKey.Address(),
 				PubKey:  app.strategy.PosTable.SelectItemBySeedValue(seed, i).PubKey,
-				Power:   1,
+				Power:   1000,
 			}
 		} else {
 			//seed 不存在，使用height
@@ -392,15 +393,16 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			validator = abciTypes.Validator{
 				Address: tmPubKey.Address(),
 				PubKey:  app.strategy.PosTable.SelectItemByHeightValue(int(height) + i - 1).PubKey,
-				Power:   1,
+				Power:   1000,
 			}
 		}
 
 		if votedValidators[tmPubKey.Address().String()] {
-			app.logger.Info("validators existed")
-			// existed,do nothing
+			validatorsSlice[votedValidatorsIndex[tmPubKey.Address().String()]].Power++
 		} else {
-			votedValidatorsIndex[tmPubKey.Address().String()] = i
+			//Remember tmPubKey.Address 's index in the currentValidators Array
+			votedValidatorsIndex[tmPubKey.Address().String()] = len(validatorsSlice)
+
 			votedValidators[tmPubKey.Address().String()] = true
 			validatorsSlice = append(validatorsSlice, validator)
 			app.strategy.ValidatorSet.CurrentValidators = append(app.
