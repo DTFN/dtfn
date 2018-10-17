@@ -249,7 +249,6 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 			delete(app.strategy.AccountMapListTemp.MapList, key)
 		}
 	}else{
-		app.strategy.FirstInitial = false
 	}
 
 

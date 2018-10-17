@@ -1,8 +1,10 @@
 package ethereum
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -17,12 +19,10 @@ import (
 
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
-	"encoding/hex"
 	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/tendermint/ethermint/types"
 	"github.com/tendermint/tendermint/crypto"
-	"strings"
 	"time"
 )
 
@@ -220,23 +220,58 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	for i := 0; i < len(strategy.ValidatorSet.CurrentValidators); i++ {
 		validators = append(validators, strategy.ValidatorSet.CurrentValidators[i])
 	}
+	minerBonus := big.NewInt(1)
+	divisor := big.NewInt(1)
+	// for 1% every year increment
+	minerBonus.Div(strategy.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
-	for i := 0; i < len(validators); i++ {
-		address := strings.ToLower(hex.EncodeToString(validators[i].Address))
+	if strategy.FirstInitial{
+		strategy.FirstInitial = false
+		for i := 0; i < len(strategy.ValidatorSet.InitialValidators); i++ {
+			bonusAverage := big.NewInt(1)
+			bonusAverage.Div(minerBonus, big.NewInt(int64(len(strategy.ValidatorSet.InitialValidators))))
 
-		if strategy.AccountMapListTemp.MapList[address] != nil {
-			ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, big.NewInt(1000000000000000000))
-		} else {
-			ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, big.NewInt(1000000000000000000))
+			address := strings.ToLower(hex.EncodeToString(strategy.ValidatorSet.InitialValidators[i].Address))
+			if strategy.AccountMapListTemp.MapList[address] != nil {
+				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
+			} else {
+				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			}
+			fmt.Println(bonusAverage)
+		}
+	} else if len(strategy.ValidatorSet.CurrentValidatorWeight) == 0 {
+		for i := 0; i < len(validators); i++ {
+			bonusAverage := big.NewInt(1)
+			bonusAverage.Div(minerBonus, big.NewInt(int64(len(validators))))
+
+			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
+			if strategy.AccountMapListTemp.MapList[address] != nil {
+				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
+			} else {
+				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			}
+			fmt.Println(bonusAverage)
+		}
+	} else {
+		weightSum := 0
+		for i := 0; i < len(strategy.ValidatorSet.CurrentValidatorWeight); i++ {
+			weightSum = weightSum + int(strategy.ValidatorSet.CurrentValidatorWeight[i])
+		}
+		for i := 0; i < len(validators); i++ {
+			bonusAverage := big.NewInt(1)
+			bonusSpecify := big.NewInt(1)
+			bonusSpecify.Mul(big.NewInt(strategy.ValidatorSet.CurrentValidatorWeight[i]), bonusAverage.
+				Div(minerBonus, big.NewInt(int64(weightSum))))
+
+			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
+			if strategy.AccountMapListTemp.MapList[address] != nil {
+				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusSpecify)
+			} else {
+				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
+			}
+			fmt.Println(bonusSpecify)
 		}
 	}
-
-	if len(strategy.ValidatorSet.CurrentValidatorWeight) == 0 {
-		fmt.Println("CurrentValidatorWeight nil")
-	} else {
-		fmt.Println("CurrentValidatorWeight not nil")
-	}
-
 	ws.header.GasUsed = *ws.totalUsedGas
 }
 
