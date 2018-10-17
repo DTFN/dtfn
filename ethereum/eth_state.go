@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -228,6 +229,12 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		} else {
 			ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, big.NewInt(1000000000000000000))
 		}
+	}
+
+	if len(strategy.ValidatorSet.CurrentValidatorWeight) == 0 {
+		fmt.Println("CurrentValidatorWeight nil")
+	} else {
+		fmt.Println("CurrentValidatorWeight not nil")
 	}
 
 	ws.header.GasUsed = *ws.totalUsedGas

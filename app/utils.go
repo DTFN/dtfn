@@ -459,6 +459,8 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 			})
 	}
 
+	app.strategy.ValidatorSet.CurrentValidatorWeight = nil
+
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 }
 

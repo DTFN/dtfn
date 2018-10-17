@@ -63,7 +63,7 @@ type Validators struct {
 	CurrentValidators []*abciTypes.Validator
 
 	// current validator weight represent the weight of random select.
-	// will used to
+	// will used to accumulateReward for next height
 	CurrentValidatorWeight []int64
 
 	// note : if we get a addValidatorsTx at height 101,
