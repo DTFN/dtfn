@@ -62,6 +62,10 @@ type Validators struct {
 	// if height =1 ,CurrentValidator = nil
 	CurrentValidators []*abciTypes.Validator
 
+	// current validator weight represent the weight of random select.
+	// will used to
+	CurrentValidatorWeight []int64
+
 	// note : if we get a addValidatorsTx at height 101,
 	// we will put it into the NextCandidateValidators and move into postable
 	// NextCandidateValidator will used in the next height200

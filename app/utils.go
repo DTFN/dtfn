@@ -335,6 +335,13 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 					strategy.ValidatorSet.CurrentValidators, &validator)
 			}
 		}
+
+		for i := 0; i < maxValidators; i++ {
+			app.strategy.ValidatorSet.CurrentValidatorWeight = append(
+				app.strategy.ValidatorSet.CurrentValidatorWeight,
+				validatorsSlice[len(validators)+i].Power-999)
+		}
+
 		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 	}
 }
@@ -370,7 +377,9 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	} else {
 		maxValidatorSlice = 7 + len(app.strategy.ValidatorSet.CurrentValidators)
 	}
+	preValidatorLength := len(app.strategy.ValidatorSet.CurrentValidators)
 	app.strategy.ValidatorSet.CurrentValidators = nil
+	app.strategy.ValidatorSet.CurrentValidatorWeight = nil
 
 	// we use map to remember which validators voted has put into validatorSlice
 	votedValidators := make(map[string]bool)
@@ -409,6 +418,13 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 				strategy.ValidatorSet.CurrentValidators, &validator)
 		}
 	}
+
+	for i := preValidatorLength; i < maxValidatorSlice; i++ {
+		app.strategy.ValidatorSet.CurrentValidatorWeight = append(
+			app.strategy.ValidatorSet.CurrentValidatorWeight,
+			validatorsSlice[i].Power-999)
+	}
+
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 
 }
