@@ -97,14 +97,16 @@ func ethermintCmd(ctx *cli.Context) error {
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"),
 					accountBalance,
 					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个//
+					"",//
 				}
 			case 1:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
 					common.HexToAddress("0x8423328b8016fbe31938a461b5647de696bdbf71"),
 					accountBalance,
 					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个//
+					"",// 。
 				}
 			case 2:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
@@ -112,48 +114,55 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					"",
 				}
 			case 3:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
 					common.HexToAddress("0xfc6e050a795ca66139262ddc36bbf8b11ab1911e"),
 					accountBalance,
 					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
+					"",// 。
 				}
 			case 4:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
 					common.HexToAddress("0x99c80ff44e34a462da6cb3a96295106f11b3467a"),
 					accountBalance,
 					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
+					"",// 。
 				}
 			case 5:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
 					common.HexToAddress("0xe530df4446e4d2885d0564c9bce3cbc478c231b5"),
 					accountBalance,
 					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
+					"",// 。
 				}
 			case 6:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
 					common.HexToAddress("0xade651aad6507678751c1c1e5e32dbd9dc97fa4e"),
 					accountBalance,
 					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
+					"",// 。
 				}
 			case 7:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
 					common.HexToAddress("0x1ae4d63ea5ad162e6fcb1ff94433e9fa8b400464"),
 					accountBalance,
 					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
+					"",// 。
 				}
 			default:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
 					common.HexToAddress("0x0000000000000000000000000000000000000001"),
 					big.NewInt(0),
 					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
+					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
+					"",// 。
 				}
 			}
 		}

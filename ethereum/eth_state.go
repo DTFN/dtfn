@@ -199,13 +199,15 @@ type workState struct {
 }
 
 type Wrap struct {
-	Type        string
-	Signer      common.Address
-	Balance     *big.Int
-	Beneficiary common.Address
-	Pubkey      crypto.PubKey
-	Height      *big.Int
-	Receipt     *ethTypes.Receipt
+	Type         string
+	Signer       common.Address
+	Balance      *big.Int
+	Beneficiary  common.Address
+	Pubkey       crypto.PubKey
+	BlsKeyString string
+
+	Height  *big.Int
+	Receipt *ethTypes.Receipt
 }
 
 func (ws *workState) State() *state.StateDB {
@@ -225,7 +227,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	// for 1% every year increment
 	minerBonus.Div(strategy.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
-	if strategy.FirstInitial{
+	if strategy.FirstInitial {
 		strategy.FirstInitial = false
 		for i := 0; i < len(strategy.ValidatorSet.InitialValidators); i++ {
 			bonusAverage := big.NewInt(1)
@@ -317,13 +319,14 @@ func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int, receipt *eth
 			data, _ := MarshalTxData(string(msg.Data()))
 			balance := statedb.GetBalance(msg.From())
 			return &Wrap{
-				Type:        "upsert",
-				Signer:      msg.From(),
-				Balance:     balance,
-				Beneficiary: common.HexToAddress(data.Beneficiary),
-				Pubkey:      data.Pv.PubKey,
-				Height:      h,
-				Receipt:     receipt,
+				Type:         "upsert",
+				Signer:       msg.From(),
+				Balance:      balance,
+				Beneficiary:  common.HexToAddress(data.Beneficiary),
+				Pubkey:       data.Pv.PubKey,
+				BlsKeyString: data.BlsKeyString,
+				Height:       h,
+				Receipt:      receipt,
 			}
 		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
 			return &Wrap{

@@ -204,7 +204,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	db, e := app.getCurrentState()
 	if e == nil {
 		if wrap.Type == "upsert" {
-			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Balance, wrap.Beneficiary, wrap.Pubkey)
+			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Balance, wrap.Beneficiary, wrap.Pubkey,wrap.BlsKeyString)
 			if e == nil && b {
 				blacklist.Lock(db, wrap.Signer)
 			} else {

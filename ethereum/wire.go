@@ -1,10 +1,10 @@
 package ethereum
 
 import (
+	"encoding/json"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/privval"
-	"encoding/json"
 )
 
 var cdc = amino.NewCodec()
@@ -14,8 +14,9 @@ func init() {
 }
 
 type TxData struct {
-	Pv          *privval.FilePV
-	Beneficiary string
+	Pv           *privval.FilePV
+	Beneficiary  string
+	BlsKeyString string
 }
 
 func MarshalTxData(jsonStr string) (*TxData, error) {

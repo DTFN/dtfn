@@ -58,7 +58,7 @@ func (app *EthermintApplication) StartHttpServer() {
 }
 
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
-	beneficiary common.Address, pubkey crypto.PubKey) (bool, error) {
+	beneficiary common.Address, pubkey crypto.PubKey,blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
