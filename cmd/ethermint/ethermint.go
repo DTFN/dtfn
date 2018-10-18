@@ -98,7 +98,7 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个//
-					"",//
+					"1",//
 				}
 			case 1:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
@@ -106,7 +106,7 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个//
-					"",// 。
+					"2",// 。
 				}
 			case 2:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
@@ -114,7 +114,7 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
-					"",
+					"3",
 				}
 			case 3:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
@@ -122,7 +122,7 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"",// 。
+					"4",// 。
 				}
 			case 4:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
@@ -130,7 +130,7 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"",// 。
+					"5",// 。
 				}
 			case 5:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
@@ -138,7 +138,7 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"",// 。
+					"6",// 。
 				}
 			case 6:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
@@ -146,7 +146,7 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"",// 。
+					"7",// 。
 				}
 			case 7:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
@@ -154,7 +154,7 @@ func ethermintCmd(ctx *cli.Context) error {
 					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"",// 。
+					"8",// 。
 				}
 			default:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
