@@ -462,14 +462,14 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 				PubKey:  app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
 				Power:   int64(1),
 			})
-		pubkey,_:=tmTypes.PB2TM.PubKey(app.strategy.ValidatorSet.CurrentValidators[i].PubKey)
+		pubkey, _ := tmTypes.PB2TM.PubKey(app.strategy.ValidatorSet.CurrentValidators[i].PubKey)
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
-		blsPubkeySlice = append(blsPubkeySlice,app.strategy.AccountMapList.MapList[tmAddress].BlsKeyString)
+		blsPubkeySlice = append(blsPubkeySlice, app.strategy.AccountMapList.MapList[tmAddress].BlsKeyString)
 	}
 
 	app.strategy.ValidatorSet.CurrentValidatorWeight = nil
 
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice}
 }
 
 func (app *EthermintApplication) InitialPos() {
