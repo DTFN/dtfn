@@ -58,17 +58,17 @@ func (app *EthermintApplication) StartHttpServer() {
 }
 
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
-	beneficiary common.Address, pubkey crypto.PubKey,blsKeyString string) (bool, error) {
+	beneficiary common.Address, pubkey crypto.PubKey, blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
+	if len(pubkey.Address()) == 0 || len(blsKeyString) == 0 {
+		app.GetLogger().Info("nil validator pubkey or bls pubkey")
+		return false, errors.New("nil validator pubkey or bls pubkey")
+	}
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
-		if pubkey == nil {
-			app.GetLogger().Info("nil validator pubkey")
-			return false, errors.New("nil validator pubkey")
-		}
 		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
@@ -86,15 +86,22 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 		}
 		//做这件事之前必须确认这个signer，不是MapList中已经存在的。
 		//1.signer相同，可能来作恶;  2.signer相同，可能不作恶，因为有相同maplist;  3.signer不相同
-		same := false
+		signerExisted := false
 		for _, v := range app.strategy.AccountMapList.MapList {
 			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
-				same = true
+				signerExisted = true
+				break
+			}
+		}
+		blsExisted := false
+		for _, v := range app.strategy.AccountMapList.MapList {
+			if v.BlsKeyString == blsKeyString {
+				blsExisted = true
 				break
 			}
 		}
 
-		if !same && !existFlag {
+		if !signerExisted && !existFlag && !blsExisted {
 			// signer不相同
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
@@ -107,6 +114,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 				Beneficiary:   beneficiary,
 				Signer:        signer,
 				SignerBalance: balance,
+				BlsKeyString:  blsKeyString,
 			}
 			app.strategy.ValidatorSet.NextHeightCandidateValidators = append(app.
 				strategy.ValidatorSet.NextHeightCandidateValidators,
@@ -118,7 +126,11 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 			app.GetLogger().Info("add Validator Tx success")
 			app.strategy.PosTable.ChangedFlagThisBlock = true
 			return true, nil
-		} else if existFlag && same {
+		} else if existFlag && signerExisted && blsExisted {
+			if app.strategy.AccountMapList.MapList[tmAddress].BlsKeyString != blsKeyString || !bytes.
+				Equal(app.strategy.AccountMapList.MapList[tmAddress].Signer.Bytes(), signer.Bytes()) {
+				return false, errors.New("bls or validator pubkey was signed by other people")
+			}
 			//同singer，同MapList[tmAddress]，是来改动balance的
 			upsertFlag, err := app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
@@ -432,14 +444,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
 
 	var validatorsSlice []abciTypes.Validator
-	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
-		validatorsSlice = append(validatorsSlice,
-			abciTypes.Validator{
-				Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
-				PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
-				Power:   int64(0),
-			})
-	}
+	var blsPubkeySlice []string
 
 	app.strategy.ValidatorSet.CurrentValidators = nil
 
@@ -457,6 +462,9 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 				PubKey:  app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
 				Power:   int64(1),
 			})
+		pubkey,_:=tmTypes.PB2TM.PubKey(app.strategy.ValidatorSet.CurrentValidators[i].PubKey)
+		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+		blsPubkeySlice = append(blsPubkeySlice,app.strategy.AccountMapList.MapList[tmAddress].BlsKeyString)
 	}
 
 	app.strategy.ValidatorSet.CurrentValidatorWeight = nil
