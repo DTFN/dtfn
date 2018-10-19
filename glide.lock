@@ -10,7 +10,7 @@ imports:
   subpackages:
   - btcec
 - name: github.com/Green-Element-Chain/tendermint
-  version: feature/ci
+  version: develop
 - name: github.com/Green-Element-Chain/go-ethereum
   version: develop
 - name: github.com/btcsuite/btcutil
