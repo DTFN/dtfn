@@ -30,7 +30,7 @@ imports:
 - name: github.com/matttproud/golang_protobuf_extensions
   version: master
 - name: github.com/cosmos/cosmos-sdk
-  version: master
+  version: 1e26ba2e0e9c1e0457383ff302a97396c227cddb
   subpackages:
   - errors
   - types
