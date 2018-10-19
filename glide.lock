@@ -26,7 +26,7 @@ imports:
 - name: github.com/beorn7/perks
   version: master
 - name: github.com/tendermint/go-amino
-  version: master
+  version: v0.9.6
 - name: github.com/matttproud/golang_protobuf_extensions
   version: master
 - name: github.com/cosmos/cosmos-sdk
