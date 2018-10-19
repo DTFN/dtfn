@@ -8,6 +8,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -158,11 +159,11 @@ func ethermintCmd(ctx *cli.Context) error {
 				}
 			default:
 				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0x0000000000000000000000000000000000000001"),
-					big.NewInt(0),
+					common.HexToAddress("0x0000000000000000000000000000000000000"+strconv.Itoa(100+i)),
+					accountBalance,
 					big.NewInt(0),
 					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"",// 。
+					strconv.Itoa(i),// 。
 				}
 			}
 		}
