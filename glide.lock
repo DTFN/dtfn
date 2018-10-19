@@ -9,10 +9,6 @@ imports:
   version: 2e60448ffcc6bf78332d1fe590260095f554dd78
   subpackages:
   - btcec
-- name: github.com/Green-Element-Chain/tendermint
-  version: develop
-- name: github.com/Green-Element-Chain/go-ethereum
-  version: develop
 - name: github.com/btcsuite/btcutil
   version: master
 - name: github.com/spf13/viper
