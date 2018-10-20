@@ -81,3 +81,4 @@ Check out the [community page](https://tendermint.com/community) for various res
 ## License
 
 [GPLv3](LICENSE)
+
