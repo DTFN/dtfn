@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ROOT_PATH="/ci_test"
+export ROOT_PATH="/tmp/ci_test"
 export GOPATH="$ROOT_PATH/go"
 export PARENT_DIR="$GOPATH/src/github.com"
 export ETHERMINT_PARENT_DIR="$PARENT_DIR/tendermint"
