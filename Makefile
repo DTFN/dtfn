@@ -59,7 +59,8 @@ draw_deps:
 	goviz -i github.com/tendermint/ethermint/cmd/ethermint -d 2 | dot -Tpng -o dependency-graph.png
 
 ci:
-	@sh ./tests/ci.test
+	@chmod +x ./tests/ci.test
+	@./tests/ci.test
 
 get_vendor_deps:
 	@hash glide 2>/dev/null || go get github.com/Masterminds/glide

@@ -43,7 +43,9 @@ profile.cov
 /dashboard/assets/stats.json
 /dashboard/assets/bundle.js
 /dashboard/assets/package-lock.json
-
+/ethermint
+/go-ethereum
+/tendermint
 **/yarn-error.log
 /build/
 /cmd/ethermint/ethermint
