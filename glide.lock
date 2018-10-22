@@ -9,73 +9,33 @@ imports:
   version: 2e60448ffcc6bf78332d1fe590260095f554dd78
   subpackages:
   - btcec
+- name: github.com/btcsuite/btcutil
+  version: master
+- name: github.com/spf13/viper
+  version: master
+- name: github.com/spf13/cobra
+  version: master
+- name: github.com/prometheus/common
+  version: master
+- name: github.com/prometheus/client_golang
+  version: master
+- name: github.com/prometheus/client_model
+  version: master
+- name: github.com/prometheus/procfs
+  version: master
+- name: github.com/beorn7/perks
+  version: master
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: master
 - name: github.com/cosmos/cosmos-sdk
-  version: be92f16b52cdeaba6dddaa62e0a8d1eed9e9640e
+  version: 1e26ba2e0e9c1e0457383ff302a97396c227cddb
   subpackages:
   - errors
+  - types
 - name: github.com/ebuchman/fail-test
   version: 95f809107225be108efcf10a3509e4ea6ceef3c4
 - name: github.com/edsrzf/mmap-go
   version: 0bce6a6887123b67a60366d2c9fe2dfb74289d2e
-- name: github.com/ethereum/go-ethereum
-  version: d9e23666755ebeb632dc8c3f902650971594e5a7
-  repo: https://github.com/tendermint/go-ethereum.git
-  subpackages:
-  - accounts
-  - accounts/keystore
-  - accounts/usbwallet
-  - cmd/utils
-  - common
-  - common/bitutil
-  - common/hexutil
-  - common/math
-  - common/mclock
-  - consensus
-  - consensus/clique
-  - consensus/ethash
-  - consensus/misc
-  - console
-  - core
-  - core/state
-  - core/types
-  - core/vm
-  - crypto
-  - crypto/ecies
-  - crypto/randentropy
-  - crypto/secp256k1
-  - crypto/sha3
-  - eth
-  - eth/downloader
-  - eth/fetcher
-  - eth/filters
-  - eth/gasprice
-  - ethclient
-  - ethdb
-  - ethstats
-  - event
-  - internal/debug
-  - internal/ethapi
-  - internal/jsre
-  - internal/jsre/deps
-  - internal/web3ext
-  - les
-  - les/flowcontrol
-  - light
-  - log
-  - log/term
-  - metrics
-  - miner
-  - node
-  - p2p
-  - p2p/discover
-  - p2p/discv5
-  - p2p/nat
-  - p2p/netutil
-  - params
-  - rlp
-  - rpc
-  - trie
-  - whisper/whisperv5
 - name: github.com/fatih/color
   version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
 - name: github.com/go-kit/kit
@@ -95,7 +55,7 @@ imports:
 - name: github.com/go-stack/stack
   version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
 - name: github.com/gogo/protobuf
-  version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
+  version: v1.1.1
   subpackages:
   - gogoproto
   - jsonpb
@@ -104,7 +64,7 @@ imports:
   - sortkeys
   - types
 - name: github.com/golang/protobuf
-  version: c65a0412e71e8b9b3bfd22925720d23c0f054237
+  version: v1.1.0
   subpackages:
   - proto
   - ptypes
@@ -180,14 +140,6 @@ imports:
   - leveldb/storage
   - leveldb/table
   - leveldb/util
-- name: github.com/tendermint/abci
-  version: 5d5ea6869b91cadb55dbc4211ad7b326f053a33e
-  subpackages:
-  - client
-  - example/code
-  - example/dummy
-  - server
-  - types
 - name: github.com/tendermint/ed25519
   version: d8387025d2b9d158cf4efb07e7ebf814bcce2057
   subpackages:
@@ -204,21 +156,8 @@ imports:
   - nowriter/tmlegacy
 - name: github.com/tendermint/iavl
   version: 594cc0c062a7174475f0ab654384038d77067917
-- name: github.com/tendermint/tendermint
-  version: 381fe19335ba8825e04d1d0fefa5cac709bb7178
-  subpackages:
-  - config
-  - consensus/types
-  - p2p
-  - p2p/upnp
-  - proxy
-  - rpc/core/types
-  - rpc/lib/client
-  - rpc/lib/types
-  - state
-  - types
 - name: github.com/tendermint/tmlibs
-  version: 15e51fa76086a3c505f227679c2478043ae7261b
+  version: v0.8.3
   subpackages:
   - common
   - db
@@ -291,7 +230,7 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 401e0e00e4bb830a10496d64cd95e068c5bf50de
+  version: v1.13.0
   repo: https://github.com/grpc/grpc-go
   vcs: git
   subpackages:
@@ -312,7 +251,7 @@ imports:
   - tap
   - transport
 - name: gopkg.in/fatih/set.v0
-  version: 27c40922c40b43fe04554d8223a402af3ea333f3
+  version: v0.2.1
 - name: gopkg.in/go-playground/validator.v9
   version: 61caf9d3038e1af346dbf5c2e16f6678e1548364
 - name: gopkg.in/karalabe/cookiejar.v2
@@ -325,8 +264,6 @@ imports:
   version: 6e83acea0053641eff084973fee085f0c193c61a
   subpackages:
   - base64vlq
-- name: gopkg.in/urfave/cli.v1
-  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 testImports:
 - name: github.com/davecgh/go-spew
   version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
@@ -340,3 +277,4 @@ testImports:
   version: 2aa2c176b9dab406a6970f6a55f513e8a8c8b18f
   subpackages:
   - assert
+
