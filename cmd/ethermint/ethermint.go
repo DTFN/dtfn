@@ -241,6 +241,14 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.P2P.RootDir = tmHome
 	defaultTmConfig.RPC.RootDir = tmHome
 	defaultTmConfig.Consensus.RootDir = tmHome
+	defaultTmConfig.Consensus.CreateEmptyBlocks = ctx.GlobalBool(emtUtils.TmConsEmptyBlock.Name)
+	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)
+
+	fmt.Println("wenbin test empty block")
+	fmt.Println(defaultTmConfig.Consensus.CreateEmptyBlocks)
+	fmt.Println(defaultTmConfig.Consensus.CreateEmptyBlocksInterval)
+	fmt.Println("wenbin test empty block")
+
 	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
 
 	defaultTmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)

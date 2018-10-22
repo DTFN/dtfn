@@ -82,6 +82,8 @@ var (
 		utils.PrivatePeerIDs,
 		utils.TendermintP2PListenAddress,
 		utils.TendermintP2PExternalAddress,
+		utils.TmConsEmptyBlock,
+		utils.TmConsEBlockInteval,
 	}
 )
 

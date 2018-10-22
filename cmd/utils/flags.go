@@ -127,4 +127,14 @@ var (
 		Value: "",
 		Usage: "Address to advertise to peers for them to dial.If empty, will use the same port as the laddr",
 	}
+
+	TmConsEmptyBlock = cli.BoolFlag{
+		Name:  "tm_cons_emptyblock",
+		Usage: "EmptyBlocks mode",
+	}
+
+	TmConsEBlockInteval = cli.Uint64Flag{
+		Name:  "tm_cons_eb_inteval",
+		Usage: "possible interval between empty blocks in seconds",
+	}
 )
