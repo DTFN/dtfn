@@ -263,9 +263,8 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 	}
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
-	app.backend.AccumulateRewards(app.strategy)
 
-	app.PersistencePos()
+
 
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
@@ -273,6 +272,10 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 // Commit commits the block and returns a hash of the current state
 // #stable - 0.4.0
 func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
+
+	app.backend.AccumulateRewards(app.strategy)
+	app.PersistencePos()
+
 	app.logger.Debug("Commit") // nolint: errcheck
 	state, err := app.getCurrentState()
 	if err != nil {
