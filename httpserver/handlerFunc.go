@@ -28,9 +28,9 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/test"] = tHandler.test
 	tHandler.HandlersMap["/isUpsert"] = tHandler.IsUpsert
 	tHandler.HandlersMap["/isRemove"] = tHandler.IsRemove
-	tHandler.HandlersMap["/GetPosTable"] = tHandler.IsUpsert
-	tHandler.HandlersMap["/GetAccountMap"] = tHandler.IsUpsert
-	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.IsUpsert
+	tHandler.HandlersMap["/GetPosTable"] = tHandler.GetPosTable
+	tHandler.HandlersMap["/GetAccountMap"] = tHandler.GetAccountMap
+	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.GetCurrentValidators
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
