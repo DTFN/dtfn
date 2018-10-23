@@ -84,6 +84,7 @@ var (
 		utils.TendermintP2PExternalAddress,
 		utils.TmConsEmptyBlock,
 		utils.TmConsEBlockInteval,
+		utils.TmConsNeedProofBlock,
 	}
 )
 

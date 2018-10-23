@@ -7,6 +7,7 @@ import (
 	tmTypes "github.com/tendermint/tendermint/types"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type THandler struct {
@@ -30,7 +31,10 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/isRemove"] = tHandler.IsRemove
 	tHandler.HandlersMap["/GetPosTable"] = tHandler.GetPosTableData
 	tHandler.HandlersMap["/GetAccountMap"] = tHandler.GetAccountMapData
-	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.GetCurrentValidatorsData
+	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.GetPreBlockValidators
+	tHandler.HandlersMap["/GetPreBlockProposer"] = tHandler.GetPreBlockProposer
+	tHandler.HandlersMap["/GetAllCandidateValidators"] = tHandler.GetAllCandidateValidatorPool
+
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +130,61 @@ func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Req
 }
 
 // This function will return the used data structure
-func (tHandler *THandler) GetCurrentValidatorsData(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte("this is current validators structure"))
+func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http.Request) {
+	var preValidators []*Validator
+	for i := 0; i < len(tHandler.strategy.ValidatorSet.CurrentValidators); i++ {
+		tmAddress := tHandler.strategy.ValidatorSet.CurrentValidators[i].Address
+		tmAddressStr := strings.ToLower(hex.EncodeToString(tmAddress))
+		preValidators = append(preValidators, &Validator{
+			Address:     tmAddress,
+			Power:       tHandler.strategy.ValidatorSet.CurrentValidatorWeight[i],
+			Signer:      tHandler.strategy.AccountMapList.MapList[tmAddressStr].Signer,
+			Beneficiary: tHandler.strategy.AccountMapList.MapList[tmAddressStr].Beneficiary,
+		})
+	}
+
+	jsonStr, err := json.Marshal(preValidators)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+// This function will return the used data structure
+func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.Request) {
+	proposer := tHandler.strategy.ProposerAddress
+	PreBlockProposer := &PreBlockProposer{
+		PreBlockProposer: proposer,
+		Beneficiary:      tHandler.strategy.AccountMapList.MapList[proposer].Beneficiary,
+		Signer:           tHandler.strategy.AccountMapList.MapList[proposer].Signer,
+	}
+	jsonStr, err := json.Marshal(PreBlockProposer)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
+	var preValidators []*Validator
+	for i := 0; i < len(tHandler.strategy.ValidatorSet.NextHeightCandidateValidators); i++ {
+		tmAddress := tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address
+		tmAddressStr := strings.ToLower(hex.EncodeToString(tmAddress))
+		preValidators = append(preValidators, &Validator{
+			Address:       tmAddress,
+			Power:         int64(1),
+			SignerBalance: tHandler.strategy.AccountMapList.MapList[tmAddressStr].SignerBalance,
+			Signer:        tHandler.strategy.AccountMapList.MapList[tmAddressStr].Signer,
+			Beneficiary:   tHandler.strategy.AccountMapList.MapList[tmAddressStr].Beneficiary,
+		})
+	}
+
+	jsonStr, err := json.Marshal(preValidators)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
 }

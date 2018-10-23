@@ -137,4 +137,9 @@ var (
 		Name:  "tm_cons_eb_inteval",
 		Usage: "possible interval between empty blocks in seconds",
 	}
+
+	TmConsNeedProofBlock = cli.BoolFlag{
+		Name:  "need_proof_block",
+		Usage: "whether to need proof block",
+	}
 )
