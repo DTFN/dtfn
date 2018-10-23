@@ -138,6 +138,7 @@ func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http
 		preValidators = append(preValidators, &Validator{
 			Address:       tmAddress,
 			AddressString: tmAddressStr,
+			PubKey:        tHandler.strategy.ValidatorSet.CurrentValidators[i].PubKey,
 			Power:         tHandler.strategy.ValidatorSet.CurrentValidatorWeight[i],
 			Signer:        tHandler.strategy.AccountMapList.MapList[tmAddressStr].Signer,
 			Beneficiary:   tHandler.strategy.AccountMapList.MapList[tmAddressStr].Beneficiary,
@@ -177,6 +178,7 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 			Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: tmAddressStr,
+			PubKey:        tHandler.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
 			SignerBalance: tHandler.strategy.AccountMapList.MapList[tmAddressStr].SignerBalance,
 			Signer:        tHandler.strategy.AccountMapList.MapList[tmAddressStr].Signer,
 			Beneficiary:   tHandler.strategy.AccountMapList.MapList[tmAddressStr].Beneficiary,
