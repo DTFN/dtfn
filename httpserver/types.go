@@ -14,7 +14,7 @@ type Validator struct {
 	AddressString string           `json:"addressString"`
 }
 
-type Pos struct {
+type PTableAll struct {
 	NextCandidateValidators []*Validator `json:"nextValidators"`
 
 	AccountMapList *tmTypes.AccountMapList `json:"accountMap"`
@@ -22,4 +22,13 @@ type Pos struct {
 	PosItemMap map[common.Address]*types.PosItem `json:"posTableMap"`
 
 	Success bool `json:"success"`
+}
+
+type AccountMapData struct {
+	MapList map[string]*tmTypes.AccountMap `json:"accountmaplist"`
+}
+
+
+type PosItemMapData struct {
+	PosItemMap map[common.Address]*types.PosItem `json:"posTableMap"`
 }

@@ -28,9 +28,9 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/test"] = tHandler.test
 	tHandler.HandlersMap["/isUpsert"] = tHandler.IsUpsert
 	tHandler.HandlersMap["/isRemove"] = tHandler.IsRemove
-	tHandler.HandlersMap["/GetPosTable"] = tHandler.GetPosTable
-	tHandler.HandlersMap["/GetAccountMap"] = tHandler.GetAccountMap
-	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.GetCurrentValidators
+	tHandler.HandlersMap["/GetPosTable"] = tHandler.GetPosTableData
+	tHandler.HandlersMap["/GetAccountMap"] = tHandler.GetAccountMapData
+	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.GetCurrentValidatorsData
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +60,7 @@ func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
 		})
 	}
 
-	PosReceipt := &Pos{
+	PosReceipt := &PTableAll{
 		PosItemMap:              tHandler.strategy.PosTable.PosItemMap,
 		AccountMapList:          tHandler.strategy.AccountMapList,
 		NextCandidateValidators: nextValidators,
@@ -86,7 +86,7 @@ func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 		})
 	}
 
-	PosReceipt := &Pos{
+	PosReceipt := &PTableAll{
 		PosItemMap:              tHandler.strategy.PosTable.PosItemMap,
 		AccountMapList:          tHandler.strategy.AccountMapList,
 		NextCandidateValidators: nextValidators,
@@ -100,16 +100,32 @@ func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 }
 
 // This function will return the used data structure
-func (tHandler *THandler) GetPosTable(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte("this is pos table structure"))
+func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Request) {
+	PosTable := &PosItemMapData{
+		PosItemMap: tHandler.strategy.PosTable.PosItemMap,
+	}
+	jsonStr, err := json.Marshal(PosTable)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
 }
 
 // This function will return the used data structure
-func (tHandler *THandler) GetAccountMap(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte("this is account map structure"))
+func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Request) {
+	AccountMap := &AccountMapData{
+		MapList: tHandler.strategy.AccountMapList.MapList,
+	}
+	jsonStr, err := json.Marshal(AccountMap)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
 }
 
 // This function will return the used data structure
-func (tHandler *THandler) GetCurrentValidators(w http.ResponseWriter, req *http.Request) {
+func (tHandler *THandler) GetCurrentValidatorsData(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("this is current validators structure"))
 }
