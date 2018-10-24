@@ -60,7 +60,8 @@ func (app *EthermintApplication) StartHttpServer() {
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey, blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
-	if len(pubkey.Address()) == 0 || len(blsKeyString) == 0 {
+
+	if pubkey == nil || len(blsKeyString) == 0 {
 		app.GetLogger().Info("nil validator pubkey or bls pubkey")
 		return false, errors.New("nil validator pubkey or bls pubkey")
 	}
