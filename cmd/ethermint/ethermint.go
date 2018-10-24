@@ -245,11 +245,6 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)
 	defaultTmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
 
-	fmt.Println("wenbin test empty block")
-	fmt.Println(defaultTmConfig.Consensus.CreateEmptyBlocks)
-	fmt.Println(defaultTmConfig.Consensus.CreateEmptyBlocksInterval)
-	fmt.Println("wenbin test empty block")
-
 	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
 
 	defaultTmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)
