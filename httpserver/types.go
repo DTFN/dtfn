@@ -34,6 +34,7 @@ type AccountMapData struct {
 
 type PosItemMapData struct {
 	PosItemMap map[common.Address]*types.PosItem `json:"posTableMap"`
+	Threshold  *big.Int                          `json:"threshold"`
 }
 
 type PreBlockProposer struct {
@@ -44,4 +45,9 @@ type PreBlockProposer struct {
 
 type PreBlockValidatorElect struct {
 	preBlockValidators []*Validator `json:"preBlockValidators"`
+}
+
+type Encourage struct {
+	TotalBalance          *big.Int `json:"totalBalance"`
+	EncourageAverageBlock *big.Int `json:"encourageAverageBlock"`
 }

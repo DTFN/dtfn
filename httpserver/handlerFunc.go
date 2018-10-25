@@ -6,6 +6,7 @@ import (
 	emtTypes "github.com/tendermint/ethermint/types"
 	tmTypes "github.com/tendermint/tendermint/types"
 	"io"
+	"math/big"
 	"net/http"
 	"strings"
 )
@@ -34,6 +35,7 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.GetPreBlockValidators
 	tHandler.HandlersMap["/GetPreBlockProposer"] = tHandler.GetPreBlockProposer
 	tHandler.HandlersMap["/GetAllCandidateValidators"] = tHandler.GetAllCandidateValidatorPool
+	tHandler.HandlersMap["/GetEncourage"] = tHandler.GetEncourage
 
 }
 
@@ -107,6 +109,7 @@ func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Request) {
 	PosTable := &PosItemMapData{
 		PosItemMap: tHandler.strategy.PosTable.PosItemMap,
+		Threshold:  tHandler.strategy.PosTable.Threshold,
 	}
 	jsonStr, err := json.Marshal(PosTable)
 	if err != nil {
@@ -186,6 +189,24 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 	}
 
 	jsonStr, err := json.Marshal(preValidators)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request) {
+	minerBonus := big.NewInt(1)
+	divisor := big.NewInt(1)
+	minerBonus.Div(tHandler.strategy.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+
+	encourage := &Encourage{
+		TotalBalance:          tHandler.strategy.TotalBalance,
+		EncourageAverageBlock: minerBonus,
+	}
+
+	jsonStr, err := json.Marshal(encourage)
 	if err != nil {
 		w.Write([]byte("error occured when marshal into json"))
 	} else {
