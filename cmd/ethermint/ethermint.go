@@ -87,6 +87,8 @@ func ethermintCmd(ctx *cli.Context) error {
 		amlist = &types.AccountMapList{
 			MapList: make(map[string]*types.AccountMap),
 		}
+
+
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
 			accountBalance := big.NewInt(1)

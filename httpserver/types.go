@@ -43,7 +43,7 @@ type PreBlockProposer struct {
 }
 
 type PreBlockValidatorElect struct {
-	preBlockValidators []*Validator `json:"preBlockValidators"`
+	PreBlockValidators []*Validator `json:"preBlockValidators"`
 }
 
 type Encourage struct {
