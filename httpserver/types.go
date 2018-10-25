@@ -4,7 +4,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/ethermint/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
-	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
 )
 
@@ -21,7 +20,7 @@ type Validator struct {
 type PTableAll struct {
 	NextCandidateValidators []*Validator `json:"nextValidators"`
 
-	AccountMapList *tmTypes.AccountMapList `json:"accountMap"`
+	AccountMapList *types.AccountMapList `json:"accountMap"`
 
 	PosItemMap map[common.Address]*types.PosItem `json:"posTableMap"`
 
@@ -29,7 +28,7 @@ type PTableAll struct {
 }
 
 type AccountMapData struct {
-	MapList map[string]*tmTypes.AccountMap `json:"accountmaplist"`
+	MapList map[string]*types.AccountMap `json:"accountmaplist"`
 }
 
 type PosItemMapData struct {
@@ -48,6 +47,6 @@ type PreBlockValidatorElect struct {
 }
 
 type Encourage struct {
-	TotalBalance          *big.Int `json:"totalBalance"`
+	TotalBalance          *big.Int `json:"initialTotalBalance"`
 	EncourageAverageBlock *big.Int `json:"encourageAverageBlock"`
 }

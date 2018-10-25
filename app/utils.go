@@ -111,7 +111,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 				app.GetLogger().Info(err.Error())
 				return false, err
 			}
-			app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
+			app.strategy.AccountMapList.MapList[tmAddress] = &ethmintTypes.AccountMap{
 				Beneficiary:   beneficiary,
 				Signer:        signer,
 				SignerBalance: balance,
@@ -482,7 +482,7 @@ func (app *EthermintApplication) InitialPos() {
 	if len(accountMap) == 0 {
 		// no predata existed
 	} else {
-		accountmaplist := tmTypes.AccountMapList{}
+		accountmaplist := ethmintTypes.AccountMapList{}
 		err := json.Unmarshal(accountMap, &accountmaplist)
 		if err != nil {
 			panic("initial accountmap error")
