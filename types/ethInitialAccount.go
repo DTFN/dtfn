@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"io/ioutil"
+	"math/big"
 )
 
 type EthAccounts struct {
 	EthAccounts []string `json:"ethAccounts"`
+	EthBalances     []*big.Int `json:"ethBalances"`
+	EthBeneficiarys []string   `json:"ethBeneficiarys"`
 }
 
 // GetInitialEthAccountFromFile reads JSON data from a file and unmarshalls it into a initial eth accounts.

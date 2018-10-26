@@ -142,4 +142,9 @@ var (
 		Name:  "need_proof_block",
 		Usage: "whether to need proof block",
 	}
+
+	TmInitialEthAccount = cli.StringFlag{
+		Name:  "initial_eth_account",
+		Usage: "initial_eth_account to config the initial node",
+	}
 )
