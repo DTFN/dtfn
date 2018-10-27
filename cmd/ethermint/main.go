@@ -86,6 +86,7 @@ var (
 		utils.TmConsEBlockInteval,
 		utils.TmConsNeedProofBlock,
 		utils.TmInitialEthAccount,
+		utils.TmBlsSelectStrategy,
 	}
 )
 

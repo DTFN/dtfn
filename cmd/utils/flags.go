@@ -99,6 +99,7 @@ var (
 		Usage: "Path to address book",
 		Value: "",
 	}
+
 	RoutabilityStrict = cli.BoolFlag{
 		Name:  "routable_strict",
 		Usage: "routabilityStrict property of address book.If set,will check the address not local or LAN.",
@@ -146,5 +147,10 @@ var (
 	TmInitialEthAccount = cli.StringFlag{
 		Name:  "initial_eth_account",
 		Usage: "initial_eth_account to config the initial node",
+	}
+
+	TmBlsSelectStrategy = cli.BoolFlag{
+		Name:  "bls_select_strategy",
+		Usage: "specify select strategy for bls",
 	}
 )

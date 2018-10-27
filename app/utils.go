@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -360,6 +361,15 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 }
 
 func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64) abciTypes.ResponseEndBlock {
+
+	if app.strategy.BlsSelectStrategy{
+		fmt.Println("wenbin is testing blsSelect strategy")
+		fmt.Println(app.strategy.BlsSelectStrategy)
+	}else{
+		fmt.Println("wenbin is testing blsSelect strategy")
+		fmt.Println(app.strategy.BlsSelectStrategy)
+	}
+
 
 	var validatorsSlice []abciTypes.Validator
 	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {

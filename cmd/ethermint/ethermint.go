@@ -42,6 +42,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	// Setup the ABCI server and start it
 	addr := ctx.GlobalString(emtUtils.ABCIAddrFlag.Name)
 	abci := ctx.GlobalString(emtUtils.ABCIProtocolFlag.Name)
+	blsSelectStrategy := ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
 
 	ethGenesisJson := ethermintGenesisPath(ctx)
 	genesis := utils.ReadGenesis(ethGenesisJson)
@@ -63,6 +64,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	// Create the ABCI app
 	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy(totalBalanceInital))
+	ethApp.GetStrategy().BlsSelectStrategy = blsSelectStrategy
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -74,8 +76,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	tmConfig := loadTMConfig(ctx)
 	ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
-	fmt.Println(tmConfig.InitialEthAccountFile())
-	fmt.Println("wenbin test")
+
 	genDocFile := tmConfig.GenesisFile()
 	genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
 	if err != nil {

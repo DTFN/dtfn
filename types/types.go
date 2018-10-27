@@ -45,6 +45,8 @@ type Strategy struct {
 	PosTable *PosTable
 
 	TotalBalance *big.Int
+
+	BlsSelectStrategy bool
 }
 
 type Validators struct {
