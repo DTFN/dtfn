@@ -102,7 +102,7 @@ func ethermintCmd(ctx *cli.Context) error {
 				common.HexToAddress(ethAccounts.EthAccounts[i]),
 				ethAccounts.EthBalances[i],
 				big.NewInt(0),
-				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第一个。
+				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
 				strconv.Itoa(i),
 			}
 		}
