@@ -9,7 +9,7 @@ import:
   repo:    git@github.com:Green-Element-Chain/tendermint.git
   vcs:     git
 - package: github.com/prometheus/prometheus
-  version: v2.2.0
+  version: v2.1.0
 - package: github.com/cosmos/cosmos-sdk
   version: v0.23.1
 
