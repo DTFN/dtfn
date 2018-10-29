@@ -8,8 +8,8 @@ import:
   version: cbec48b4e027db0c2371348c4bd6444f3b0f3e8d
   repo:    git@github.com:Green-Element-Chain/tendermint.git
   vcs:     git
-- package: github.com/prometheus/client_golang
-  version: ae27198cdd90bf12cd134ad79d1366a6cf49f632
+- package: github.com/prometheus/prometheus
+  version: v2.2.0
 - package: github.com/cosmos/cosmos-sdk
   version: v0.23.1
 
