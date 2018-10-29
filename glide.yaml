@@ -11,5 +11,5 @@ import:
 - package: github.com/prometheus/client_golang
   version: ae27198cdd90bf12cd134ad79d1366a6cf49f632
 - package: github.com/cosmos/cosmos-sdk
-  version: 0.23.1
+  version: v0.23.1
 
