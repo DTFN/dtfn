@@ -16,6 +16,7 @@ all: get_vendor_deps install test
 
 gelChain:
 	@echo "build gelChain"
+	@curl https://glide.sh/get | sh
 	@glide install
 
 gelChain_cn:
