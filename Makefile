@@ -16,7 +16,7 @@ all: get_vendor_deps install test
 
 gelchain: glide_vendor_deps build
 
-gelchain_cn: glide_mirrors glide_vendor_deps build
+gelchain_cn: glide_vendor_deps_cn build
 
 glide_vendor_deps:
 	@echo "build gelChain"
