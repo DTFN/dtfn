@@ -14,20 +14,22 @@ BUILD_FLAGS = -ldflags "-X github.com/tendermint/ethermint/version.GitCommit=`gi
 ### Development ###
 all: get_vendor_deps install test
 
-gelChain:
-	@echo "build gelChain"
-	@curl https://glide.sh/get | sh
-	@glide install
+gelchain: glide_vendor_deps build
 
-gelChain_cn:
+gelchain_cn: glide_mirrors glide_vendor_deps build
+
+glide_vendor_deps:
 	@echo "build gelChain"
-	@glide install
+	@curl https://glide.sh/get | sh && glide install
+
+glide_mirrors:
+	@echo "glide mirrors"
 
 install:
 	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/ethermint
 
 build:
-	CGO_ENABLED=1 go build $(BUILD_FLAGS) -o ./build/ethermint ./cmd/ethermint
+	CGO_ENABLED=1 go build $(BUILD_FLAGS) -o ./build/gelchain ./cmd/ethermint
 
 test:
 	@echo "--> Running go test"
