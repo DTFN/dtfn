@@ -22,8 +22,13 @@ glide_vendor_deps:
 	@echo "build gelChain"
 	@curl https://glide.sh/get | sh && glide install
 
-glide_mirrors:
+glide_vendor_deps_cn:
 	@echo "glide mirrors"
+	@curl https://glide.sh/get | sh && bash ./script/glide_mirrors.sh && glide install
+
+develop_env:
+    @ehco "create develop_enviorment"
+    @bash ./script/develop_env.sh
 
 install:
 	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/ethermint
