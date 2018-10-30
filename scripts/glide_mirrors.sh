@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+if [ ! -d "/root/.glide/" ];then
+mkdir -p /root/.glide/
+else
+echo "文件夹已经存在"
+fi
+
+
 if [ -f "/root/.glide/mirrors.yaml" ];then
 echo "glide mirror.yaml exist"
 else
