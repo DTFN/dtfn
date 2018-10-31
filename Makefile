@@ -22,7 +22,7 @@ glide_vendor_deps:
 
 develop:
     @ehco "create develop_enviorment"
-    @bash ./script/develop_env.sh
+    @bash ./scripts/develop_env.sh
 
 install:
 	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/ethermint
