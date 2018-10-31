@@ -20,9 +20,13 @@ glide_vendor_deps:
 	@echo "build gelChain"
 	@curl https://glide.sh/get | sh && glide install
 
-develop:
+develop_ubuntu:
 	@echo "create develop_enviorment"
-	@bash ./scripts/develop_env.sh
+	@bash ./scripts/develop_env_ubuntu.sh
+
+develop_centos:
+	@echo "create develop_enviorment"
+	@bash ./scripts/develop_env_centos.sh
 
 install:
 	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/ethermint
