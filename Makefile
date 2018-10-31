@@ -4,11 +4,11 @@ GOTOOLS := \
 
 PACKAGES := $(shell glide novendor)
 
-BUILD_TAGS? := ethermint
+BUILD_TAGS? := gelchain
 
 VERSION_TAG := 0.5.3
 
-BUILD_FLAGS = -ldflags "-X github.com/tendermint/ethermint/version.GitCommit=`git rev-parse --short HEAD`"
+BUILD_FLAGS = -ldflags "-X github.com/green-element-chain/gelchain/version.GitCommit=`git rev-parse --short HEAD`"
 
 
 ### Development ###
@@ -29,10 +29,10 @@ develop_centos:
 	@bash ./scripts/develop_env_centos.sh
 
 install:
-	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/ethermint
+	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/gelchain
 
 build:
-	CGO_ENABLED=1 go build $(BUILD_FLAGS) -o ./build/gelchain ./cmd/ethermint
+	CGO_ENABLED=1 go build $(BUILD_FLAGS) -o ./build/gelchain ./cmd/gelchain
 
 test:
 	@echo "--> Running go test"
