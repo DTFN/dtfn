@@ -1,23 +1,15 @@
 package: github.com/tendermint/ethermint
 import:
-- package: github.com/tendermint/tendermint
-  version: 0.15.x
-- package: github.com/tendermint/tmlibs
-  version: 0.6.x
-- package: github.com/tendermint/abci
-  version: 0.9.x
 - package: github.com/ethereum/go-ethereum
-  version: f1.6.7
-  repo: https://github.com/tendermint/go-ethereum.git
-- package: github.com/spf13/pflag
-  version: master
-- package: gopkg.in/urfave/cli.v1
-  version: 1.x
-- package: github.com/mattn/go-colorable
-  version: 0.x
-- package: google.golang.org/grpc
-  repo: https://github.com/grpc/grpc-go
-  vcs: git
-- package: google.golang.org/genproto
-  repo: https://github.com/google/go-genproto
-  vcs: git
+  version: 31af2b7de14b8a34c355b0227656a648825fc994
+  repo:    git@github.com:green-element-chain/go-ethereum.git
+  vcs:     git
+- package: github.com/tendermint/tendermint
+  version: cbec48b4e027db0c2371348c4bd6444f3b0f3e8d
+  repo:    git@github.com:green-element-chain/tendermint.git
+  vcs:     git
+- package: github.com/prometheus/prometheus
+  version: v2.1.0
+- package: github.com/cosmos/cosmos-sdk
+  version: v0.23.1
+
