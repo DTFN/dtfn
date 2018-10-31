@@ -1,3 +1,3 @@
 # Green-Element-Chain
 
-Official Go implementation of the Ontology protocol.
+Official Go implementation of the Green-Element-Chain protocol.
