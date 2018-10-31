@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -60,7 +61,8 @@ func (app *EthermintApplication) StartHttpServer() {
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey, blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
-	if len(pubkey.Address()) == 0 || len(blsKeyString) == 0 {
+
+	if pubkey == nil || len(blsKeyString) == 0 {
 		app.GetLogger().Info("nil validator pubkey or bls pubkey")
 		return false, errors.New("nil validator pubkey or bls pubkey")
 	}
@@ -110,7 +112,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 				app.GetLogger().Info(err.Error())
 				return false, err
 			}
-			app.strategy.AccountMapList.MapList[tmAddress] = &tmTypes.AccountMap{
+			app.strategy.AccountMapList.MapList[tmAddress] = &ethmintTypes.AccountMap{
 				Beneficiary:   beneficiary,
 				Signer:        signer,
 				SignerBalance: balance,
@@ -360,6 +362,15 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 
 func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64) abciTypes.ResponseEndBlock {
 
+	if app.strategy.BlsSelectStrategy{
+		fmt.Println("wenbin is testing blsSelect strategy")
+		fmt.Println(app.strategy.BlsSelectStrategy)
+	}else{
+		fmt.Println("wenbin is testing blsSelect strategy")
+		fmt.Println(app.strategy.BlsSelectStrategy)
+	}
+
+
 	var validatorsSlice []abciTypes.Validator
 	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
 		validatorsSlice = append(validatorsSlice,
@@ -481,7 +492,7 @@ func (app *EthermintApplication) InitialPos() {
 	if len(accountMap) == 0 {
 		// no predata existed
 	} else {
-		accountmaplist := tmTypes.AccountMapList{}
+		accountmaplist := ethmintTypes.AccountMapList{}
 		err := json.Unmarshal(accountMap, &accountmaplist)
 		if err != nil {
 			panic("initial accountmap error")

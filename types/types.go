@@ -5,7 +5,6 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
-	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
 	"reflect"
 )
@@ -30,11 +29,11 @@ type Strategy struct {
 	//if height = 1 ,currentValidator come from genesis.json
 	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
 	currentValidators []*abciTypes.Validator
-	AccountMapList    *tmTypes.AccountMapList
+	AccountMapList    *AccountMapList
 
 	//This map was used when some validator was removed and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
-	AccountMapListTemp *tmTypes.AccountMapList
+	AccountMapListTemp *AccountMapList
 
 	FirstInitial bool
 
@@ -46,6 +45,8 @@ type Strategy struct {
 	PosTable *PosTable
 
 	TotalBalance *big.Int
+
+	BlsSelectStrategy bool
 }
 
 type Validators struct {
@@ -122,9 +123,9 @@ func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
 }
 
 // GetUpdatedValidators returns the current validators
-func (strategy *Strategy) SetAccountMapList(accountMapList *tmTypes.AccountMapList) {
+func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList) {
 	strategy.AccountMapList = accountMapList
-	strategy.AccountMapListTemp = &tmTypes.AccountMapList{
-		MapList: make(map[string]*tmTypes.AccountMap),
+	strategy.AccountMapListTemp = &AccountMapList{
+		MapList: make(map[string]*AccountMap),
 	}
 }
