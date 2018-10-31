@@ -16,15 +16,9 @@ all: glide_vendor_deps install test
 
 gelchain: glide_vendor_deps build
 
-gelchain_cn: glide_vendor_deps_cn build
-
 glide_vendor_deps:
 	@echo "build gelChain"
 	@curl https://glide.sh/get | sh && glide install
-
-glide_vendor_deps_cn:
-	@echo "glide mirrors"
-	@curl https://glide.sh/get | sh && bash ./script/glide_mirrors.sh && glide install
 
 develop_env:
     @ehco "create develop_enviorment"
