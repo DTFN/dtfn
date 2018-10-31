@@ -1,4 +1,4 @@
-package: github.com/tendermint/ethermint
+package: github.com/tendermint/gelchain
 import:
 - package: github.com/ethereum/go-ethereum
   version: develop

@@ -21,7 +21,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/log"
-	emtTypes "github.com/tendermint/ethermint/types"
+	emtTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/tendermint/tendermint/crypto"
 	"time"
 )

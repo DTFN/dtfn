@@ -9,20 +9,20 @@ var (
 	LogLevelFlag = cli.StringFlag{
 		Name:  "logLevel",
 		Value: "info",
-		Usage: "log level for both ethermint and tendermint.",
+		Usage: "log level for both gelchain and tendermint.",
 	}
 	// ----------------------------
 	// ABCI Flags
 
-	// TendermintAddrFlag is the address that ethermint will use to connect to the tendermint core node
+	// TendermintAddrFlag is the address that gelchain will use to connect to the tendermint core node
 	// #stable - 0.4.0
 	TendermintAddrFlag = cli.StringFlag{
 		Name:  "tendermint_addr",
 		Value: "tcp://localhost:26657",
-		Usage: "This is the address that ethermint will use to connect to the tendermint core node. Please provide a port.",
+		Usage: "This is the address that gelchain will use to connect to the tendermint core node. Please provide a port.",
 	}
 
-	// ABCIAddrFlag is the address that ethermint will use to listen to incoming ABCI connections
+	// ABCIAddrFlag is the address that gelchain will use to listen to incoming ABCI connections
 	// #stable - 0.4.0
 	ABCIAddrFlag = cli.StringFlag{
 		Name:  "abci_laddr",
@@ -62,12 +62,12 @@ var (
 	}
 
 	// WithTendermintFlag asks to start Tendermint
-	// `tendermint init` and `tendermint node` when `ethermint init`
-	// and `ethermint` are invoked respectively.
+	// `tendermint init` and `tendermint node` when `gelchain init`
+	// and `gelchain` are invoked respectively.
 	WithTendermintFlag = cli.BoolFlag{
 		Name: "with-tendermint",
 		Usage: "If set, it will invoke `tendermint init` and `tendermint node` " +
-			"when `ethermint init` and `ethermint` are invoked respectively",
+			"when `gelchain init` and `gelchain` are invoked respectively",
 	}
 
 	//=======================================tendermint flags====================

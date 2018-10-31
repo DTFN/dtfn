@@ -5,7 +5,7 @@ const tmpdir = '/tmp/truffle-tests'
 const name = 'test1'
 
 let ethereum = fs.readFileSync(path.join(tmpdir, name + '.output.ethereum'))
-let ethermint = fs.readFileSync(path.join(tmpdir, name + '.output.ethermint'))
+let ethermint = fs.readFileSync(path.join(tmpdir, name + '.output.gelchain'))
 
 ethereum = generateTestObject(ethereum.toString())
 ethermint = generateTestObject(ethermint.toString())
@@ -33,12 +33,12 @@ function diff (ethereum, ethermint) {
     keys.forEach((key) => {
       if (ethereum[i][key] !== ethermint[i][key]) {
         errors = true
-        console.error('For test case %s\n ethereum(%s) != ethermint(%s)', key, ethereum[i][key], ethermint[i][key])
+        console.error('For test case %s\n ethereum(%s) != gelchain(%s)', key, ethereum[i][key], ethermint[i][key])
       }
     })
   })
 
   if (!errors) {
-    console.log('Success: Output for ethereum and ethermint was the same')
+    console.log('Success: Output for ethereum and gelchain was the same')
   }
 }

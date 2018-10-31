@@ -3,7 +3,7 @@
 # -x for debug
 set -eux
 
-# count of tendermint/ethermint node
+# count of tendermint/gelchain node
 N=4
 
 # Docker version and info
@@ -18,9 +18,9 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # Directory where we keep tendermint genesis and private key
 DATA_DIR="$DIR/tendermint_data"
 
-# Build docker image for ethermint from current source code
+# Build docker image for gelchain from current source code
 echo
-echo "* [$(date +"%T")] building ethermint docker image"
+echo "* [$(date +"%T")] building gelchain docker image"
 bash "$DIR/docker/build.sh"
 
 # Build docker image for web3 js tests
@@ -43,13 +43,13 @@ if [[ "$SEEDS" != "" ]]; then
 	SEEDS="--p2p.seeds $SEEDS"
 fi
 
-# Start N nodes of tendermint and N node of ethermint.
+# Start N nodes of tendermint and N node of gelchain.
 for i in $(seq 1 "$N"); do
 	echo
 	echo "* [$(date +"%T")] run tendermint $i container"
 
 	# We have N as input parameter and we need to generate N*2 IP addresses
-	# for tendermint and ethermint.
+	# for tendermint and gelchain.
 	# So, here we calculate offset for IP
 	index=$(($i*2))
 	nextIndex=$(($i*2+1))
@@ -57,7 +57,7 @@ for i in $(seq 1 "$N"); do
 	TENDERMINT_IP=$($DIR/p2p/ip.sh $index)
     ETHERMINT_IP=$($DIR/p2p/ip.sh $nextIndex)
 
-	# Start tendermint container. Pass ethermint IP and seeds
+	# Start tendermint container. Pass gelchain IP and seeds
     docker run -d \
         --net=ethermint_net \
         --ip "$TENDERMINT_IP" \
@@ -65,9 +65,9 @@ for i in $(seq 1 "$N"); do
         -v "$DATA_DIR/tendermint_$i:/tendermint" \
         tendermint/tendermint node --proxy_app tcp://$ETHERMINT_IP:46658 $SEEDS
 
-	# Start ethermint container. Pass tendermint IP
+	# Start gelchain container. Pass tendermint IP
 	echo
-    echo "* [$(date +"%T")] run ethermint $i container"
+    echo "* [$(date +"%T")] run gelchain $i container"
     docker run -d \
         --net=ethermint_net \
         --ip $ETHERMINT_IP \
@@ -77,11 +77,11 @@ for i in $(seq 1 "$N"); do
 done
 
 
-# Wait for tendermint & ethermint start
+# Wait for tendermint & gelchain start
 sleep 60
 
 # Run container with web3 js tests
-# Pass IP address of last ethermint node
+# Pass IP address of last gelchain node
 echo
 echo "* [$(date +"%T")] run tests"
 docker run --net=ethermint_net \

@@ -22,6 +22,7 @@ installEthermintDependency(){
     go get gopkg.in/urfave/cli.v1
     go get github.com/golang/protobuf/proto
     go get github.com/tendermint/go-amino
+    go get github.com/stretchr/testify/require
 }
 
 

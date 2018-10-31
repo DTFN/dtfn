@@ -44,7 +44,7 @@ type ethermintLogger struct {
 	keyvals []interface{}
 }
 
-// EthermintLogger returns a new instance of an ethermint logger. With() should
+// EthermintLogger returns a new instance of an gelchain logger. With() should
 // be called upon the returned instance to set default keys
 // #unstable
 func EthermintLogger() tmlog.Logger {

@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/tendermint/ethermint/ethereum"
-	"github.com/tendermint/ethermint/httpserver"
-	emtTypes "github.com/tendermint/ethermint/types"
+	"github.com/green-element-chain/gelchain/ethereum"
+	"github.com/green-element-chain/gelchain/httpserver"
+	emtTypes "github.com/green-element-chain/gelchain/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
@@ -68,7 +68,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 	return app, nil
 }
 
-// SetLogger sets the logger for the ethermint application
+// SetLogger sets the logger for the gelchain application
 // #unstable
 func (app *EthermintApplication) SetLogger(log tmLog.Logger) {
 	app.logger = log
@@ -94,7 +94,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 
 	app.logger.Debug("Info", "height", height) // nolint: errcheck
 
-	// This check determines whether it is the first time ethermint gets started.
+	// This check determines whether it is the first time gelchain gets started.
 	// If it is the first time, then we have to respond with an empty hash, since
 	// that is what tendermint expects.
 	if height.Cmp(bigZero) == 0 {

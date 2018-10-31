@@ -4,12 +4,12 @@ export ROOT_PATH="/tmp/ci_test"
 export GOPATH="$ROOT_PATH/go"
 export PARENT_DIR="$GOPATH/src/github.com"
 export ETHERMINT_PARENT_DIR="$PARENT_DIR/tendermint"
-export ETHERMINT_DIR="$ETHERMINT_PARENT_DIR/ethermint"
+export ETHERMINT_DIR="$ETHERMINT_PARENT_DIR/gelchain"
 export TENDERMINT_PARENT_DIR="$PARENT_DIR/tendermint"
 export TENDERMINT_DIR="$TENDERMINT_PARENT_DIR/tendermint"
 export GETH_PARENT_DIR="$PARENT_DIR/ethereum"
 export GETH_DIR="$GETH_PARENT_DIR/go-ethereum"
-export DATA_DIR="$ROOT_PATH/.ethermint"
+export DATA_DIR="$ROOT_PATH/.gelchain"
 
 apt update && apt -y install npm
 
@@ -35,7 +35,7 @@ cd $TENDERMINT_DIR && make get_tools get_vendor_deps install install_abci
 mv $TENDERMINT_DIR/vendor/github.com/tendermint/go-amino $GOPATH/src/github.com/tendermint/
 mv $TENDERMINT_DIR/vendor/github.com/davecgh $GOPATH/src/github.com/
 
-echo 'git clone ethermint'
+echo 'git clone gelchain'
 mkdir -p $ETHERMINT_PARENT_DIR && cd $_
 # rm conflict deps
 git clone -b "feature/circleci_docker" git@github.com:Green-Element-Chain/ethermint.git

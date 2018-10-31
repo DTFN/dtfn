@@ -9,13 +9,13 @@ import (
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/tendermint/ethermint/cmd/utils"
-	"github.com/tendermint/ethermint/version"
+	"github.com/green-element-chain/gelchain/cmd/utils"
+	"github.com/green-element-chain/gelchain/version"
 )
 
 var (
 	// The app that holds all commands and flags.
-	app = ethUtils.NewApp(version.Version, "the ethermint command line interface")
+	app = ethUtils.NewApp(version.Version, "the gelchain command line interface")
 	// flags that configure the go-ethereum node
 	nodeFlags = []cli.Flag{
 		ethUtils.DataDirFlag,
@@ -104,7 +104,7 @@ func init() {
 		{
 			Action: resetCmd,
 			Name:   "unsafe_reset_all",
-			Usage:  "(unsafe) Remove ethermint database",
+			Usage:  "(unsafe) Remove gelchain database",
 		},
 	}
 
@@ -125,7 +125,7 @@ func init() {
 }
 
 func versionCmd(ctx *cli.Context) error {
-	fmt.Println("ethermint: ", version.Version)
+	fmt.Println("gelchain: ", version.Version)
 	fmt.Println("go-ethereum: ", params.Version)
 	return nil
 }

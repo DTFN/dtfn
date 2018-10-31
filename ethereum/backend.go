@@ -16,7 +16,7 @@ import (
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 
 	"github.com/ethereum/go-ethereum/consensus/ethash"
-	emtTypes "github.com/tendermint/ethermint/types"
+	emtTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/tendermint/tendermint/mempool"
 )
 

@@ -29,9 +29,9 @@ To get started, you need to initialise the genesis block for tendermint core and
 files with reasonable defaults and money allocated into a predefined account. If you installed from binary or docker
 please download these default files [here](https://github.com/tendermint/ethermint/tree/develop/setup).
 
-You can choose where to store the ethermint files with `--datadir`. For this guide, we will use `~/.ethermint`, which is a reasonable default in most cases.
+You can choose where to store the gelchain files with `--datadir`. For this guide, we will use `~/.gelchain`, which is a reasonable default in most cases.
 
-Before you can run ethermint you need to initialise tendermint and ethermint with their respective genesis states.
+Before you can run gelchain you need to initialise tendermint and gelchain with their respective genesis states.
 Please switch into the folder where you have the initialisation files. If you installed from source you can just follow
 these instructions.
 
@@ -39,7 +39,7 @@ these instructions.
 ethermint --datadir ~/.ethermint --with-tendermint init
 ```
 
-which will also invoke `tendermint init --home ~/.ethermint/tendermint`. You can prevent Tendermint from
+which will also invoke `tendermint init --home ~/.gelchain/tendermint`. You can prevent Tendermint from
 being starting by excluding the flag `--with-tendermint` for example:
 
 ```bash
@@ -52,7 +52,7 @@ and then you will have to invoke `tendermint` in another shell with the command:
 tendermint init --home ~/.ethermint/tendermint
 ```
 
-For simplicity, we'll have ethermint start tendermint as a subprocess with the
+For simplicity, we'll have gelchain start tendermint as a subprocess with the
 flag `--with-tendermint`:
 
 ```bash

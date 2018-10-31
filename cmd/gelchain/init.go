@@ -13,9 +13,9 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tendermint/ethermint/cmd/utils"
+	"github.com/green-element-chain/gelchain/cmd/utils"
 
-	emtUtils "github.com/tendermint/ethermint/cmd/utils"
+	emtUtils "github.com/green-element-chain/gelchain/cmd/utils"
 	"github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
@@ -76,7 +76,7 @@ func initCmd(ctx *cli.Context) error {
 	}
 
 	chainDb, err := ethdb.NewLDBDatabase(filepath.Join(ethermintDataDir,
-		"ethermint/chaindata"), 0, 0)
+		"gelchain/chaindata"), 0, 0)
 	if err != nil {
 		ethUtils.Fatalf("could not open database: %v", err)
 	}
@@ -91,7 +91,7 @@ func initCmd(ctx *cli.Context) error {
 	// As per https://github.com/tendermint/ethermint/issues/244#issuecomment-322024199
 	// Let's implicitly add in the respective keystore files
 	// to avoid manually doing this step:
-	// $ cp -r $GOPATH/src/github.com/tendermint/ethermint/setup/keystore $(DATADIR)
+	// $ cp -r $GOPATH/src/github.com/tendermint/gelchain/setup/keystore $(DATADIR)
 	keystoreDir := filepath.Join(ethermintDataDir, "keystore")
 	if err := os.MkdirAll(keystoreDir, 0777); err != nil {
 		ethUtils.Fatalf("mkdirAll keyStoreDir: %v", err)
@@ -119,7 +119,7 @@ func initCmd(ctx *cli.Context) error {
 var keystoreFilesMap = map[string]string{
 	// https://github.com/tendermint/ethermint/blob/edc95f9d47ba1fb7c8161182533b5f5d5c5d619b/setup/keystore/UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc
 	// OR
-	// $GOPATH/src/github.com/ethermint/setup/keystore/UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc
+	// $GOPATH/src/github.com/gelchain/setup/keystore/UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc
 	"UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc": `
 {
   "address":"7eff122b94897ea5b0e2a9abf47b86337fafebdc",
@@ -163,5 +163,5 @@ func tendermintHomeFromEthermint(ctx *cli.Context) string {
 
 func ethermintGenesisPath(ctx *cli.Context) string {
 	ethermintDataDir := emtUtils.MakeDataDir(ctx)
-	return filepath.Join(ethermintDataDir, "ethermint/chaindata/genesis.json")
+	return filepath.Join(ethermintDataDir, "gelchain/chaindata/genesis.json")
 }

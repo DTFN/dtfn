@@ -3,7 +3,7 @@ package httpserver
 import (
 	"net/http"
 	"time"
-	emtTypes "github.com/tendermint/ethermint/types"
+	emtTypes "github.com/green-element-chain/gelchain/types"
 )
 
 type BaseServer struct {

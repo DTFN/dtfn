@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/ethermint/utils"
+	"github.com/green-element-chain/gelchain/utils"
 	"gopkg.in/urfave/cli.v1"
 	"math/big"
 	"os"
@@ -22,10 +22,10 @@ import (
 
 	cmn "github.com/tendermint/tendermint/libs/common"
 
-	abciApp "github.com/tendermint/ethermint/app"
-	emtUtils "github.com/tendermint/ethermint/cmd/utils"
-	"github.com/tendermint/ethermint/ethereum"
-	"github.com/tendermint/ethermint/types"
+	abciApp "github.com/green-element-chain/gelchain/app"
+	emtUtils "github.com/green-element-chain/gelchain/cmd/utils"
+	"github.com/green-element-chain/gelchain/ethereum"
+	"github.com/green-element-chain/gelchain/types"
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	tmNode "github.com/tendermint/tendermint/node"
@@ -69,7 +69,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		os.Exit(1)
 	}
 	ethApp.StartHttpServer()
-	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "ethermint")
+	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
 	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
 
@@ -171,7 +171,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	ethApp.GetStrategy().SetAccountMapList(amlist)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
-	// in order to make ethermint as self contained as possible.
+	// in order to make gelchain as self contained as possible.
 	// See Issue https://github.com/tendermint/ethermint/issues/244
 	canInvokeTendermintNode := canInvokeTendermint(ctx)
 	if canInvokeTendermintNode {

@@ -2,7 +2,7 @@ package httpserver
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/ethermint/types"
+	"github.com/green-element-chain/gelchain/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmTypes "github.com/tendermint/tendermint/types"
 )

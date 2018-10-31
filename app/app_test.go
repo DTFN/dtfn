@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	emtTypes "github.com/tendermint/ethermint/types"
+	emtTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	tmTypes "github.com/tendermint/tendermint/types"

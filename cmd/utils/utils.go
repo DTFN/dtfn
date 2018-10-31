@@ -12,7 +12,7 @@ import (
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/tendermint/ethermint/ethereum"
+	"github.com/green-element-chain/gelchain/ethereum"
 )
 
 // StartNode will start up the node.
@@ -48,7 +48,7 @@ func HomeDir() string {
 	return ""
 }
 
-// DefaultDataDir tries to guess the default directory for ethermint data
+// DefaultDataDir tries to guess the default directory for gelchain data
 // #unstable
 func DefaultDataDir() string {
 	// Try to place the data folder in the user's home dir
@@ -59,7 +59,7 @@ func DefaultDataDir() string {
 		} else if runtime.GOOS == "windows" {
 			return filepath.Join(home, "AppData", "Roaming", "Ethermint")
 		} else {
-			return filepath.Join(home, ".ethermint")
+			return filepath.Join(home, ".gelchain")
 		}
 	}
 	// As we cannot guess a stable location, return empty and handle later
@@ -68,9 +68,9 @@ func DefaultDataDir() string {
 
 // ResetAll will remove the data directory.
 func ResetAll(ctx *cli.Context) error {
-	dbDir := filepath.Join(MakeDataDir(ctx), "ethermint")
+	dbDir := filepath.Join(MakeDataDir(ctx), "gelchain")
 	if err := os.RemoveAll(dbDir); err != nil {
-		log.Debug("Could not reset ethermint. Failed to remove %+v", dbDir)
+		log.Debug("Could not reset gelchain. Failed to remove %+v", dbDir)
 		return err
 	}
 

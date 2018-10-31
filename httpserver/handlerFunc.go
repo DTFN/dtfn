@@ -3,7 +3,7 @@ package httpserver
 import (
 	"encoding/hex"
 	"encoding/json"
-	emtTypes "github.com/tendermint/ethermint/types"
+	emtTypes "github.com/green-element-chain/gelchain/types"
 	tmTypes "github.com/tendermint/tendermint/types"
 	"io"
 	"net/http"
