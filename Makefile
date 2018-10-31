@@ -28,6 +28,10 @@ develop_centos:
 	@echo "create develop_enviorment"
 	@bash ./scripts/develop_env_centos.sh
 
+develop_build:
+	@bash $(GOPATH)/src/github.com/green-element-chain/gelchain/cmd/gelchain/rebuild.sh
+	@bash $(GOPATH)/src/github.com/tendermint/tendermint/cmd/tendermint/rebuild.sh
+
 install:
 	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/gelchain
 
