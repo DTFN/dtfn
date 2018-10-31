@@ -1,4 +1,4 @@
-package: github.com/tendermint/gelchain
+package: github.com/green-element-chain/gelchain
 import:
 - package: github.com/ethereum/go-ethereum
   version: develop
