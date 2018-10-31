@@ -21,8 +21,8 @@ glide_vendor_deps:
 	@curl https://glide.sh/get | sh && glide install
 
 develop:
-    @echo "create develop_enviorment"
-    @bash ./scripts/develop_env.sh
+	@echo "create develop_enviorment"
+	@bash ./scripts/develop_env.sh
 
 install:
 	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/ethermint

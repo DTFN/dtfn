@@ -7,7 +7,6 @@ installEthereum(){
 
 installTendermint(){
     cd ../tendermint/
-    mkdir tendermint && cd tendermint
     git clone git@github.com:green-element-chain/tendermint.git
     cd tendermint
     make get_tools
