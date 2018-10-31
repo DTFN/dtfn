@@ -27,9 +27,9 @@ installEthermintDependency(){
 
 modifyDepVersion(){
     cd $GOPATH/src/github.com/cosmos/cosmos-sdk
-    git reset --hard v0.23.1
+    git reset --hard 1e26ba2e0e9c1e0457383ff302a97396c227cddb
     cd $GOPATH/src/github.com/tendermint/go-amino
-    git reset --hard v0.12.0
+    git reset --hard c344a05f4a36122a04508bee480ada33dc8be350
 }
 
 
