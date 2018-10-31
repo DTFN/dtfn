@@ -1,11 +1,11 @@
 package: github.com/tendermint/ethermint
 import:
 - package: github.com/ethereum/go-ethereum
-  version: 31af2b7de14b8a34c355b0227656a648825fc994
+  version: develop
   repo:    git@github.com:green-element-chain/go-ethereum.git
   vcs:     git
 - package: github.com/tendermint/tendermint
-  version: cbec48b4e027db0c2371348c4bd6444f3b0f3e8d
+  version: develop
   repo:    git@github.com:green-element-chain/tendermint.git
   vcs:     git
 - package: github.com/prometheus/prometheus
