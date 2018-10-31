@@ -32,7 +32,6 @@ import (
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
-	tmTypes "github.com/tendermint/tendermint/types"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -43,6 +42,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	// Setup the ABCI server and start it
 	addr := ctx.GlobalString(emtUtils.ABCIAddrFlag.Name)
 	abci := ctx.GlobalString(emtUtils.ABCIProtocolFlag.Name)
+	blsSelectStrategy := ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
 
 	ethGenesisJson := ethermintGenesisPath(ctx)
 	genesis := utils.ReadGenesis(ethGenesisJson)
@@ -64,6 +64,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	// Create the ABCI app
 	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy(totalBalanceInital))
+	ethApp.GetStrategy().BlsSelectStrategy = blsSelectStrategy
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -73,101 +74,41 @@ func ethermintCmd(ctx *cli.Context) error {
 	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
 
-	amlist, err := tmTypes.AccountMapFromFile(loadTMConfig(ctx).AddressMapFile())
-	if err != nil {
-		//这里需要自己构造一个新的accountmaplist来用，构造来自tendermint的genesis.json
-		tmConfig := loadTMConfig(ctx)
-		genDocFile := tmConfig.GenesisFile()
+	tmConfig := loadTMConfig(ctx)
+	ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
 
-		genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
-		if err != nil {
-			fmt.Println(err)
-		}
-		validators := genDoc.Validators
-		var tmAddress []string
-		amlist = &tmTypes.AccountMapList{
-			MapList: make(map[string]*tmTypes.AccountMap),
-		}
+	genDocFile := tmConfig.GenesisFile()
+	genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
+	if err != nil {
+		fmt.Println(err)
+	}
+	validators := genDoc.Validators
+	var tmAddress []string
+	amlist := &types.AccountMapList{
+		MapList: make(map[string]*types.AccountMap),
+	}
+	if err != nil {
+		panic("Sorry but you don't have initial account file")
+	} else {
+		fmt.Println(len(ethAccounts.EthAccounts))
+		log.Info("get Initial accounts")
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
-			switch i {
-			case 0:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个//
-					"1",//
-				}
-			case 1:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0x8423328b8016fbe31938a461b5647de696bdbf71"),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个//
-					"2",// 。
-				}
-			case 2:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0x4eba28c09155a61503b2be9cbd3dacf8b84dcfb8"),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个。
-					"3",
-				}
-			case 3:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0xfc6e050a795ca66139262ddc36bbf8b11ab1911e"),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"4",// 。
-				}
-			case 4:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0x99c80ff44e34a462da6cb3a96295106f11b3467a"),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"5",// 。
-				}
-			case 5:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0xe530df4446e4d2885d0564c9bce3cbc478c231b5"),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"6",// 。
-				}
-			case 6:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0xade651aad6507678751c1c1e5e32dbd9dc97fa4e"),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"7",// 。
-				}
-			case 7:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0x1ae4d63ea5ad162e6fcb1ff94433e9fa8b400464"),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					"8",// 。
-				}
-			default:
-				amlist.MapList[tmAddress[i]] = &tmTypes.AccountMap{
-					common.HexToAddress("0x0000000000000000000000000000000000000"+strconv.Itoa(100+i)),
-					accountBalance,
-					big.NewInt(0),
-					common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"), //10个eth账户中的第一个
-					strconv.Itoa(i),// 。
-				}
+			if i == len(ethAccounts.EthAccounts){
+				break;
+			}
+			amlist.MapList[tmAddress[i]] = &types.AccountMap{
+				common.HexToAddress(ethAccounts.EthAccounts[i]),
+				ethAccounts.EthBalances[i],
+				big.NewInt(0),
+				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
+				strconv.Itoa(i),
 			}
 		}
 	}
+
 	ethApp.GetStrategy().SetAccountMapList(amlist)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
@@ -241,9 +182,14 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.P2P.RootDir = tmHome
 	defaultTmConfig.RPC.RootDir = tmHome
 	defaultTmConfig.Consensus.RootDir = tmHome
+	defaultTmConfig.Consensus.CreateEmptyBlocks = ctx.GlobalBool(emtUtils.TmConsEmptyBlock.Name)
+	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)
+	defaultTmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
+
 	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
 
 	defaultTmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)
+	defaultTmConfig.BaseConfig.InitialEthAccount = ctx.GlobalString(emtUtils.TmInitialEthAccount.Name)
 	defaultTmConfig.PrivValidatorListenAddr = ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
 	defaultTmConfig.PrivValidator = ctx.GlobalString(emtUtils.PrivValidator.Name)
 	defaultTmConfig.P2P.AddrBook = ctx.GlobalString(emtUtils.AddrBook.Name)
