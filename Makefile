@@ -6,7 +6,7 @@ PACKAGES := $(shell glide novendor)
 
 BUILD_TAGS? := gelchain
 
-VERSION_TAG := 0.5.3
+VERSION_TAG := 0.6.0
 
 BUILD_FLAGS = -ldflags "-X github.com/green-element-chain/gelchain/version.GitCommit=`git rev-parse --short HEAD`"
 
