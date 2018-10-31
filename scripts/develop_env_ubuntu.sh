@@ -13,7 +13,6 @@ installTendermint(){
     make get_vendor_deps
     rm -r vendor/github.com/ethereum
     rm -r vendor/github.com/tendermint/go-amino
-    make install
 }
 
 
