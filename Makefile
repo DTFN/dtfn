@@ -21,7 +21,7 @@ glide_vendor_deps:
 	@curl https://glide.sh/get | sh && glide install
 
 develop:
-    @ehco "create develop_enviorment"
+    @echo "create develop_enviorment"
     @bash ./scripts/develop_env.sh
 
 install:
