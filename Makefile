@@ -20,7 +20,7 @@ glide_vendor_deps:
 	@echo "build gelChain"
 	@curl https://glide.sh/get | sh && glide install
 
-develop_env:
+develop:
     @ehco "create develop_enviorment"
     @bash ./script/develop_env.sh
 
