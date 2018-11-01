@@ -1,7 +1,10 @@
 package ethereum
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -11,19 +14,19 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth"
-	//"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
-	emtTypes "github.com/tendermint/ethermint/types"
+	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/log"
+	emtTypes "github.com/green-element-chain/gelchain/types"
+	"github.com/tendermint/tendermint/crypto"
 	"time"
 )
 
 const errorCode = 1
-
 
 //----------------------------------------------------------------------
 // EthState manages concurrent access to the intermediate workState object
@@ -45,8 +48,8 @@ type EthState struct {
 }
 
 type ChainError struct {
-	ErrorCode   int // Describes the kind of error
-	Description string    // Human readable description of the issue
+	ErrorCode   int    // Describes the kind of error
+	Description string // Human readable description of the issue
 }
 
 // Error satisfies the error interface and prints human-readable errors.
@@ -59,8 +62,8 @@ func chainError(c int, desc string) ChainError {
 	return ChainError{ErrorCode: c, Description: desc}
 }
 
-func (es *EthState) State() (*state.StateDB,error){
-	return es.work.state,nil
+func (es *EthState) State() (*state.StateDB, error) {
+	return es.work.state, nil
 }
 
 // After NewEthState, call SetEthereum and SetEthConfig.
@@ -80,14 +83,14 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx, *Wrap) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
-	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx)
+	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, address)
 }
 
 // Accumulate validator rewards.
@@ -139,7 +142,7 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		parent:       currentBlock,
 		state:        state,
 		txIndex:      0,
-		totalUsedGas: new (uint64),
+		totalUsedGas: new(uint64),
 		gp:           new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
 	return nil
@@ -184,7 +187,7 @@ type workState struct {
 	header *ethTypes.Header
 	parent *ethTypes.Block
 	state  *state.StateDB
-	bstart time.Time   //leilei add for gcproc
+	bstart time.Time //leilei add for gcproc
 
 	txIndex      int
 	transactions []*ethTypes.Transaction
@@ -195,13 +198,82 @@ type workState struct {
 	gp           *core.GasPool
 }
 
-func (ws *workState) State() *state.StateDB{
+type Wrap struct {
+	Type         string
+	Signer       common.Address
+	Balance      *big.Int
+	Beneficiary  common.Address
+	Pubkey       crypto.PubKey
+	BlsKeyString string
+
+	Height  *big.Int
+	Receipt *ethTypes.Receipt
+}
+
+func (ws *workState) State() *state.StateDB {
 	return ws.state
 }
+
 // nolint: unparam
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
-//todo:后续要获取到块的validators列表根据voting power按比例分配收益
+	//todo:后续要获取到块的validators列表根据voting power按比例分配收益
+	var validators []*abciTypes.Validator
+	for i := 0; i < len(strategy.ValidatorSet.CurrentValidators); i++ {
+		validators = append(validators, strategy.ValidatorSet.CurrentValidators[i])
+	}
+	minerBonus := big.NewInt(1)
+	divisor := big.NewInt(1)
+	// for 1% every year increment
+	minerBonus.Div(strategy.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+
+	if strategy.FirstInitial {
+		strategy.FirstInitial = false
+		for i := 0; i < len(strategy.ValidatorSet.InitialValidators); i++ {
+			bonusAverage := big.NewInt(1)
+			bonusAverage.Div(minerBonus, big.NewInt(int64(len(strategy.ValidatorSet.InitialValidators))))
+
+			address := strings.ToLower(hex.EncodeToString(strategy.ValidatorSet.InitialValidators[i].Address))
+			if strategy.AccountMapListTemp.MapList[address] != nil {
+				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
+			} else {
+				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			}
+			fmt.Println(bonusAverage)
+		}
+	} else if len(strategy.ValidatorSet.CurrentValidatorWeight) == 0 {
+		for i := 0; i < len(validators); i++ {
+			bonusAverage := big.NewInt(1)
+			bonusAverage.Div(minerBonus, big.NewInt(int64(len(validators))))
+
+			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
+			if strategy.AccountMapListTemp.MapList[address] != nil {
+				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
+			} else {
+				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			}
+			fmt.Println(bonusAverage)
+		}
+	} else {
+		weightSum := 0
+		for i := 0; i < len(strategy.ValidatorSet.CurrentValidatorWeight); i++ {
+			weightSum = weightSum + int(strategy.ValidatorSet.CurrentValidatorWeight[i])
+		}
+		for i := 0; i < len(validators); i++ {
+			bonusAverage := big.NewInt(1)
+			bonusSpecify := big.NewInt(1)
+			bonusSpecify.Mul(big.NewInt(strategy.ValidatorSet.CurrentValidatorWeight[i]), bonusAverage.
+				Div(minerBonus, big.NewInt(int64(weightSum))))
+
+			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
+			if strategy.AccountMapListTemp.MapList[address] != nil {
+				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusSpecify)
+			} else {
+				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
+			}
+			fmt.Println(bonusSpecify)
+		}
+	}
 	ws.header.GasUsed = *ws.totalUsedGas
 }
 
@@ -209,13 +281,12 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
-
+	tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx, *Wrap) {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
-	receipt, _, err := core.ApplyTransaction(
+	receipt, msg, _, err := core.ApplyTransactionFacade(
 		chainConfig,
 		blockchain,
-		nil, // defaults to address of the author of the header
+		address, // defaults to address of the author of the header
 		ws.gp,
 		ws.state,
 		ws.header,
@@ -223,9 +294,12 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		ws.totalUsedGas,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
+
 	if err != nil {
-		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
+		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}, &Wrap{}
 	}
+	log.Info("from:" + msg.From().Hex())
+	wrap := handleTx(ws.state, msg, ws.header.Number, receipt)
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -236,7 +310,34 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	ws.receipts = append(ws.receipts, receipt)
 	ws.allLogs = append(ws.allLogs, logs...)
 
-	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}
+	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}, wrap
+}
+
+func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int, receipt *ethTypes.Receipt) *Wrap {
+	if msg.To() != nil {
+		if blacklist.IsLockTx(msg.To().Hex()) {
+			data, _ := MarshalTxData(string(msg.Data()))
+			balance := statedb.GetBalance(msg.From())
+			return &Wrap{
+				Type:         "upsert",
+				Signer:       msg.From(),
+				Balance:      balance,
+				Beneficiary:  common.HexToAddress(data.Beneficiary),
+				Pubkey:       data.Pv.PubKey,
+				BlsKeyString: data.BlsKeyString,
+				Height:       h,
+				Receipt:      receipt,
+			}
+		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
+			return &Wrap{
+				Type:    "remove",
+				Signer:  msg.From(),
+				Height:  h,
+				Receipt: receipt,
+			}
+		}
+	}
+	return &Wrap{}
 }
 
 // Commit the ethereum state, update the header, make a new block and add it to
@@ -261,7 +362,6 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 		}
 	}
 
-
 	// Create block object and compute final commit hash (hash of the ethereum
 	// block).
 	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
@@ -282,8 +382,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: ws.allLogs})
 	if stat == core.CanonStatTy {
 		events = append(events, core.ChainHeadEvent{Block: block}) //此事件更新txPool
-	}else{
-		err = chainError(1,"WriteBlockWithState return stat not CanonStatTy")
+	} else {
+		err = chainError(1, "WriteBlockWithState return stat not CanonStatTy")
 		log.Error("stat not core.CanonStatTy", "workState", ws)
 	}
 	/*blockchain.mux.Post(core.NewMinedBlockEvent{Block: block})
@@ -292,11 +392,11 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	blockchain.PostChainEvents(events, ws.allLogs)
 	// Save the block to disk.
 	// log.Info("Committing block", "stateHash", hashArray, "blockHash", blockHash)
-/*	_, err = blockchain.InsertChain([]*ethTypes.Block{block})
-	if err != nil {
-		// log.Info("Error inserting ethereum block in chain", "err", err)
-		return common.Hash{}, err
-	}*/
+	/*	_, err = blockchain.InsertChain([]*ethTypes.Block{block})
+		if err != nil {
+			// log.Info("Error inserting ethereum block in chain", "err", err)
+			return common.Hash{}, err
+		}*/
 	return blockHash, err
 }
 

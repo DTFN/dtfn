@@ -19,7 +19,7 @@ KEYS=$(ls $KEYSTORE)
 mkdir -p $TMPFILES $NETWORK_DATADIR
 cp -rv keystore/ $NETWORK_DATADIR/keystore
 
-if [ "$NETWORK" == "ethermint" ]; then
+if [ "$NETWORK" == "gelchain" ]; then
   mkdir $TENDERMINT_DATADIR
   cp -v ./priv_validator.json $TENDERMINT_DATADIR
   cp -v ./genesis.json $TENDERMINT_DATADIR

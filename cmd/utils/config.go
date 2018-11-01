@@ -11,14 +11,14 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/tendermint/ethermint/ethereum"
+	"github.com/green-element-chain/gelchain/ethereum"
 
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 )
 
 const (
 	// Client identifier to advertise over the network
-	clientIdentifier = "ethermint"
+	clientIdentifier = "gelchain"
 	// Environment variable for home dir
 	emHome = "EMHOME"
 )
@@ -91,14 +91,14 @@ func DefaultNodeConfig() node.Config {
 	return cfg
 }
 
-// SetEthermintNodeConfig takes a node configuration and applies ethermint specific configuration
+// SetEthermintNodeConfig takes a node configuration and applies gelchain specific configuration
 // #unstable
 func SetEthermintNodeConfig(cfg *node.Config) {
 	cfg.P2P.MaxPeers = 0
 	cfg.P2P.NoDiscovery = true
 }
 
-// SetEthermintEthConfig takes a ethereum configuration and applies ethermint specific configuration
+// SetEthermintEthConfig takes a ethereum configuration and applies gelchain specific configuration
 // #unstable
 func SetEthermintEthConfig(cfg *eth.Config) {
 	/*cfg.MaxPeers = 0

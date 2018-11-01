@@ -9,20 +9,20 @@ var (
 	LogLevelFlag = cli.StringFlag{
 		Name:  "logLevel",
 		Value: "info",
-		Usage: "log level for both ethermint and tendermint.",
+		Usage: "log level for both gelchain and tendermint.",
 	}
 	// ----------------------------
 	// ABCI Flags
 
-	// TendermintAddrFlag is the address that ethermint will use to connect to the tendermint core node
+	// TendermintAddrFlag is the address that gelchain will use to connect to the tendermint core node
 	// #stable - 0.4.0
 	TendermintAddrFlag = cli.StringFlag{
 		Name:  "tendermint_addr",
 		Value: "tcp://localhost:26657",
-		Usage: "This is the address that ethermint will use to connect to the tendermint core node. Please provide a port.",
+		Usage: "This is the address that gelchain will use to connect to the tendermint core node. Please provide a port.",
 	}
 
-	// ABCIAddrFlag is the address that ethermint will use to listen to incoming ABCI connections
+	// ABCIAddrFlag is the address that gelchain will use to listen to incoming ABCI connections
 	// #stable - 0.4.0
 	ABCIAddrFlag = cli.StringFlag{
 		Name:  "abci_laddr",
@@ -62,12 +62,12 @@ var (
 	}
 
 	// WithTendermintFlag asks to start Tendermint
-	// `tendermint init` and `tendermint node` when `ethermint init`
-	// and `ethermint` are invoked respectively.
+	// `tendermint init` and `tendermint node` when `gelchain init`
+	// and `gelchain` are invoked respectively.
 	WithTendermintFlag = cli.BoolFlag{
 		Name: "with-tendermint",
 		Usage: "If set, it will invoke `tendermint init` and `tendermint node` " +
-			"when `ethermint init` and `ethermint` are invoked respectively",
+			"when `gelchain init` and `gelchain` are invoked respectively",
 	}
 
 	//=======================================tendermint flags====================
@@ -99,6 +99,7 @@ var (
 		Usage: "Path to address book",
 		Value: "",
 	}
+
 	RoutabilityStrict = cli.BoolFlag{
 		Name:  "routable_strict",
 		Usage: "routabilityStrict property of address book.If set,will check the address not local or LAN.",
@@ -115,4 +116,41 @@ var (
 		Usage: "Set true to enable the peer-exchange reactor",
 	}
 	// Comma separated list of peer IDs to keep private (will not be gossiped to other peers)
+
+	TendermintP2PListenAddress = cli.StringFlag{
+		Name:  "tendermint_p2paddr",
+		Value: "",
+		Usage: "This is the address that tendermint will use to connect other tendermint port.",
+	}
+
+	TendermintP2PExternalAddress = cli.StringFlag{
+		Name:  "tm_external_addr",
+		Value: "",
+		Usage: "Address to advertise to peers for them to dial.If empty, will use the same port as the laddr",
+	}
+
+	TmConsEmptyBlock = cli.BoolFlag{
+		Name:  "tm_cons_emptyblock",
+		Usage: "EmptyBlocks mode",
+	}
+
+	TmConsEBlockInteval = cli.Uint64Flag{
+		Name:  "tm_cons_eb_inteval",
+		Usage: "possible interval between empty blocks in seconds",
+	}
+
+	TmConsNeedProofBlock = cli.BoolFlag{
+		Name:  "need_proof_block",
+		Usage: "whether to need proof block",
+	}
+
+	TmInitialEthAccount = cli.StringFlag{
+		Name:  "initial_eth_account",
+		Usage: "initial_eth_account to config the initial node",
+	}
+
+	TmBlsSelectStrategy = cli.BoolFlag{
+		Name:  "bls_select_strategy",
+		Usage: "specify select strategy for bls",
+	}
 )

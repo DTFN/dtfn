@@ -1,10 +1,15 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
-	"os"
-	"strings"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/green-element-chain/gelchain/utils"
 	"gopkg.in/urfave/cli.v1"
+	"math/big"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -17,14 +22,16 @@ import (
 
 	cmn "github.com/tendermint/tendermint/libs/common"
 
-	abciApp "github.com/tendermint/ethermint/app"
-	emtUtils "github.com/tendermint/ethermint/cmd/utils"
-	"github.com/tendermint/ethermint/ethereum"
-	"github.com/tendermint/tendermint/proxy"
-	tmNode "github.com/tendermint/tendermint/node"
+	abciApp "github.com/green-element-chain/gelchain/app"
+	emtUtils "github.com/green-element-chain/gelchain/cmd/utils"
+	"github.com/green-element-chain/gelchain/ethereum"
+	"github.com/green-element-chain/gelchain/types"
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	tmNode "github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/privval"
+	"github.com/tendermint/tendermint/proxy"
+	tmState "github.com/tendermint/tendermint/state"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -35,7 +42,14 @@ func ethermintCmd(ctx *cli.Context) error {
 	// Setup the ABCI server and start it
 	addr := ctx.GlobalString(emtUtils.ABCIAddrFlag.Name)
 	abci := ctx.GlobalString(emtUtils.ABCIProtocolFlag.Name)
+	blsSelectStrategy := ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
 
+	ethGenesisJson := ethermintGenesisPath(ctx)
+	genesis := utils.ReadGenesis(ethGenesisJson)
+	totalBalanceInital := big.NewInt(0)
+	for key, _ := range genesis.Alloc {
+		totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
+	}
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
 	if err := node.Service(&backend); err != nil {
@@ -49,38 +63,63 @@ func ethermintCmd(ctx *cli.Context) error {
 	}
 
 	// Create the ABCI app
-	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, nil)
+	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy(totalBalanceInital))
+	ethApp.GetStrategy().BlsSelectStrategy = blsSelectStrategy
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "ethermint")
-	configLoggerLevel(ctx,&ethLogger)
+	ethApp.StartHttpServer()
+	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
+	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
 
+	tmConfig := loadTMConfig(ctx)
+	ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
+
+	genDocFile := tmConfig.GenesisFile()
+	genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
+	if err != nil {
+		fmt.Println(err)
+	}
+	validators := genDoc.Validators
+	var tmAddress []string
+	amlist := &types.AccountMapList{
+		MapList: make(map[string]*types.AccountMap),
+	}
+	if err != nil {
+		panic("Sorry but you don't have initial account file")
+	} else {
+		fmt.Println(len(ethAccounts.EthAccounts))
+		log.Info("get Initial accounts")
+		for i := 0; i < len(validators); i++ {
+			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
+			accountBalance := big.NewInt(1)
+			accountBalance.Div(totalBalanceInital, big.NewInt(100))
+			if i == len(ethAccounts.EthAccounts){
+				break;
+			}
+			amlist.MapList[tmAddress[i]] = &types.AccountMap{
+				common.HexToAddress(ethAccounts.EthAccounts[i]),
+				ethAccounts.EthBalances[i],
+				big.NewInt(0),
+				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
+				strconv.Itoa(i),
+			}
+		}
+	}
+
+	ethApp.GetStrategy().SetAccountMapList(amlist)
+
 	// Step 2: If we can invoke `tendermint node`, let's do so
-	// in order to make ethermint as self contained as possible.
+	// in order to make gelchain as self contained as possible.
 	// See Issue https://github.com/tendermint/ethermint/issues/244
 	canInvokeTendermintNode := canInvokeTendermint(ctx)
 	if canInvokeTendermintNode {
-/*		pauseDuration := 2 * time.Second
-		tendermintHome := tendermintHomeFromEthermint(ctx)
-		tendermintArgs := []string{"--home", tendermintHome, "node"}
-		log.Info("tendermint ready to init")
-		time.Sleep(pauseDuration)
-		if _, err := invokeTendermintNoTimeout(tendermintArgs...); err != nil {
-			// We shouldn't go *Fatal* because
-			// `tendermint node` might have already been invoked.
-			log.Info("tendermint init", "error", err)
-		} else {
-			log.Info("Successfully invoked `tendermint node`", "args",
-				tendermintArgs)
-		}*/
-
-		tmConfig:=loadTMConfig(ctx)
-		clientCreator:=proxy.NewLocalClientCreator(ethApp)
+		tmConfig := loadTMConfig(ctx)
+		clientCreator := proxy.NewLocalClientCreator(ethApp)
 		tmLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "tendermint")
-		configLoggerLevel(ctx,&tmLogger)
+		configLoggerLevel(ctx, &tmLogger)
 
 		n, err := tmNode.NewNode(tmConfig,
 			privval.LoadOrGenFilePV(tmConfig.PrivValidatorFile()),
@@ -96,6 +135,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 		backend.SetMemPool(n.MempoolReactor().Mempool)
 		n.MempoolReactor().Mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
+
 		err = n.Start()
 		if err != nil {
 			log.Error("server with tendermint start", "error", err)
@@ -104,7 +144,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		// Trap signal, run forever.
 		n.RunForever()
 		return nil
-	}else{
+	} else {
 		// Start the app on the ABCI server
 		srv, err := server.NewServer(addr, abci, ethApp)
 		if err != nil {
@@ -128,35 +168,41 @@ func ethermintCmd(ctx *cli.Context) error {
 }
 
 //加载tendermint相关的配置
-func loadTMConfig(ctx *cli.Context) *tmcfg.Config{
-	tmHome:=tendermintHomeFromEthermint(ctx)
-	baseConfig:=tmcfg.DefaultBaseConfig()
-	baseConfig.RootDir=tmHome
+func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
+	tmHome := tendermintHomeFromEthermint(ctx)
+	baseConfig := tmcfg.DefaultBaseConfig()
+	baseConfig.RootDir = tmHome
 
 	DefaultInstrumentationConfig := tmcfg.DefaultInstrumentationConfig()
 
-
 	defaultTmConfig := tmcfg.DefaultConfig()
-	defaultTmConfig.BaseConfig=baseConfig
-	defaultTmConfig.Mempool.RootDir=tmHome
-	defaultTmConfig.Mempool.Recheck=true  //fix nonce bug
-	defaultTmConfig.P2P.RootDir=tmHome
-	defaultTmConfig.RPC.RootDir=tmHome
-	defaultTmConfig.Consensus.RootDir=tmHome
+	defaultTmConfig.BaseConfig = baseConfig
+	defaultTmConfig.Mempool.RootDir = tmHome
+	defaultTmConfig.Mempool.Recheck = true //fix nonce bug
+	defaultTmConfig.P2P.RootDir = tmHome
+	defaultTmConfig.RPC.RootDir = tmHome
+	defaultTmConfig.Consensus.RootDir = tmHome
+	defaultTmConfig.Consensus.CreateEmptyBlocks = ctx.GlobalBool(emtUtils.TmConsEmptyBlock.Name)
+	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)
+	defaultTmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
+
 	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
 
-	defaultTmConfig.FastSync=ctx.GlobalBool(emtUtils.FastSync.Name)
-	defaultTmConfig.PrivValidatorListenAddr=ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
-	defaultTmConfig.PrivValidator=ctx.GlobalString(emtUtils.PrivValidator.Name)
-	defaultTmConfig.P2P.AddrBook=ctx.GlobalString(emtUtils.AddrBook.Name)
-	defaultTmConfig.P2P.AddrBookStrict=ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
-	defaultTmConfig.P2P.PersistentPeers=ctx.GlobalString(emtUtils.PersistentPeers.Name)
-	defaultTmConfig.P2P.PrivatePeerIDs=ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
+	defaultTmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)
+	defaultTmConfig.BaseConfig.InitialEthAccount = ctx.GlobalString(emtUtils.TmInitialEthAccount.Name)
+	defaultTmConfig.PrivValidatorListenAddr = ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
+	defaultTmConfig.PrivValidator = ctx.GlobalString(emtUtils.PrivValidator.Name)
+	defaultTmConfig.P2P.AddrBook = ctx.GlobalString(emtUtils.AddrBook.Name)
+	defaultTmConfig.P2P.AddrBookStrict = ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
+	defaultTmConfig.P2P.PersistentPeers = ctx.GlobalString(emtUtils.PersistentPeers.Name)
+	defaultTmConfig.P2P.PrivatePeerIDs = ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
+	defaultTmConfig.P2P.ListenAddress = ctx.GlobalString(emtUtils.TendermintP2PListenAddress.Name)
+	defaultTmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
 
 	return defaultTmConfig
 }
 
-func configLoggerLevel(ctx *cli.Context,logger *tmlog.Logger) {
+func configLoggerLevel(ctx *cli.Context, logger *tmlog.Logger) {
 	switch ctx.GlobalString(emtUtils.LogLevelFlag.Name) {
 	case "error":
 		*logger = tmlog.NewFilter(*logger, tmlog.AllowError())

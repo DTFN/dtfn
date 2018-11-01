@@ -45,100 +45,19 @@ describe('gasLimit', function () {
         });
     });
 
-    it('should deploy contract', function (done) {
+    it('should send tx', function (done) {
         this.timeout(60 * 1000);
-
-        const contractCompiled = solc.compile(contractSource);
-
-        const bytecode = contractCompiled.contracts[':Test'].bytecode;
-        const abi = JSON.parse(contractCompiled.contracts[':Test'].interface);
-
-        const estimateGas = web3.eth.estimateGas({data: '0x' + bytecode,});
-        console.log('Gas needed: ' + estimateGas);
-
-        let callbackCount = 0;
-
-        const testContract = web3.eth.contract(abi);
-        testContract.new({
-            from: account,
-            data: '0x' + bytecode,
-            gas: '5379400' //set enough gas
-        }, function (error, contract) {
-            callbackCount++;
-
-            assert.equal(error, null);
-
-            if (error) {
-                done();
-            }
-
-            assert.isNotNull(contract.transactionHash);
-
-            if (callbackCount === 2) {
-                assert.isNotNull(contract.address);
-                done();
-            }
+        web3.eth.sendTransaction({
+            from: web3.eth.accounts[0],
+            to: "0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0",
+            value: "11123123"
+        }, function (err, transactionHash) {
+            if (!err){
+                console.log(transactionHash + " success");
+                console.log(web3.eth.getBalance("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"))
+                done()
+	    } else console.log(err)
         });
     });
 });
 
-describe('huge smart contract', function () {
-    it('should deploy contract', function (done) {
-        //set mocha timeout
-        this.timeout(120 * 1000);
-
-        //generate smart contract with many functions
-        let code = codeGenerator(150);
-
-        const contractCompiled = solc.compile(code);
-
-        const bytecode = contractCompiled.contracts[':Test'].bytecode;
-        const abi = JSON.parse(contractCompiled.contracts[':Test'].interface);
-
-        const estimateGas = web3.eth.estimateGas({data: '0x' + bytecode,});
-        // console.log('Gas needed: ' + estimateGas);
-
-        let callbackCount = 0;
-
-        const testContract = web3.eth.contract(abi);
-        testContract.new({
-            from: account,
-            data: '0x' + bytecode,
-            gas: estimateGas//set enough gas
-        }, function (error, contract) {
-            callbackCount++;
-
-            assert.equal(error, null);
-
-            if (error) {
-                done();
-            }
-
-            assert.isNotNull(contract.transactionHash);
-
-            if (callbackCount === 2) {
-                assert.isNotNull(contract.address);
-                done();
-            }
-        });
-    });
-});
-
-function codeGenerator(functionsCount) {
-    let code = `
-        pragma solidity ^0.4.0;
-        contract Test
-        {
-            event TestEvent(uint a);
-            function Test() {}
-        `;
-    for (let i = 0; i < functionsCount; i++) {
-        code += "\nfunction f" + i + `(uint i)
-        {
-            TestEvent(i);
-        }`;
-    }
-    code += "\n}";
-
-    return code;
-}
