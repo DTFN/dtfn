@@ -26,4 +26,4 @@ for the maintainers to review and merge into the main code base.
 ## License
 
 
-The gelchain is licensed under the [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html).
+The gelchain is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
