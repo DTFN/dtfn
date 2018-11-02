@@ -2,7 +2,6 @@ package ethereum
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -239,7 +238,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			} else {
 				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 			}
-			fmt.Println(bonusAverage)
 		}
 	} else if len(strategy.ValidatorSet.CurrentValidatorWeight) == 0 {
 		for i := 0; i < len(validators); i++ {
@@ -252,7 +250,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			} else {
 				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 			}
-			fmt.Println(bonusAverage)
 		}
 	} else {
 		weightSum := 0
@@ -271,7 +268,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			} else {
 				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
 			}
-			fmt.Println(bonusSpecify)
 		}
 	}
 	ws.header.GasUsed = *ws.totalUsedGas

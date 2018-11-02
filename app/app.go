@@ -130,13 +130,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	}
 	app.SetValidators(validators)
 	app.strategy.ValidatorSet.InitialValidators = validators
-	//if len(validators) > 4 {
-	//	app.strategy.ValidatorSet.CornerStoneValidators = validators[0:4]
-	//	//app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
-	//	app.strategy.ValidatorSet.InitialValidators = validators[4:]
-	//} else {
-	//	app.strategy.ValidatorSet.CornerStoneValidators = validators
-	//}
+
 	for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
 		address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
 			InitialValidators[j].Address))
@@ -204,7 +198,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	db, e := app.getCurrentState()
 	if e == nil {
 		if wrap.Type == "upsert" {
-			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Balance, wrap.Beneficiary, wrap.Pubkey,wrap.BlsKeyString)
+			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Balance, wrap.Beneficiary, wrap.Pubkey, wrap.BlsKeyString)
 			if e == nil && b {
 				blacklist.Lock(db, wrap.Signer)
 			} else {
@@ -243,14 +237,13 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.InitialPos()
 
-	if !app.strategy.FirstInitial{
+	if !app.strategy.FirstInitial {
 		// before next bonus ,clear accountMapListTemp
 		for key, _ := range app.strategy.AccountMapListTemp.MapList {
 			delete(app.strategy.AccountMapListTemp.MapList, key)
 		}
-	}else{
+	} else {
 	}
-
 
 	return abciTypes.ResponseBeginBlock{}
 }
@@ -263,8 +256,6 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 	}
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
-
-
 
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
