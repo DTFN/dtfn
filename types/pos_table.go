@@ -131,7 +131,7 @@ func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, i int) PosItem {
 
 	v2 = v2 & ((1 << bits2) - 1)
 	v := (v2 << (8 - bits1)) + v1
-	v = v % uint32(len(posTable.PosArray))
+	v = v % uint32(posTable.PosArraySize)
 	return *posTable.PosItemMap[posTable.PosArray[v]]
 }
 
