@@ -292,18 +292,6 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 			return abciTypes.ResponseEndBlock{}
 		}
 
-		// if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) >0
-		// len(app.strategy.ValidatorSet.InitialValidators) must >0
-		// so len(app.strategy.ValidatorSet.InitialValidators) must = 4
-		// while we are initingChain,we process the following code
-		// if len(validators) > 4 {
-		//	app.strategy.ValidatorSet.CornerStoneValidators = validators[0:4]
-		//	app.strategy.ValidatorSet.InitialValidators = validators[4:]
-		//}
-
-		// and maxValidators must <= 7 and >= 4
-		// if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) >=3
-		// maxValidators =7
 		maxValidators := 0
 		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 7 {
 			maxValidators = len(app.strategy.ValidatorSet.NextHeightCandidateValidators)
@@ -311,14 +299,10 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 			maxValidators = 7
 		}
 
-		// len(validators) = all initial validators write in the genesis.json file
-		// maxValidators = next height validators who take part in consensus
-		// all validators has been put into the validatorSlice,
-		// we just need to put the voted validator into validatorSlice
-		// we use map to remember which validators voted has put into validatorSlice
 		votedValidators := make(map[string]bool)
 		votedValidatorsIndex := make(map[string]int)
 
+		//select validators from posTable
 		for j := 0; len(validatorsSlice) != maxValidators; j++ {
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey)
 			validator := abciTypes.Validator{
@@ -339,12 +323,14 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 			}
 		}
 
+		//record the currentValidator weight for accumulateReward
 		for i := 0; i < maxValidators; i++ {
 			app.strategy.ValidatorSet.CurrentValidatorWeight = append(
 				app.strategy.ValidatorSet.CurrentValidatorWeight,
 				validatorsSlice[i].Power-999)
 		}
 
+		//append the validators which will be deleted
 		for i := 0; i < len(validators); i++ {
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(validators[i].PubKey)
 			if !votedValidators[tmPubKey.Address().String()]{
@@ -369,16 +355,6 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 
 	var validatorsSlice []abciTypes.Validator
 
-	// app.strategy.ValidatorSet.CurrentValidators not include cornerStoneValidators
-	// len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0
-	// we should just remove all the currentValidators
-
-	// if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) >= 3
-	// we must keep the maxValidatorSlice = 7 (cornerStoneValidator should equal 4)
-	// cornerStoneValidator should not be remove by removeValidatorTx
-	// and all the upsertValidatorTx should be failed when len(cornerStoneValidator) < 4
-	//
-
 	maxValidatorSlice := 0
 	if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) <= 4 {
 		return abciTypes.ResponseEndBlock{}
@@ -387,8 +363,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	} else {
 		maxValidatorSlice = 7
 	}
-	valReturn := app.strategy.ValidatorSet.CurrentValidators
-
+	valCopy := app.strategy.ValidatorSet.CurrentValidators
 	app.strategy.ValidatorSet.CurrentValidators = nil
 	app.strategy.ValidatorSet.CurrentValidatorWeight = nil
 
@@ -396,6 +371,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	votedValidators := make(map[string]bool)
 	votedValidatorsIndex := make(map[string]int)
 
+	//select validators from posTable
 	for i := 0; len(validatorsSlice) != maxValidatorSlice; i++ {
 		var tmPubKey crypto.PubKey
 		var validator abciTypes.Validator
@@ -430,14 +406,16 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		}
 	}
 
+	//record the currentValidator weight for accumulateReward
 	for i := 0; i < maxValidatorSlice; i++ {
 		app.strategy.ValidatorSet.CurrentValidatorWeight = append(
 			app.strategy.ValidatorSet.CurrentValidatorWeight,
 			validatorsSlice[i].Power-999)
 	}
 
-	for i := 0; i < len(valReturn); i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(valReturn[i].PubKey)
+	//append the validators which will be deleted
+	for i := 0; i < len(valCopy); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(valCopy[i].PubKey)
 		if !votedValidators[tmPubKey.Address().String()]{
 			validatorsSlice = append(validatorsSlice,
 				abciTypes.Validator{
