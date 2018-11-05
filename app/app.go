@@ -134,6 +134,9 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
 		address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
 			InitialValidators[j].Address))
+		if app.strategy.AccountMapList.MapList[address] == nil{
+			continue
+		}
 		upsertFlag, _ := app.UpsertPosItem(
 			app.strategy.AccountMapList.MapList[address].Signer,
 			app.strategy.AccountMapList.MapList[address].SignerBalance,
