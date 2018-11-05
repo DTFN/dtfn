@@ -288,16 +288,6 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		var validatorsSlice []abciTypes.Validator
 		validators := app.strategy.GetUpdatedValidators()
 
-		for i := 0; i < len(validators); i++ {
-			validatorsSlice = append(validatorsSlice,
-				abciTypes.Validator{
-					//Address : app.strategy.PosTable.SelectItemByRandomValue(int(height)).Address,
-					Address: validators[i].Address,
-					Power:   int64(0),
-					PubKey:  validators[i].PubKey,
-				})
-		}
-
 		if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0 {
 			return abciTypes.ResponseEndBlock{}
 		}
@@ -329,7 +319,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		votedValidators := make(map[string]bool)
 		votedValidatorsIndex := make(map[string]int)
 
-		for j := 0; len(validatorsSlice) != maxValidators+len(validators); j++ {
+		for j := 0; len(validatorsSlice) != maxValidators; j++ {
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey)
 			validator := abciTypes.Validator{
 				Address: tmPubKey.Address(),
@@ -352,9 +342,21 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		for i := 0; i < maxValidators; i++ {
 			app.strategy.ValidatorSet.CurrentValidatorWeight = append(
 				app.strategy.ValidatorSet.CurrentValidatorWeight,
-				validatorsSlice[len(validators)+i].Power-999)
+				validatorsSlice[i].Power-999)
 		}
 
+		for i := 0; i < len(validators); i++ {
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(validators[i].PubKey)
+			if !votedValidators[tmPubKey.Address().String()]{
+				validatorsSlice = append(validatorsSlice,
+					abciTypes.Validator{
+						//Address : app.strategy.PosTable.SelectItemByRandomValue(int(height)).Address,
+						Address: validators[i].Address,
+						Power:   int64(0),
+						PubKey:  validators[i].PubKey,
+					})
+			}
+		}
 		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
 	}
 }
@@ -365,16 +367,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	}else{
 	}
 
-
 	var validatorsSlice []abciTypes.Validator
-	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
-		validatorsSlice = append(validatorsSlice,
-			abciTypes.Validator{
-				Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
-				PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
-				Power:   int64(0),
-			})
-	}
 
 	// app.strategy.ValidatorSet.CurrentValidators not include cornerStoneValidators
 	// len(app.strategy.ValidatorSet.NextHeightCandidateValidators) == 0
@@ -390,12 +383,12 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) <= 4 {
 		return abciTypes.ResponseEndBlock{}
 	} else if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) < 7 {
-		maxValidatorSlice = len(app.strategy.ValidatorSet.NextHeightCandidateValidators) +
-			len(app.strategy.ValidatorSet.CurrentValidators)
+		maxValidatorSlice = len(app.strategy.ValidatorSet.NextHeightCandidateValidators)
 	} else {
-		maxValidatorSlice = 7 + len(app.strategy.ValidatorSet.CurrentValidators)
+		maxValidatorSlice = 7
 	}
-	preValidatorLength := len(app.strategy.ValidatorSet.CurrentValidators)
+	valReturn := app.strategy.ValidatorSet.CurrentValidators
+
 	app.strategy.ValidatorSet.CurrentValidators = nil
 	app.strategy.ValidatorSet.CurrentValidatorWeight = nil
 
@@ -437,14 +430,24 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		}
 	}
 
-	for i := preValidatorLength; i < maxValidatorSlice; i++ {
+	for i := 0; i < maxValidatorSlice; i++ {
 		app.strategy.ValidatorSet.CurrentValidatorWeight = append(
 			app.strategy.ValidatorSet.CurrentValidatorWeight,
 			validatorsSlice[i].Power-999)
 	}
 
+	for i := 0; i < len(valReturn); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(valReturn[i].PubKey)
+		if !votedValidators[tmPubKey.Address().String()]{
+			validatorsSlice = append(validatorsSlice,
+				abciTypes.Validator{
+					Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
+					PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
+					Power:   int64(0),
+				})
+		}
+	}
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
-
 }
 
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
