@@ -18,7 +18,7 @@ const ThresholdUnit = 1000
 type PosTable struct {
 	mtx                  sync.RWMutex
 	PosItemMap           map[common.Address]*PosItem `json:"posItemMap"`   //This isnt called by foreign struct except rpc
-	PosArray             []common.Address            `json:"posArray"`     // All posItem
+	PosArray             []common.Address            `json:"posArray"`     // All posItem,it will contained the same item
 	PosArraySize         int                         `json:"posArraySize"` // real size of posArray
 	Threshold            *big.Int                    `json:"threshold"`    // threshold value of PosTable
 	ChangedFlagThisBlock bool                        `json:"changedFlagThisBlock"`

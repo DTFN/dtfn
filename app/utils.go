@@ -354,6 +354,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	}
 
 	var validatorsSlice []abciTypes.Validator
+	var valCopy []abciTypes.Validator
 
 	maxValidatorSlice := 0
 	if len(app.strategy.ValidatorSet.NextHeightCandidateValidators) <= 4 {
@@ -363,7 +364,11 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	} else {
 		maxValidatorSlice = 7
 	}
-	valCopy := app.strategy.ValidatorSet.CurrentValidators
+
+	for i:=0;i<len(app.strategy.ValidatorSet.CurrentValidators);i++{
+		valCopy = append(valCopy,*app.strategy.ValidatorSet.CurrentValidators[i])
+	}
+
 	app.strategy.ValidatorSet.CurrentValidators = nil
 	app.strategy.ValidatorSet.CurrentValidatorWeight = nil
 
@@ -419,8 +424,8 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		if !votedValidators[tmPubKey.Address().String()]{
 			validatorsSlice = append(validatorsSlice,
 				abciTypes.Validator{
-					Address: app.strategy.ValidatorSet.CurrentValidators[i].Address,
-					PubKey:  app.strategy.ValidatorSet.CurrentValidators[i].PubKey,
+					Address: valCopy[i].Address,
+					PubKey:  valCopy[i].PubKey,
 					Power:   int64(0),
 				})
 		}
