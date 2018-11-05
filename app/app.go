@@ -131,6 +131,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	app.SetValidators(validators)
 	app.strategy.ValidatorSet.InitialValidators = validators
 
+	ethState ,_ := app.getCurrentState()
+
 	for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
 		address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
 			InitialValidators[j].Address))
@@ -146,6 +148,9 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.ValidatorSet.NextHeightCandidateValidators = append(app.
 				strategy.ValidatorSet.NextHeightCandidateValidators, app.
 				strategy.ValidatorSet.InitialValidators[j])
+			blacklist.Lock(ethState,app.strategy.AccountMapList.MapList[address].Signer)
+			app.GetLogger().Info("UpsertPosTable true and Lock initial Account","blacklist",
+				app.strategy.AccountMapList.MapList[address].Signer)
 		} else {
 			app.strategy.FirstInitial = true
 			tmAddress := hex.EncodeToString(app.strategy.ValidatorSet.
@@ -153,6 +158,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.AccountMapListTemp.MapList[tmAddress] = app.strategy.AccountMapList.MapList[tmAddress]
 			delete(app.strategy.AccountMapList.MapList, tmAddress)
 			app.GetLogger().Info("remove not enough balance validators")
+			fmt.Println("wenbin test upsertFlag false")
 		}
 	}
 
