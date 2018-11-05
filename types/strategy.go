@@ -79,9 +79,11 @@ type Validators struct {
 }
 
 func NewStrategy(totalBalance *big.Int) *Strategy {
-	threshold := big.NewInt(1000)
+	//If ThresholdUnit = 1000 ,it mean we set the lowest posTable threshold to 1/1000 of totalBalance.
+	thresholdUnit := big.NewInt(ThresholdUnit)
+	threshold := big.NewInt(1)
 	return &Strategy{
-		PosTable:     NewPosTable(threshold.Div(totalBalance, threshold)),
+		PosTable:     NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
 		TotalBalance: totalBalance,
 	}
 }

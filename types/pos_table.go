@@ -11,6 +11,10 @@ import (
 	"sync"
 )
 
+const PosTableMaxSize = 2000
+// it means the lowest balance must equal or larger than the 1/1000 of totalBalance
+const ThresholdUnit = 1000
+
 type PosTable struct {
 	mtx                  sync.RWMutex
 	PosItemMap           map[common.Address]*PosItem `json:"posItemMap"`   //This isnt called by foreign struct except rpc
@@ -23,7 +27,7 @@ type PosTable struct {
 }
 
 func NewPosTable(threshold *big.Int) *PosTable {
-	pa := make([]common.Address, 2000)
+	pa := make([]common.Address, PosTableMaxSize)
 	return &PosTable{
 		PosItemMap:   make(map[common.Address]*PosItem),
 		PosArray:     pa,
@@ -37,11 +41,11 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	posTable.mtx.Lock()
 	defer posTable.mtx.Unlock()
 
-	balanceCopy := big.NewInt(1000)
+	balanceCopy := big.NewInt(1)
 
 	posOriginPtr, exist := posTable.PosItemMap[signer]
 	if exist {
-		posTableCopy := big.NewInt(1000)
+		posTableCopy := big.NewInt(1)
 		originPosWeight, _ := strconv.Atoi(posTableCopy.
 			Div(posTable.PosItemMap[signer].Balance, posTable.Threshold).String())
 		newPosWeight, _ := strconv.Atoi(balanceCopy.Div(balance, posTable.Threshold).String())
