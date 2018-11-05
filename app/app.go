@@ -152,13 +152,14 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.GetLogger().Info("UpsertPosTable true and Lock initial Account","blacklist",
 				app.strategy.AccountMapList.MapList[address].Signer)
 		} else {
+			//This is used to remove the validators who dont have enough balance
+			//but he is in the accountmap.
 			app.strategy.FirstInitial = true
 			tmAddress := hex.EncodeToString(app.strategy.ValidatorSet.
 				InitialValidators[j].Address)
 			app.strategy.AccountMapListTemp.MapList[tmAddress] = app.strategy.AccountMapList.MapList[tmAddress]
 			delete(app.strategy.AccountMapList.MapList, tmAddress)
 			app.GetLogger().Info("remove not enough balance validators")
-			fmt.Println("wenbin test upsertFlag false")
 		}
 	}
 
