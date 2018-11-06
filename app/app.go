@@ -129,36 +129,36 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		validators = append(validators, &req.GetValidators()[i])
 	}
 	app.SetValidators(validators)
-	app.strategy.ValidatorSet.InitialValidators = validators
+	app.strategy.CurrRoundValData.InitialValidators = validators
 
 	ethState ,_ := app.getCurrentState()
 
-	for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
-		address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
+	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
+		address := strings.ToLower(hex.EncodeToString(app.strategy.CurrRoundValData.
 			InitialValidators[j].Address))
-		if app.strategy.AccountMapList.MapList[address] == nil{
+		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil{
 			continue
 		}
 		upsertFlag, _ := app.UpsertPosItem(
-			app.strategy.AccountMapList.MapList[address].Signer,
-			app.strategy.AccountMapList.MapList[address].SignerBalance,
-			app.strategy.AccountMapList.MapList[address].Beneficiary,
-			app.strategy.ValidatorSet.InitialValidators[j].PubKey)
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer,
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].SignerBalance,
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary,
+			app.strategy.CurrRoundValData.InitialValidators[j].PubKey)
 		if upsertFlag {
-			app.strategy.ValidatorSet.NextHeightCandidateValidators = append(app.
-				strategy.ValidatorSet.NextHeightCandidateValidators, app.
-				strategy.ValidatorSet.InitialValidators[j])
-			blacklist.Lock(ethState,app.strategy.AccountMapList.MapList[address].Signer)
+			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
+				strategy.CurrRoundValData.CurrCandidateValidators, app.
+				strategy.CurrRoundValData.InitialValidators[j])
+			blacklist.Lock(ethState,app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
 			app.GetLogger().Info("UpsertPosTable true and Lock initial Account","blacklist",
-				app.strategy.AccountMapList.MapList[address].Signer)
+				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
 		} else {
 			//This is used to remove the validators who dont have enough balance
 			//but he is in the accountmap.
 			app.strategy.FirstInitial = true
-			tmAddress := hex.EncodeToString(app.strategy.ValidatorSet.
+			tmAddress := hex.EncodeToString(app.strategy.CurrRoundValData.
 				InitialValidators[j].Address)
-			app.strategy.AccountMapListTemp.MapList[tmAddress] = app.strategy.AccountMapList.MapList[tmAddress]
-			delete(app.strategy.AccountMapList.MapList, tmAddress)
+			app.strategy.CurrRoundValData.AccountMapListTemp.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
+			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
 			app.GetLogger().Info("remove not enough balance validators")
 		}
 	}
@@ -249,8 +249,8 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	if !app.strategy.FirstInitial {
 		// before next bonus ,clear accountMapListTemp
-		for key, _ := range app.strategy.AccountMapListTemp.MapList {
-			delete(app.strategy.AccountMapListTemp.MapList, key)
+		for key, _ := range app.strategy.CurrRoundValData.AccountMapListTemp.MapList {
+			delete(app.strategy.CurrRoundValData.AccountMapListTemp.MapList, key)
 		}
 	} else {
 	}

@@ -29,30 +29,41 @@ type Strategy struct {
 	//if height = 1 ,currentValidator come from genesis.json
 	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
 	currentValidators []*abciTypes.Validator
+
+	FirstInitial bool
+
+	ProposerAddress string
+
+	CurrRoundValData CurrentRoundValData
+
+	TotalBalance *big.Int
+
+	BlsSelectStrategy bool
+
+	NextRoundData *NextRoundValData
+}
+
+type NextRoundValData struct {
+	NextRoundPosTable *PosTable
+
+	NextRoundCandidateValidators []*abciTypes.Validator
+
+	NextAccountMapList *AccountMapList
+}
+
+type CurrentRoundValData struct {
+
 	AccountMapList    *AccountMapList
 
 	//This map was used when some validator was removed and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
 	AccountMapListTemp *AccountMapList
 
-	FirstInitial bool
-
-	ProposerAddress string
-
-	ValidatorSet Validators
-
 	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable *PosTable
 
-	TotalBalance *big.Int
-
-	BlsSelectStrategy bool
-}
-
-type Validators struct {
-
 	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
-	NextHeightCandidateValidators []*abciTypes.Validator
+	CurrCandidateValidators []*abciTypes.Validator
 
 	// Initial validators , only use for once
 	InitialValidators []*abciTypes.Validator
@@ -83,19 +94,27 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	thresholdUnit := big.NewInt(ThresholdUnit)
 	threshold := big.NewInt(1)
 	return &Strategy{
-		PosTable:     NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-		TotalBalance: totalBalance,
+		CurrRoundValData:CurrentRoundValData{
+			PosTable:      NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+		},
+		TotalBalance:  totalBalance,
+		NextRoundData: NewNextRoundData(),
+	}
+}
+
+func NewNextRoundData() *NextRoundValData {
+	return &NextRoundValData{
 	}
 }
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
-	if s.ProposerAddress == "" || len(s.AccountMapList.MapList) == 0 {
+	if s.ProposerAddress == "" || len(s.CurrRoundValData.AccountMapList.MapList) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	} else if s.AccountMapList.MapList[s.ProposerAddress] != nil {
-		return s.AccountMapList.MapList[s.ProposerAddress].Beneficiary
+	} else if s.CurrRoundValData.AccountMapList.MapList[s.ProposerAddress] != nil {
+		return s.CurrRoundValData.AccountMapList.MapList[s.ProposerAddress].Beneficiary
 	} else {
-		return s.AccountMapListTemp.MapList[s.ProposerAddress].Beneficiary
+		return s.CurrRoundValData.AccountMapListTemp.MapList[s.ProposerAddress].Beneficiary
 	}
 }
 
@@ -126,8 +145,8 @@ func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
 
 // GetUpdatedValidators returns the current validators
 func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList) {
-	strategy.AccountMapList = accountMapList
-	strategy.AccountMapListTemp = &AccountMapList{
+	strategy.CurrRoundValData.AccountMapList = accountMapList
+	strategy.CurrRoundValData.AccountMapListTemp = &AccountMapList{
 		MapList: make(map[string]*AccountMap),
 	}
 }
