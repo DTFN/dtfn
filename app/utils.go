@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	ethmintTypes "github.com/green-element-chain/gelchain/types"
@@ -57,7 +58,7 @@ func (app *EthermintApplication) StartHttpServer() {
 	go app.httpServer.HttpServer.ListenAndServe()
 }
 
-func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balance *big.Int,
+func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, currentHeight *big.Int, balance *big.Int,
 	beneficiary common.Address, pubkey crypto.PubKey, blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
 
@@ -102,8 +103,10 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, balanc
 			}
 		}
 
-		if !signerExisted && !existFlag && !blsExisted {
-			// signer不相同
+		stateDb,_ := app.getCurrentState()
+		if !signerExisted && !existFlag && !blsExisted &&
+			blacklist.IsLock(stateDb,currentHeight.Int64(),signer){
+			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
 			upsertFlag, err := app.strategy.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
@@ -450,7 +453,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		blsPower.Div(app.strategy.AccountMapList.MapList[tmAddress].SignerBalance,
 			app.strategy.PosTable.Threshold)
 
-		if tmAddressMap[tmAddress]{
+		if tmAddressMap[tmAddress] {
 			app.strategy.ValidatorSet.CurrentValidators = append(app.
 				strategy.ValidatorSet.CurrentValidators, &abciTypes.Validator{
 				Address: app.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address,
