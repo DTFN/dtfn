@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"container/list"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/tendermint/abci/types"
 	"math/big"
 )
 
@@ -14,9 +13,9 @@ type ValSortlist struct {
 }
 
 type ValListItem struct {
-	Signer     common.Address `json:"signer"`
-	Balance    *big.Int       `json:"balance"`
-	AbciPubkey types.PubKey   `json:"abciPubkey"`
+	Signer    common.Address `json:"signer"`
+	Balance   *big.Int       `json:"balance"`
+	TmAddress string         `json:"tmAddress"`
 }
 
 func NewValSortlist() *ValSortlist {
@@ -27,6 +26,9 @@ func NewValSortlist() *ValSortlist {
 }
 
 func (valSortlist *ValSortlist) UpsertVal(valListItem *ValListItem, existFlag bool) {
+	if valSortlist.Len == 0 {
+		return
+	}
 	if existFlag {
 		currentEle := valSortlist.ValList.Front()
 		currentItem := valSortlist.ValList.Front().Value.(*ValListItem)
@@ -43,6 +45,7 @@ func (valSortlist *ValSortlist) UpsertVal(valListItem *ValListItem, existFlag bo
 			valSortlist.ValList.InsertBefore(valListItem, compareEle)
 		}
 	}
+	valSortlist.Len = valSortlist.Len + 1
 }
 
 func (vallist *ValSortlist) RemoveVal(valListItem *ValListItem) {
@@ -53,19 +56,20 @@ func (vallist *ValSortlist) RemoveVal(valListItem *ValListItem) {
 			vallist.ValList.Remove(currentEle)
 		}
 	}
+	vallist.Len = vallist.Len - 1
 }
 
-func (vallist *ValSortlist) GetTop100ValPubkey() map[types.PubKey]bool {
-	pubKeyMap := make(map[types.PubKey]bool)
+func (vallist *ValSortlist) GetTopValTmAddress() map[string]bool {
+	tmAddressMap := make(map[string]bool)
 	currentEle := vallist.ValList.Front()
 	currentItem := vallist.ValList.Front().Value.(*ValListItem)
 	for i := 0; i < vallist.Len; i++ {
 		if i == 100 {
 			break
 		}
-		pubKeyMap[currentItem.AbciPubkey] = true
+		tmAddressMap[currentItem.TmAddress] = true
 		currentEle = currentEle.Next()
 		currentItem = currentEle.Value.(*ValListItem)
 	}
-	return pubKeyMap
+	return tmAddressMap
 }

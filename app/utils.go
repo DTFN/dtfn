@@ -257,7 +257,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else if int(height)%200!= 0 {
+		} else if int(height)%200 != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)
@@ -333,7 +333,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		//append the validators which will be deleted
 		for i := 0; i < len(validators); i++ {
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(validators[i].PubKey)
-			if !votedValidators[tmPubKey.Address().String()]{
+			if !votedValidators[tmPubKey.Address().String()] {
 				validatorsSlice = append(validatorsSlice,
 					abciTypes.Validator{
 						//Address : app.strategy.PosTable.SelectItemByRandomValue(int(height)).Address,
@@ -349,8 +349,8 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 
 func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64) abciTypes.ResponseEndBlock {
 
-	if app.strategy.BlsSelectStrategy{
-	}else{
+	if app.strategy.BlsSelectStrategy {
+	} else {
 	}
 
 	var validatorsSlice []abciTypes.Validator
@@ -365,8 +365,8 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		maxValidatorSlice = 7
 	}
 
-	for i:=0;i<len(app.strategy.ValidatorSet.CurrentValidators);i++{
-		valCopy = append(valCopy,*app.strategy.ValidatorSet.CurrentValidators[i])
+	for i := 0; i < len(app.strategy.ValidatorSet.CurrentValidators); i++ {
+		valCopy = append(valCopy, *app.strategy.ValidatorSet.CurrentValidators[i])
 	}
 
 	app.strategy.ValidatorSet.CurrentValidators = nil
@@ -421,7 +421,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	//append the validators which will be deleted
 	for i := 0; i < len(valCopy); i++ {
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(valCopy[i].PubKey)
-		if !votedValidators[tmPubKey.Address().String()]{
+		if !votedValidators[tmPubKey.Address().String()] {
 			validatorsSlice = append(validatorsSlice,
 				abciTypes.Validator{
 					Address: valCopy[i].Address,
@@ -448,20 +448,23 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		blsPower.Div(app.strategy.AccountMapList.MapList[tmAddress].SignerBalance,
 			app.strategy.PosTable.Threshold)
 
-		app.strategy.ValidatorSet.CurrentValidators = append(app.
-			strategy.ValidatorSet.CurrentValidators, &abciTypes.Validator{
-			Address: app.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address,
-			PubKey:  app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
-			Power:   blsPower.Int64(),
-		})
-
-		validatorsSlice = append(validatorsSlice,
-			abciTypes.Validator{
+		tmAddressMap := app.strategy.PosTable.PosNodeSortList.GetTopValTmAddress()
+		if tmAddressMap[tmAddress]{
+			app.strategy.ValidatorSet.CurrentValidators = append(app.
+				strategy.ValidatorSet.CurrentValidators, &abciTypes.Validator{
 				Address: app.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address,
 				PubKey:  app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
 				Power:   blsPower.Int64(),
 			})
-		blsPubkeySlice = append(blsPubkeySlice, app.strategy.AccountMapList.MapList[tmAddress].BlsKeyString)
+
+			validatorsSlice = append(validatorsSlice,
+				abciTypes.Validator{
+					Address: app.strategy.ValidatorSet.NextHeightCandidateValidators[i].Address,
+					PubKey:  app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
+					Power:   blsPower.Int64(),
+				})
+			blsPubkeySlice = append(blsPubkeySlice, app.strategy.AccountMapList.MapList[tmAddress].BlsKeyString)
+		}
 	}
 
 	app.strategy.ValidatorSet.CurrentValidatorWeight = nil

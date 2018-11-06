@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
 	"math/rand"
 	"sort"
@@ -47,11 +48,12 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	balanceCopy := big.NewInt(1)
 
 	posOriginPtr, exist := posTable.PosItemMap[signer]
+	pubKey,_:= tmTypes.PB2TM.PubKey(pubkey)
 
 	valListItem := &ValListItem{
-		Signer:     signer,
-		Balance:    balance,
-		AbciPubkey: pubkey,
+		Signer:    signer,
+		Balance:   balance,
+		TmAddress: pubKey.Address().String(),
 	}
 
 	if exist {
