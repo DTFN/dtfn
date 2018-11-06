@@ -1,6 +1,8 @@
 package types
 
-import "container/list"
+import (
+	"container/list"
+)
 
 type ValSortlist struct {
 	ValList *list.List
@@ -14,10 +16,15 @@ func NewValSortlist() *ValSortlist {
 	}
 }
 
-func (vallist *ValSortlist) UpsertVal() {
-
+func (valSortlist *ValSortlist) UpsertVal(posItem *PosItem, existFlag bool) {
+	if existFlag {
+		valSortlist.ValList.PushFront(posItem)
+	} else {
+		valSortlist.ValList.PushFront(posItem)
+		valSortlist.Len = valSortlist.Len + 1
+	}
 }
 
-func (vallist *ValSortlist) RemoveVal() {
+func (vallist *ValSortlist) RemoveVal(posItem *PosItem) {
 
 }

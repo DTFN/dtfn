@@ -23,6 +23,7 @@ type PosTable struct {
 	PosArraySize         int                         `json:"posArraySize"` // real size of posArray
 	Threshold            *big.Int                    `json:"threshold"`    // threshold value of PosTable
 	ChangedFlagThisBlock bool                        `json:"changedFlagThisBlock"`
+	PosNodeSortList      *ValSortlist                `json:"posNodeSortList"`
 	// whether upsert or remove in this block
 	// but when we need to write into the ethstate ,we set it to false
 }
@@ -34,6 +35,7 @@ func NewPosTable(threshold *big.Int) *PosTable {
 		PosArray:        pa,
 		PosArraySize:    0,
 		Threshold:       threshold,
+		PosNodeSortList: NewValSortlist(),
 	}
 }
 
