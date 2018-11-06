@@ -439,16 +439,17 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	var blsPubkeySlice []string
 
 	app.strategy.ValidatorSet.CurrentValidators = nil
+	tmAddressMap := app.strategy.PosTable.PosNodeSortList.GetTopValTmAddress()
 
 	for i := 0; i < len(app.strategy.ValidatorSet.NextHeightCandidateValidators); i++ {
 
 		pubkey, _ := tmTypes.PB2TM.PubKey(app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey)
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+
 		blsPower := big.NewInt(1)
 		blsPower.Div(app.strategy.AccountMapList.MapList[tmAddress].SignerBalance,
 			app.strategy.PosTable.Threshold)
 
-		tmAddressMap := app.strategy.PosTable.PosNodeSortList.GetTopValTmAddress()
 		if tmAddressMap[tmAddress]{
 			app.strategy.ValidatorSet.CurrentValidators = append(app.
 				strategy.ValidatorSet.CurrentValidators, &abciTypes.Validator{

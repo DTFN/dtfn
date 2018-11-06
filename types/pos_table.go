@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -53,7 +54,7 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	valListItem := &ValListItem{
 		Signer:    signer,
 		Balance:   balance,
-		TmAddress: pubKey.Address().String(),
+		TmAddress: strings.ToLower(pubKey.Address().String()),
 	}
 
 	if exist {
