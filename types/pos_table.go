@@ -47,6 +47,13 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	balanceCopy := big.NewInt(1)
 
 	posOriginPtr, exist := posTable.PosItemMap[signer]
+
+	valListItem := &ValListItem{
+		Signer:     signer,
+		Balance:    balance,
+		AbciPubkey: pubkey,
+	}
+
 	if exist {
 		posTableCopy := big.NewInt(1)
 		originPosWeight, _ := strconv.Atoi(posTableCopy.
@@ -61,6 +68,8 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 				posTable.PosArraySize++
 			}
 			posTable.PosItemMap[signer].Balance = balance
+
+			posTable.PosNodeSortList.UpsertVal(valListItem, true)
 			return true, nil
 		}
 	}
@@ -75,6 +84,7 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 		posItemPtr.Indexes[posTable.PosArraySize] = true
 		posTable.PosArraySize++
 	}
+	posTable.PosNodeSortList.UpsertVal(valListItem, false)
 	return true, nil
 }
 
@@ -108,6 +118,10 @@ func (posTable *PosTable) RemovePosItem(account common.Address) (bool, error) {
 	}
 
 	delete(posTable.PosItemMap, account)
+
+	//remove val from posNodeSortList
+	valListItem := &ValListItem{Signer: account}
+	posTable.PosNodeSortList.RemoveVal(valListItem)
 
 	return true, nil
 }
