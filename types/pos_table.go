@@ -12,6 +12,7 @@ import (
 )
 
 const PosTableMaxSize = 2000
+
 // it means the lowest balance must equal or larger than the 1/1000 of totalBalance
 const ThresholdUnit = 1000
 
@@ -29,10 +30,10 @@ type PosTable struct {
 func NewPosTable(threshold *big.Int) *PosTable {
 	pa := make([]common.Address, PosTableMaxSize)
 	return &PosTable{
-		PosItemMap:   make(map[common.Address]*PosItem),
-		PosArray:     pa,
-		PosArraySize: 0,
-		Threshold:    threshold,
+		PosItemMap:      make(map[common.Address]*PosItem),
+		PosArray:        pa,
+		PosArraySize:    0,
+		Threshold:       threshold,
 	}
 }
 

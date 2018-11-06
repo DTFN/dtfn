@@ -461,8 +461,6 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 				PubKey:  app.strategy.ValidatorSet.NextHeightCandidateValidators[i].PubKey,
 				Power:   blsPower.Int64(),
 			})
-
-
 		blsPubkeySlice = append(blsPubkeySlice, app.strategy.AccountMapList.MapList[tmAddress].BlsKeyString)
 	}
 
