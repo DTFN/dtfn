@@ -131,12 +131,12 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	app.SetValidators(validators)
 	app.strategy.CurrRoundValData.InitialValidators = validators
 
-	ethState ,_ := app.getCurrentState()
+	ethState, _ := app.getCurrentState()
 
 	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
 		address := strings.ToLower(hex.EncodeToString(app.strategy.CurrRoundValData.
 			InitialValidators[j].Address))
-		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil{
+		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
 			continue
 		}
 		upsertFlag, _ := app.UpsertPosItem(
@@ -148,8 +148,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
 				strategy.CurrRoundValData.CurrCandidateValidators, app.
 				strategy.CurrRoundValData.InitialValidators[j])
-			blacklist.Lock(ethState,app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
-			app.GetLogger().Info("UpsertPosTable true and Lock initial Account","blacklist",
+			blacklist.Lock(ethState, app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
+			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
 				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
 		} else {
 			//This is used to remove the validators who dont have enough balance
@@ -208,7 +208,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	db, e := app.getCurrentState()
 	if e == nil {
 		if wrap.Type == "upsert" {
-			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Height,wrap.Balance, wrap.Beneficiary, wrap.Pubkey, wrap.BlsKeyString)
+			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Height, wrap.Balance, wrap.Beneficiary, wrap.Pubkey, wrap.BlsKeyString)
 			if e == nil && b {
 				blacklist.Lock(db, wrap.Signer)
 			} else {

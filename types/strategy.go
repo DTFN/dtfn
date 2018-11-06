@@ -40,7 +40,7 @@ type Strategy struct {
 
 	BlsSelectStrategy bool
 
-	NextRoundData *NextRoundValData
+	NextRoundValData NextRoundValData
 }
 
 type NextRoundValData struct {
@@ -52,8 +52,7 @@ type NextRoundValData struct {
 }
 
 type CurrentRoundValData struct {
-
-	AccountMapList    *AccountMapList
+	AccountMapList *AccountMapList
 
 	//This map was used when some validator was removed and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
@@ -94,18 +93,16 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	thresholdUnit := big.NewInt(ThresholdUnit)
 	threshold := big.NewInt(1)
 	return &Strategy{
-		CurrRoundValData:CurrentRoundValData{
-			PosTable:      NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+		CurrRoundValData: CurrentRoundValData{
+			PosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
 		},
-		TotalBalance:  totalBalance,
-		NextRoundData: NewNextRoundData(),
+		TotalBalance:     totalBalance,
+		NextRoundValData: NextRoundValData{
+			NextRoundPosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+		},
 	}
 }
 
-func NewNextRoundData() *NextRoundValData {
-	return &NextRoundValData{
-	}
-}
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
@@ -144,9 +141,11 @@ func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
 }
 
 // GetUpdatedValidators returns the current validators
-func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList) {
+func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList,
+	nextAccountMapList *AccountMapList) {
 	strategy.CurrRoundValData.AccountMapList = accountMapList
 	strategy.CurrRoundValData.AccountMapListTemp = &AccountMapList{
 		MapList: make(map[string]*AccountMap),
 	}
+	strategy.NextRoundValData.NextAccountMapList = nextAccountMapList
 }

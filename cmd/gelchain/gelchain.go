@@ -96,8 +96,8 @@ func ethermintCmd(ctx *cli.Context) error {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
-			if i == len(ethAccounts.EthAccounts){
-				break;
+			if i == len(ethAccounts.EthAccounts) {
+				break
 			}
 			amlist.MapList[tmAddress[i]] = &types.AccountMap{
 				common.HexToAddress(ethAccounts.EthAccounts[i]),
@@ -109,7 +109,11 @@ func ethermintCmd(ctx *cli.Context) error {
 		}
 	}
 
-	ethApp.GetStrategy().SetAccountMapList(amlist)
+	nextAmlist := &types.AccountMapList{
+		MapList: make(map[string]*types.AccountMap),
+	}
+	types.DeepCopy(nextAmlist, amlist)
+	ethApp.GetStrategy().SetAccountMapList(amlist, nextAmlist)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make gelchain as self contained as possible.

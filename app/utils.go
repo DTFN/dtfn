@@ -103,9 +103,9 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			}
 		}
 
-		stateDb,_ := app.getCurrentState()
+		stateDb, _ := app.getCurrentState()
 		if !signerExisted && !existFlag && !blsExisted &&
-			blacklist.IsLock(stateDb,currentHeight.Int64(),signer){
+			blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
@@ -260,7 +260,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else if int(height)%200 != 0 {
+		} else if int(height)%20 != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)
