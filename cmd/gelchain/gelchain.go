@@ -109,11 +109,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		}
 	}
 
-	nextAmlist := &types.AccountMapList{
-		MapList: make(map[string]*types.AccountMap),
-	}
-	types.DeepCopy(nextAmlist, amlist)
-	ethApp.GetStrategy().SetAccountMapList(amlist, nextAmlist)
+	ethApp.GetStrategy().SetAccountMapList(amlist)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make gelchain as self contained as possible.

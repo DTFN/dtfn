@@ -96,13 +96,15 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 		CurrRoundValData: CurrentRoundValData{
 			PosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
 		},
-		TotalBalance:     totalBalance,
+		TotalBalance: totalBalance,
 		NextRoundValData: NextRoundValData{
 			NextRoundPosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			NextAccountMapList: &AccountMapList{
+				MapList: make(map[string]*AccountMap),
+			},
 		},
 	}
 }
-
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
@@ -141,11 +143,9 @@ func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
 }
 
 // GetUpdatedValidators returns the current validators
-func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList,
-	nextAccountMapList *AccountMapList) {
+func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList) {
 	strategy.CurrRoundValData.AccountMapList = accountMapList
 	strategy.CurrRoundValData.AccountMapListTemp = &AccountMapList{
 		MapList: make(map[string]*AccountMap),
 	}
-	strategy.NextRoundValData.NextAccountMapList = nextAccountMapList
 }

@@ -148,6 +148,11 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
 				strategy.CurrRoundValData.CurrCandidateValidators, app.
 				strategy.CurrRoundValData.InitialValidators[j])
+
+			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
+				strategy.NextRoundValData.NextRoundCandidateValidators, app.
+				strategy.CurrRoundValData.InitialValidators[j])
+
 			blacklist.Lock(ethState, app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
 			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
 				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
@@ -162,6 +167,19 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.GetLogger().Info("remove not enough balance validators")
 		}
 	}
+
+	//deepcopy by json.Marshal and json.Unmarshal
+	accByte, _ := json.Marshal(app.strategy.CurrRoundValData.AccountMapList)
+	json.Unmarshal(accByte,app.strategy.NextRoundValData.NextAccountMapList)
+	posByte, _ := json.Marshal(app.strategy.CurrRoundValData.PosTable)
+	json.Unmarshal(posByte,app.strategy.NextRoundValData.NextRoundPosTable)
+
+	nextAccByte,_ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
+	fmt.Println(string(nextAccByte))
+	nextValByte,_ := json.Marshal(app.strategy.NextRoundValData.NextRoundCandidateValidators)
+	fmt.Println(string(nextValByte))
+	nextPosByte,_ := json.Marshal(app.strategy.NextRoundValData.NextRoundPosTable)
+	fmt.Println(string(nextPosByte))
 
 	return abciTypes.ResponseInitChain{}
 }
