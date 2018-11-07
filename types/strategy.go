@@ -29,17 +29,19 @@ type Strategy struct {
 	//if height = 1 ,currentValidator come from genesis.json
 	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
 	//only need once,dont need persistence
+	//needn't to be persisted
 	currentValidators []*abciTypes.Validator
 
+	//need to be persisted
 	FirstInitial bool
 
+	//needn't to be persisted
 	BlsSelectStrategy bool
-	
-	
-	
+
 	// reused,need persistence
 	CurrRoundValData CurrentRoundValData
-	
+
+	//reused,need persistence
 	NextRoundValData NextRoundValData
 }
 
@@ -47,15 +49,15 @@ type NextRoundValData struct {
 	//we should deepcopy evert 200 height
 	//first deepcopy:copy at height 1 from CurrentRoundValData to NextRoundValData
 	//height/200 ==0:c from NextRoundValData to CurrentRoundValData
-	NextRoundPosTable *PosTable
+	NextRoundPosTable *PosTable  `json:"nextRoundPosTable"`
 
-	NextRoundCandidateValidators []*abciTypes.Validator
+	NextRoundCandidateValidators []*abciTypes.Validator    `json:"nextRoundCandidateValidators"`
 
-	NextAccountMapList *AccountMapList
+	NextAccountMapList *AccountMapList   `json:"nextAccountMapList"`
 }
 
 type CurrentRoundValData struct {
-	AccountMapList *AccountMapList
+	AccountMapList *AccountMapList `json:"accountMapList"`
 
 	//This map was used when some validator was removed and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
@@ -67,10 +69,10 @@ type CurrentRoundValData struct {
 	AccMapInitial *AccountMapList
 
 	// will be changed by addValidatorTx and removeValidatorTx.
-	PosTable *PosTable
+	PosTable *PosTable `json:"posTable"`
 
 	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
-	CurrCandidateValidators []*abciTypes.Validator
+	CurrCandidateValidators []*abciTypes.Validator `json:"currCandidateValidators"`
 
 	// Initial validators , only use for once
 	InitialValidators []*abciTypes.Validator
@@ -79,15 +81,15 @@ type CurrentRoundValData struct {
 	// will be select by postable.
 	// CurrentValidators is the true validators except commmittee validator when height != 1
 	// if height =1 ,CurrentValidator = nil
-	CurrentValidators []*abciTypes.Validator
+	CurrentValidators []*abciTypes.Validator `json:"currentValidators"`
 
 	// current validator weight represent the weight of random select.
 	// will used to accumulateReward for next height
-	CurrentValidatorWeight []int64
+	CurrentValidatorWeight []int64 `json:"currentValidatorWeight"`
 
-	TotalBalance *big.Int
+	TotalBalance *big.Int `json:"totalBalance"`
 
-	ProposerAddress string
+	ProposerAddress string `json:"proposerAddress"`
 
 	// note : if we get a addValidatorsTx at height 101,
 	// we will put it into the NextCandidateValidators and move into postable
@@ -106,7 +108,7 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	threshold := big.NewInt(1)
 	return &Strategy{
 		CurrRoundValData: CurrentRoundValData{
-			PosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			PosTable:     NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
 			TotalBalance: totalBalance,
 		},
 
