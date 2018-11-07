@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
 	"github.com/green-element-chain/gelchain/app/mock_log"
@@ -12,10 +11,8 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	tmLog "github.com/tendermint/tendermint/libs/log"
-	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
 	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -30,7 +27,7 @@ func TestGetStrategy(t *testing.T){
 	strategy := emtTypes.NewStrategy(big.NewInt(20000))
 	ethapp, err := NewMockEthApplication(strategy,mock_logger)
 	require.NoError(t, err)
-	require.Equal(t,big.NewInt(20000),ethapp.strategy.TotalBalance)
+	require.Equal(t,big.NewInt(20000),ethapp.strategy.CurrRoundValData.TotalBalance)
 }
 
 
@@ -53,38 +50,6 @@ func TestSetThreShold(t *testing.T){
 	ethapp, _ := NewMockEthApplication(strategy,mock_logger)
 	ethapp.SetThreShold(big.NewInt(1000))
 	require.Equal(t,big.NewInt(1000),ethapp.strategy.CurrRoundValData.PosTable.Threshold)
-}
-
-func TestUpsertPosItem(t *testing.T){
-	ctl := gomock.NewController(t)
-	mock_logger := mock_log.NewMockLogger(ctl)
-	initPubKey()
-	strategy := emtTypes.NewStrategy(big.NewInt(20000))
-	ethapp, _ := NewMockEthApplication(strategy,mock_logger)
-	PubKey := abciTypes.PubKey{
-		Type:	 "ed25519",
-		Data: []byte("lSk6hpSsP+Vpi/yfNFbfqK4x99jx1zTk"),
-	}
-
-	pubKey,_:= tmTypes.PB2TM.PubKey(PubKey)
-	pubkstr:=strings.ToLower(pubKey.Address().String())
-	fmt.Print(pubkstr)
-
-	upsertFlag, _:=ethapp.UpsertPosItem(common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"),
-		big.NewInt(10000), common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"),PubKey)
-	require.Equal(t,true,upsertFlag)
-	require.NoError(t,nil)
-}
-
-func TestRemovePosItem(t *testing.T){
-	ctl := gomock.NewController(t)
-	mock_logger := mock_log.NewMockLogger(ctl)
-	initPubKey()
-	strategy := emtTypes.NewStrategy(big.NewInt(20000))
-	ethapp, _ := NewMockEthApplication(strategy,mock_logger)
-	removeflag, _:=ethapp.RemovePosItem(common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"))
-	require.Error(t,fmt.Errorf("address not existed in the postable"))
-	require.Equal(t,false, removeflag)
 }
 
 func TestUpsertValidator(t *testing.T) {
