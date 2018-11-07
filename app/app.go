@@ -134,48 +134,50 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 
 	ethState, _ := app.getCurrentState()
 
-	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
-		address := strings.ToLower(hex.EncodeToString(app.strategy.CurrRoundValData.
-			InitialValidators[j].Address))
-		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
-			continue
-		}
-		upsertFlag, _ := app.UpsertPosItemInit(
-			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer,
-			app.strategy.CurrRoundValData.AccountMapList.MapList[address].SignerBalance,
-			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary,
-			app.strategy.CurrRoundValData.InitialValidators[j].PubKey)
-		if upsertFlag {
-			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
-				strategy.CurrRoundValData.CurrCandidateValidators, app.
-				strategy.CurrRoundValData.InitialValidators[j])
+	if !app.InitPersistData() {
+		for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
+			address := strings.ToLower(hex.EncodeToString(app.strategy.CurrRoundValData.
+				InitialValidators[j].Address))
+			if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
+				continue
+			}
+			upsertFlag, _ := app.UpsertPosItemInit(
+				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer,
+				app.strategy.CurrRoundValData.AccountMapList.MapList[address].SignerBalance,
+				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary,
+				app.strategy.CurrRoundValData.InitialValidators[j].PubKey)
+			if upsertFlag {
+				app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
+					strategy.CurrRoundValData.CurrCandidateValidators, app.
+					strategy.CurrRoundValData.InitialValidators[j])
 
-			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
-				strategy.NextRoundValData.NextRoundCandidateValidators, app.
-				strategy.CurrRoundValData.InitialValidators[j])
+				app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
+					strategy.NextRoundValData.NextRoundCandidateValidators, app.
+					strategy.CurrRoundValData.InitialValidators[j])
 
-			blacklist.Lock(ethState, app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
-			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
-				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
-		} else {
-			//This is used to remove the validators who dont have enough balance
-			//but he is in the accountmap.
-			app.strategy.FirstInitial = true
-			tmAddress := hex.EncodeToString(app.strategy.CurrRoundValData.
-				InitialValidators[j].Address)
-			app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
-			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
-			app.GetLogger().Info("remove not enough balance validators")
+				blacklist.Lock(ethState, app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
+				app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
+					app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
+			} else {
+				//This is used to remove the validators who dont have enough balance
+				//but he is in the accountmap.
+				app.strategy.FirstInitial = true
+				tmAddress := hex.EncodeToString(app.strategy.CurrRoundValData.
+					InitialValidators[j].Address)
+				app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
+				delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
+				app.GetLogger().Info("remove not enough balance validators")
+			}
 		}
+		//deepcopy by json.Marshal and json.Unmarshal
+		app.logger.Info("deep copy when initChain")
+		accByte, _ := json.Marshal(app.strategy.CurrRoundValData.AccountMapList)
+		json.Unmarshal(accByte, app.strategy.NextRoundValData.NextAccountMapList)
+		posByte, _ := json.Marshal(app.strategy.CurrRoundValData.PosTable)
+		json.Unmarshal(posByte, app.strategy.NextRoundValData.NextRoundPosTable)
+	} else {
+		app.PersistenceData()
 	}
-
-	//deepcopy by json.Marshal and json.Unmarshal
-	app.logger.Info("deep copy when initChain")
-	accByte, _ := json.Marshal(app.strategy.CurrRoundValData.AccountMapList)
-	json.Unmarshal(accByte, app.strategy.NextRoundValData.NextAccountMapList)
-	posByte, _ := json.Marshal(app.strategy.CurrRoundValData.PosTable)
-	json.Unmarshal(posByte, app.strategy.NextRoundValData.NextRoundPosTable)
-
 
 	return abciTypes.ResponseInitChain{}
 }
@@ -259,8 +261,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 
-	app.InitialPos()
-	if (header.Height-1)%200 == 0 && header.Height != 1{
+	if (header.Height-1)%200 == 0 && header.Height != 1 {
 		app.logger.Info("DeepCopy")
 		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
 		json.Unmarshal(accByte, app.strategy.CurrRoundValData.AccountMapList)
@@ -298,7 +299,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
 	app.backend.AccumulateRewards(app.strategy)
-	app.PersistencePos()
+	app.PersistenceData()
 
 	app.logger.Debug("Commit") // nolint: errcheck
 	state, err := app.getCurrentState()
