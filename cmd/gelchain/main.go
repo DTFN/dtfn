@@ -26,6 +26,7 @@ var (
 		ethUtils.CacheFlag,
 		ethUtils.TrieCacheGenFlag,
 		ethUtils.GCModeFlag,
+		utils.TrieTimeLimitFlag,
 		// Account settings
 		ethUtils.UnlockedAccountFlag,
 		ethUtils.PasswordFileFlag,
