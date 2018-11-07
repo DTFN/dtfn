@@ -158,7 +158,7 @@ func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http
 
 // This function will return the used data structure
 func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.Request) {
-	proposer := tHandler.strategy.ProposerAddress
+	proposer := tHandler.strategy.CurrRoundValData.ProposerAddress
 	PreBlockProposer := &PreBlockProposer{
 		PreBlockProposer: proposer,
 		Beneficiary:      tHandler.strategy.CurrRoundValData.AccountMapList.MapList[proposer].Beneficiary,
@@ -199,10 +199,10 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request) {
 	minerBonus := big.NewInt(1)
 	divisor := big.NewInt(1)
-	minerBonus.Div(tHandler.strategy.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	minerBonus.Div(tHandler.strategy.CurrRoundValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
 	encourage := &Encourage{
-		TotalBalance:          tHandler.strategy.TotalBalance,
+		TotalBalance:          tHandler.strategy.CurrRoundValData.TotalBalance,
 		EncourageAverageBlock: minerBonus,
 	}
 

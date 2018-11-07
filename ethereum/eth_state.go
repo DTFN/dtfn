@@ -224,7 +224,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	minerBonus := big.NewInt(1)
 	divisor := big.NewInt(1)
 	// for 1% every year increment
-	minerBonus.Div(strategy.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	minerBonus.Div(strategy.CurrRoundValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
 	if strategy.FirstInitial {
 		strategy.FirstInitial = false
