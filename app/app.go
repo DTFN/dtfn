@@ -40,6 +40,8 @@ type EthermintApplication struct {
 
 	httpServer *httpserver.BaseServer
 
+	punishment *Punishment
+
 	logger tmLog.Logger
 }
 
@@ -53,6 +55,8 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		return nil, err
 	}
 
+	amountStrategy := &PercentAmountStrategy{percent: 100}
+	subBalanceStrategy := &BurnStrategy{}
 	app := &EthermintApplication{
 		backend:         backend,
 		rpcClient:       client,
@@ -60,6 +64,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
 		httpServer:      httpserver.NewBaseServer(strategy),
+		punishment:      NewPunishment(amountStrategy, subBalanceStrategy, state),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -279,7 +284,13 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	} else {
 	}
 
+	app.punishment.DoPunish(app, beginBlock.ByzantineValidators)
+
 	return abciTypes.ResponseBeginBlock{}
+}
+
+func (app *EthermintApplication) GetAccountMap(tmAddress string) *emtTypes.AccountMap {
+	return app.strategy.AccountMapList.MapList[tmAddress]
 }
 
 // EndBlock accumulates rewards for the validators and updates them
