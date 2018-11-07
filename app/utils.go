@@ -75,10 +75,10 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		existFlag := false
-		for i := 0; i < len(app.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
+		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
 			if bytes.Equal(pubkey.Address(), app.strategy.
-				CurrRoundValData.CurrCandidateValidators[i].Address) {
-				origSigner := app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].Signer
+				NextRoundValData.NextRoundCandidateValidators[i].Address) {
+				origSigner := app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer
 				if origSigner.String() != signer.String() {
 					app.GetLogger().Info("validator was voted by another signer")
 					return false, errors.New("validator was voted by another signer")
@@ -89,14 +89,14 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		//做这件事之前必须确认这个signer，不是MapList中已经存在的。
 		//1.signer相同，可能来作恶;  2.signer相同，可能不作恶，因为有相同maplist;  3.signer不相同
 		signerExisted := false
-		for _, v := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+		for _, v := range app.strategy.NextRoundValData.NextAccountMapList.MapList {
 			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
 				signerExisted = true
 				break
 			}
 		}
 		blsExisted := false
-		for _, v := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+		for _, v := range app.strategy.NextRoundValData.NextAccountMapList.MapList {
 			if v.BlsKeyString == blsKeyString {
 				blsExisted = true
 				break
@@ -109,42 +109,42 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
-			upsertFlag, err := app.strategy.CurrRoundValData.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			upsertFlag, err := app.strategy.NextRoundValData.NextRoundPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
 				app.GetLogger().Info(err.Error())
 				return false, err
 			}
-			app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress] = &ethmintTypes.AccountMap{
+			app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress] = &ethmintTypes.AccountMap{
 				Beneficiary:   beneficiary,
 				Signer:        signer,
 				SignerBalance: balance,
 				BlsKeyString:  blsKeyString,
 			}
-			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
-				strategy.CurrRoundValData.CurrCandidateValidators,
+			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
+				strategy.NextRoundValData.NextRoundCandidateValidators,
 				&abciTypes.Validator{
 					PubKey:  abciPubKey,
 					Power:   1,
 					Address: pubkey.Address(),
 				})
 			app.GetLogger().Info("add Validator Tx success")
-			app.strategy.CurrRoundValData.PosTable.ChangedFlagThisBlock = true
+			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
 			return true, nil
 		} else if existFlag && signerExisted && blsExisted {
-			if app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].BlsKeyString != blsKeyString || !bytes.
-				Equal(app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].Signer.Bytes(), signer.Bytes()) {
+			if app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].BlsKeyString != blsKeyString || !bytes.
+				Equal(app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer.Bytes(), signer.Bytes()) {
 				return false, errors.New("bls or validator pubkey was signed by other people")
 			}
 			//同singer，同MapList[tmAddress]，是来改动balance的
-			upsertFlag, err := app.strategy.CurrRoundValData.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			upsertFlag, err := app.strategy.NextRoundValData.NextRoundPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
 				app.GetLogger().Info(err.Error())
 				return false, err
 			}
-			app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].Beneficiary = beneficiary
-			app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].SignerBalance = balance
+			app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Beneficiary = beneficiary
+			app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].SignerBalance = balance
 			app.GetLogger().Info("upsert Validator Tx success")
-			app.strategy.CurrRoundValData.PosTable.ChangedFlagThisBlock = true
+			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
 			return true, nil
 		} else {
 			//同singer，不同MapList[tmAddress]，来捣乱的
@@ -161,14 +161,14 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 	if app.strategy != nil {
 		//找到tmAddress，另这个的signer与输入相等
 		var tmAddress string
-		for k, v := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+		for k, v := range app.strategy.NextRoundValData.NextAccountMapList.MapList {
 			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
 				tmAddress = k
 				break
 			}
 		}
 
-		if len(app.strategy.CurrRoundValData.CurrentValidators) <= 4 {
+		if len(app.strategy.NextRoundValData.NextRoundCandidateValidators) <= 4 {
 			app.GetLogger().Info("can not remove validator for error-tolerant")
 			return false, errors.New("can not remove validator for error-tolerant")
 		}
@@ -184,44 +184,45 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		if err != nil {
 			return false, err
 		}
-		for i := 0; i < len(app.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
+		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
 			if bytes.Equal(tmBytes, app.strategy.
-				CurrRoundValData.CurrCandidateValidators[i].Address) {
+				NextRoundValData.NextRoundCandidateValidators[i].Address) {
 				existFlag = true
 				markIndex = i
 				break
 			}
 		}
 		if existFlag {
-			removeFlag, err := app.strategy.CurrRoundValData.PosTable.RemovePosItem(signer)
+			removeFlag, err := app.strategy.NextRoundValData.NextRoundPosTable.RemovePosItem(signer)
 			if err != nil || !removeFlag {
 				app.GetLogger().Info("posTable remove failed")
 				return false, errors.New("posTable remove failed")
 			}
-			app.strategy.CurrRoundValData.AccountMapListTemp.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
-			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
+			//app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
+			delete(app.strategy.NextRoundValData.NextAccountMapList.MapList, tmAddress)
 
 			var validatorPre, validatorNext []*abciTypes.Validator
 
-			if len(app.strategy.CurrRoundValData.CurrCandidateValidators) == 1 {
-				app.strategy.CurrRoundValData.CurrCandidateValidators = nil
+			if len(app.strategy.NextRoundValData.NextRoundCandidateValidators) == 1 {
+				app.strategy.NextRoundValData.NextRoundCandidateValidators = nil
 			} else if markIndex == 0 {
-				app.strategy.CurrRoundValData.CurrCandidateValidators = app.strategy.CurrRoundValData.CurrCandidateValidators[1:]
-			} else if markIndex == len(app.strategy.CurrRoundValData.CurrCandidateValidators)-1 {
-				app.strategy.CurrRoundValData.CurrCandidateValidators = app.strategy.CurrRoundValData.
-					CurrCandidateValidators[0 : len(app.strategy.CurrRoundValData.CurrCandidateValidators)-1]
+				app.strategy.NextRoundValData.NextRoundCandidateValidators = app.strategy.
+					NextRoundValData.NextRoundCandidateValidators[1:]
+			} else if markIndex == len(app.strategy.NextRoundValData.NextRoundCandidateValidators)-1 {
+				app.strategy.NextRoundValData.NextRoundCandidateValidators = app.strategy.NextRoundValData.
+					NextRoundCandidateValidators[0 : len(app.strategy.NextRoundValData.NextRoundCandidateValidators)-1]
 			} else {
-				validatorPre = app.strategy.CurrRoundValData.CurrCandidateValidators[0:markIndex]
-				validatorNext = app.strategy.CurrRoundValData.CurrCandidateValidators[markIndex+1:]
-				app.strategy.CurrRoundValData.CurrCandidateValidators = validatorPre
+				validatorPre = app.strategy.NextRoundValData.NextRoundCandidateValidators[0:markIndex]
+				validatorNext = app.strategy.NextRoundValData.NextRoundCandidateValidators[markIndex+1:]
+				app.strategy.NextRoundValData.NextRoundCandidateValidators = validatorPre
 				for i := 0; i < len(validatorNext); i++ {
-					app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
-						strategy.CurrRoundValData.CurrCandidateValidators, validatorNext[i])
+					app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
+						strategy.NextRoundValData.NextRoundCandidateValidators, validatorNext[i])
 				}
 			}
 			//if validator is exist in the currentValidators,it must be removed
 			app.GetLogger().Info("remove validatorTx success")
-			app.strategy.CurrRoundValData.PosTable.ChangedFlagThisBlock = true
+			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
 			return true, nil
 		} else {
 			app.GetLogger().Info("signer address not existed")
@@ -229,23 +230,6 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		// If is a valid removeValidator,change the data in the strategy
 	}
 	return false, errors.New("app strategy nil")
-}
-
-func (app *EthermintApplication) UpsertPosItem(account common.Address, balance *big.Int, beneficiary common.Address,
-	pubkey abciTypes.PubKey) (bool, error) {
-	if app.strategy != nil {
-		bool, err := app.strategy.CurrRoundValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
-		return bool, err
-	}
-	return false, nil
-}
-
-func (app *EthermintApplication) RemovePosItem(account common.Address) (bool, error) {
-	if app.strategy != nil {
-		bool, err := app.strategy.CurrRoundValData.PosTable.RemovePosItem(account)
-		return bool, err
-	}
-	return false, nil
 }
 
 func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
@@ -260,7 +244,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else if int(height)%20 != 0 {
+		} else if int(height)%200 != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)

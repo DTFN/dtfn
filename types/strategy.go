@@ -44,6 +44,9 @@ type Strategy struct {
 }
 
 type NextRoundValData struct {
+	//we should deepcopy evert 200 height
+	//first deepcopy:copy at height 1 from CurrentRoundValData to NextRoundValData
+	//height/200 ==0:c from NextRoundValData to CurrentRoundValData
 	NextRoundPosTable *PosTable
 
 	NextRoundCandidateValidators []*abciTypes.Validator
@@ -56,7 +59,12 @@ type CurrentRoundValData struct {
 
 	//This map was used when some validator was removed and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
-	AccountMapListTemp *AccountMapList
+	//AccountMapListTemp *AccountMapList
+
+	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
+	// and didnt existed in the accountMapList
+	// we should remember it for balance bonus and then clear it
+	AccMapInitial *AccountMapList
 
 	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable *PosTable
@@ -113,7 +121,7 @@ func (s *Strategy) Receiver() common.Address {
 	} else if s.CurrRoundValData.AccountMapList.MapList[s.ProposerAddress] != nil {
 		return s.CurrRoundValData.AccountMapList.MapList[s.ProposerAddress].Beneficiary
 	} else {
-		return s.CurrRoundValData.AccountMapListTemp.MapList[s.ProposerAddress].Beneficiary
+		return s.CurrRoundValData.AccMapInitial.MapList[s.ProposerAddress].Beneficiary
 	}
 }
 
@@ -145,7 +153,7 @@ func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
 // GetUpdatedValidators returns the current validators
 func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList) {
 	strategy.CurrRoundValData.AccountMapList = accountMapList
-	strategy.CurrRoundValData.AccountMapListTemp = &AccountMapList{
+	strategy.CurrRoundValData.AccMapInitial = &AccountMapList{
 		MapList: make(map[string]*AccountMap),
 	}
 }

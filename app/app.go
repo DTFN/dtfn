@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	errors "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -139,7 +140,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
 			continue
 		}
-		upsertFlag, _ := app.UpsertPosItem(
+		upsertFlag, _ := app.UpsertPosItemInit(
 			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer,
 			app.strategy.CurrRoundValData.AccountMapList.MapList[address].SignerBalance,
 			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary,
@@ -162,24 +163,19 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.FirstInitial = true
 			tmAddress := hex.EncodeToString(app.strategy.CurrRoundValData.
 				InitialValidators[j].Address)
-			app.strategy.CurrRoundValData.AccountMapListTemp.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
+			app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
 			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
 			app.GetLogger().Info("remove not enough balance validators")
 		}
 	}
 
 	//deepcopy by json.Marshal and json.Unmarshal
+	app.logger.Info("deep copy when initChain")
 	accByte, _ := json.Marshal(app.strategy.CurrRoundValData.AccountMapList)
-	json.Unmarshal(accByte,app.strategy.NextRoundValData.NextAccountMapList)
+	json.Unmarshal(accByte, app.strategy.NextRoundValData.NextAccountMapList)
 	posByte, _ := json.Marshal(app.strategy.CurrRoundValData.PosTable)
-	json.Unmarshal(posByte,app.strategy.NextRoundValData.NextRoundPosTable)
+	json.Unmarshal(posByte, app.strategy.NextRoundValData.NextRoundPosTable)
 
-	nextAccByte,_ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
-	fmt.Println(string(nextAccByte))
-	nextValByte,_ := json.Marshal(app.strategy.NextRoundValData.NextRoundCandidateValidators)
-	fmt.Println(string(nextValByte))
-	nextPosByte,_ := json.Marshal(app.strategy.NextRoundValData.NextRoundPosTable)
-	fmt.Println(string(nextPosByte))
 
 	return abciTypes.ResponseInitChain{}
 }
@@ -264,11 +260,20 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.strategy.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 
 	app.InitialPos()
+	if (header.Height-1)%200 == 0 && header.Height != 1{
+		app.logger.Info("DeepCopy")
+		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
+		json.Unmarshal(accByte, app.strategy.CurrRoundValData.AccountMapList)
+		valByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundCandidateValidators)
+		json.Unmarshal(valByte, app.strategy.CurrRoundValData.CurrCandidateValidators)
+		posByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundPosTable)
+		json.Unmarshal(posByte, app.strategy.CurrRoundValData.PosTable)
+	}
 
 	if !app.strategy.FirstInitial {
 		// before next bonus ,clear accountMapListTemp
-		for key, _ := range app.strategy.CurrRoundValData.AccountMapListTemp.MapList {
-			delete(app.strategy.CurrRoundValData.AccountMapListTemp.MapList, key)
+		for key, _ := range app.strategy.CurrRoundValData.AccMapInitial.MapList {
+			delete(app.strategy.CurrRoundValData.AccMapInitial.MapList, key)
 		}
 	} else {
 	}
@@ -436,4 +441,21 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 
 func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 	return app.strategy
+}
+
+func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balance *big.Int, beneficiary common.Address,
+	pubkey abciTypes.PubKey) (bool, error) {
+	if app.strategy != nil {
+		bool, err := app.strategy.CurrRoundValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
+		return bool, err
+	}
+	return false, nil
+}
+
+func (app *EthermintApplication) RemovePosItemInit(account common.Address) (bool, error) {
+	if app.strategy != nil {
+		bool, err := app.strategy.CurrRoundValData.PosTable.RemovePosItem(account)
+		return bool, err
+	}
+	return false, nil
 }

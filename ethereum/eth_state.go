@@ -233,8 +233,8 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			bonusAverage.Div(minerBonus, big.NewInt(int64(len(strategy.CurrRoundValData.InitialValidators))))
 
 			address := strings.ToLower(hex.EncodeToString(strategy.CurrRoundValData.InitialValidators[i].Address))
-			if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
-				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
+			if strategy.CurrRoundValData.AccMapInitial.MapList[address] != nil {
+				ws.state.AddBalance(strategy.CurrRoundValData.AccMapInitial.MapList[address].Beneficiary, bonusAverage)
 			} else {
 				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 			}
@@ -245,11 +245,13 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			bonusAverage.Div(minerBonus, big.NewInt(int64(len(validators))))
 
 			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
-			if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
-				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
-			} else {
-				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
-			}
+			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+
+			//if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
+			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
+			//} else {
+			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			//}
 		}
 	} else {
 		weightSum := 0
@@ -263,11 +265,13 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 				Div(minerBonus, big.NewInt(int64(weightSum))))
 
 			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
-			if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
-				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusSpecify)
-			} else {
-				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
-			}
+			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+
+			//if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
+			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusSpecify)
+			//} else {
+			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
+			//}
 		}
 	}
 	ws.header.GasUsed = *ws.totalUsedGas
