@@ -28,31 +28,49 @@ type Strategy struct {
 
 	//if height = 1 ,currentValidator come from genesis.json
 	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
+	//only need once,dont need persistence
 	currentValidators []*abciTypes.Validator
-	AccountMapList    *AccountMapList
-
-	//This map was used when some validator was removed and didnt existed in the accountMapList
-	// we should remember it for balance bonus and then clear it
-	AccountMapListTemp *AccountMapList
 
 	FirstInitial bool
 
-	ProposerAddress string
+	BlsSelectStrategy bool
+	
+	
+	
+	// reused,need persistence
+	CurrRoundValData CurrentRoundValData
+	
+	NextRoundValData NextRoundValData
+}
 
-	ValidatorSet Validators
+type NextRoundValData struct {
+	//we should deepcopy evert 200 height
+	//first deepcopy:copy at height 1 from CurrentRoundValData to NextRoundValData
+	//height/200 ==0:c from NextRoundValData to CurrentRoundValData
+	NextRoundPosTable *PosTable
+
+	NextRoundCandidateValidators []*abciTypes.Validator
+
+	NextAccountMapList *AccountMapList
+}
+
+type CurrentRoundValData struct {
+	AccountMapList *AccountMapList
+
+	//This map was used when some validator was removed and didnt existed in the accountMapList
+	// we should remember it for balance bonus and then clear it
+	//AccountMapListTemp *AccountMapList
+
+	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
+	// and didnt existed in the accountMapList
+	// we should remember it for balance bonus and then clear it
+	AccMapInitial *AccountMapList
 
 	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable *PosTable
 
-	TotalBalance *big.Int
-
-	BlsSelectStrategy bool
-}
-
-type Validators struct {
-
 	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
-	NextHeightCandidateValidators []*abciTypes.Validator
+	CurrCandidateValidators []*abciTypes.Validator
 
 	// Initial validators , only use for once
 	InitialValidators []*abciTypes.Validator
@@ -67,6 +85,10 @@ type Validators struct {
 	// will used to accumulateReward for next height
 	CurrentValidatorWeight []int64
 
+	TotalBalance *big.Int
+
+	ProposerAddress string
+
 	// note : if we get a addValidatorsTx at height 101,
 	// we will put it into the NextCandidateValidators and move into postable
 	// NextCandidateValidator will used in the next height200
@@ -79,21 +101,32 @@ type Validators struct {
 }
 
 func NewStrategy(totalBalance *big.Int) *Strategy {
-	threshold := big.NewInt(1000)
+	//If ThresholdUnit = 1000 ,it mean we set the lowest posTable threshold to 1/1000 of totalBalance.
+	thresholdUnit := big.NewInt(ThresholdUnit)
+	threshold := big.NewInt(1)
 	return &Strategy{
-		PosTable:     NewPosTable(threshold.Div(totalBalance, threshold)),
-		TotalBalance: totalBalance,
+		CurrRoundValData: CurrentRoundValData{
+			PosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			TotalBalance: totalBalance,
+		},
+
+		NextRoundValData: NextRoundValData{
+			NextRoundPosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			NextAccountMapList: &AccountMapList{
+				MapList: make(map[string]*AccountMap),
+			},
+		},
 	}
 }
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
-	if s.ProposerAddress == "" || len(s.AccountMapList.MapList) == 0 {
+	if s.CurrRoundValData.ProposerAddress == "" || len(s.CurrRoundValData.AccountMapList.MapList) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	} else if s.AccountMapList.MapList[s.ProposerAddress] != nil {
-		return s.AccountMapList.MapList[s.ProposerAddress].Beneficiary
+	} else if s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress] != nil {
+		return s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
 	} else {
-		return s.AccountMapListTemp.MapList[s.ProposerAddress].Beneficiary
+		return s.CurrRoundValData.AccMapInitial.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
 	}
 }
 
@@ -124,8 +157,8 @@ func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
 
 // GetUpdatedValidators returns the current validators
 func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList) {
-	strategy.AccountMapList = accountMapList
-	strategy.AccountMapListTemp = &AccountMapList{
+	strategy.CurrRoundValData.AccountMapList = accountMapList
+	strategy.CurrRoundValData.AccMapInitial = &AccountMapList{
 		MapList: make(map[string]*AccountMap),
 	}
 }

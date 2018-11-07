@@ -98,8 +98,8 @@ func ethermintCmd(ctx *cli.Context) error {
 			blsKeyJsonStr,_ := json.Marshal(blsKey)
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
-			if i == len(ethAccounts.EthAccounts){
-				break;
+			if i == len(ethAccounts.EthAccounts) {
+				break
 			}
 			amlist.MapList[tmAddress[i]] = &types.AccountMap{
 				common.HexToAddress(ethAccounts.EthAccounts[i]),

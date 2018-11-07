@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	errors "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -129,32 +130,52 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		validators = append(validators, &req.GetValidators()[i])
 	}
 	app.SetValidators(validators)
-	app.strategy.ValidatorSet.InitialValidators = validators
+	app.strategy.CurrRoundValData.InitialValidators = validators
 
-	for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
-		address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
+	ethState, _ := app.getCurrentState()
+
+	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
+		address := strings.ToLower(hex.EncodeToString(app.strategy.CurrRoundValData.
 			InitialValidators[j].Address))
-		if app.strategy.AccountMapList.MapList[address] == nil{
+		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
 			continue
 		}
-		upsertFlag, _ := app.UpsertPosItem(
-			app.strategy.AccountMapList.MapList[address].Signer,
-			app.strategy.AccountMapList.MapList[address].SignerBalance,
-			app.strategy.AccountMapList.MapList[address].Beneficiary,
-			app.strategy.ValidatorSet.InitialValidators[j].PubKey)
+		upsertFlag, _ := app.UpsertPosItemInit(
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer,
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].SignerBalance,
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary,
+			app.strategy.CurrRoundValData.InitialValidators[j].PubKey)
 		if upsertFlag {
-			app.strategy.ValidatorSet.NextHeightCandidateValidators = append(app.
-				strategy.ValidatorSet.NextHeightCandidateValidators, app.
-				strategy.ValidatorSet.InitialValidators[j])
+			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
+				strategy.CurrRoundValData.CurrCandidateValidators, app.
+				strategy.CurrRoundValData.InitialValidators[j])
+
+			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
+				strategy.NextRoundValData.NextRoundCandidateValidators, app.
+				strategy.CurrRoundValData.InitialValidators[j])
+
+			blacklist.Lock(ethState, app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
+			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
+				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
 		} else {
+			//This is used to remove the validators who dont have enough balance
+			//but he is in the accountmap.
 			app.strategy.FirstInitial = true
-			tmAddress := hex.EncodeToString(app.strategy.ValidatorSet.
+			tmAddress := hex.EncodeToString(app.strategy.CurrRoundValData.
 				InitialValidators[j].Address)
-			app.strategy.AccountMapListTemp.MapList[tmAddress] = app.strategy.AccountMapList.MapList[tmAddress]
-			delete(app.strategy.AccountMapList.MapList, tmAddress)
+			app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
+			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
 			app.GetLogger().Info("remove not enough balance validators")
 		}
 	}
+
+	//deepcopy by json.Marshal and json.Unmarshal
+	app.logger.Info("deep copy when initChain")
+	accByte, _ := json.Marshal(app.strategy.CurrRoundValData.AccountMapList)
+	json.Unmarshal(accByte, app.strategy.NextRoundValData.NextAccountMapList)
+	posByte, _ := json.Marshal(app.strategy.CurrRoundValData.PosTable)
+	json.Unmarshal(posByte, app.strategy.NextRoundValData.NextRoundPosTable)
+
 
 	return abciTypes.ResponseInitChain{}
 }
@@ -201,7 +222,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	db, e := app.getCurrentState()
 	if e == nil {
 		if wrap.Type == "upsert" {
-			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Balance, wrap.Beneficiary, wrap.Pubkey, wrap.BlsKeyString)
+			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Height, wrap.Balance, wrap.Beneficiary, wrap.Pubkey, wrap.BlsKeyString)
 			if e == nil && b {
 				blacklist.Lock(db, wrap.Signer)
 			} else {
@@ -236,14 +257,23 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!br0ken!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
-	app.strategy.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
+	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 
 	app.InitialPos()
+	if (header.Height-1)%200 == 0 && header.Height != 1{
+		app.logger.Info("DeepCopy")
+		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
+		json.Unmarshal(accByte, app.strategy.CurrRoundValData.AccountMapList)
+		valByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundCandidateValidators)
+		json.Unmarshal(valByte, app.strategy.CurrRoundValData.CurrCandidateValidators)
+		posByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundPosTable)
+		json.Unmarshal(posByte, app.strategy.CurrRoundValData.PosTable)
+	}
 
 	if !app.strategy.FirstInitial {
 		// before next bonus ,clear accountMapListTemp
-		for key, _ := range app.strategy.AccountMapListTemp.MapList {
-			delete(app.strategy.AccountMapListTemp.MapList, key)
+		for key, _ := range app.strategy.CurrRoundValData.AccMapInitial.MapList {
+			delete(app.strategy.CurrRoundValData.AccMapInitial.MapList, key)
 		}
 	} else {
 	}
@@ -411,4 +441,21 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 
 func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 	return app.strategy
+}
+
+func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balance *big.Int, beneficiary common.Address,
+	pubkey abciTypes.PubKey) (bool, error) {
+	if app.strategy != nil {
+		bool, err := app.strategy.CurrRoundValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
+		return bool, err
+	}
+	return false, nil
+}
+
+func (app *EthermintApplication) RemovePosItemInit(account common.Address) (bool, error) {
+	if app.strategy != nil {
+		bool, err := app.strategy.CurrRoundValData.PosTable.RemovePosItem(account)
+		return bool, err
+	}
+	return false, nil
 }

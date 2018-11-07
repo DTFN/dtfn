@@ -4,31 +4,40 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
 	"math/rand"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 )
+
+const PosTableMaxSize = 2000
+
+// it means the lowest balance must equal or larger than the 1/1000 of totalBalance
+const ThresholdUnit = 1000
 
 type PosTable struct {
 	mtx                  sync.RWMutex
 	PosItemMap           map[common.Address]*PosItem `json:"posItemMap"`   //This isnt called by foreign struct except rpc
-	PosArray             []common.Address            `json:"posArray"`     // All posItem
+	PosArray             []common.Address            `json:"posArray"`     // All posItem,it will contained the same item
 	PosArraySize         int                         `json:"posArraySize"` // real size of posArray
 	Threshold            *big.Int                    `json:"threshold"`    // threshold value of PosTable
 	ChangedFlagThisBlock bool                        `json:"changedFlagThisBlock"`
+	PosNodeSortList      *ValSortlist                `json:"posNodeSortList"`
 	// whether upsert or remove in this block
 	// but when we need to write into the ethstate ,we set it to false
 }
 
 func NewPosTable(threshold *big.Int) *PosTable {
-	pa := make([]common.Address, 2000)
+	pa := make([]common.Address, PosTableMaxSize)
 	return &PosTable{
-		PosItemMap:   make(map[common.Address]*PosItem),
-		PosArray:     pa,
-		PosArraySize: 0,
-		Threshold:    threshold,
+		PosItemMap:      make(map[common.Address]*PosItem),
+		PosArray:        pa,
+		PosArraySize:    0,
+		Threshold:       threshold,
+		PosNodeSortList: NewValSortlist(),
 	}
 }
 
@@ -37,11 +46,19 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	posTable.mtx.Lock()
 	defer posTable.mtx.Unlock()
 
-	balanceCopy := big.NewInt(1000)
+	balanceCopy := big.NewInt(1)
 
 	posOriginPtr, exist := posTable.PosItemMap[signer]
+	pubKey,_:= tmTypes.PB2TM.PubKey(pubkey)
+
+	valListItem := &ValListItem{
+		Signer:    signer,
+		Balance:   balance,
+		TmAddress: strings.ToLower(pubKey.Address().String()),
+	}
+
 	if exist {
-		posTableCopy := big.NewInt(1000)
+		posTableCopy := big.NewInt(1)
 		originPosWeight, _ := strconv.Atoi(posTableCopy.
 			Div(posTable.PosItemMap[signer].Balance, posTable.Threshold).String())
 		newPosWeight, _ := strconv.Atoi(balanceCopy.Div(balance, posTable.Threshold).String())
@@ -54,6 +71,8 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 				posTable.PosArraySize++
 			}
 			posTable.PosItemMap[signer].Balance = balance
+
+			posTable.PosNodeSortList.UpsertVal(valListItem, true)
 			return true, nil
 		}
 	}
@@ -68,6 +87,7 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 		posItemPtr.Indexes[posTable.PosArraySize] = true
 		posTable.PosArraySize++
 	}
+	posTable.PosNodeSortList.UpsertVal(valListItem, false)
 	return true, nil
 }
 
@@ -101,6 +121,10 @@ func (posTable *PosTable) RemovePosItem(account common.Address) (bool, error) {
 	}
 
 	delete(posTable.PosItemMap, account)
+
+	//remove val from posNodeSortList
+	valListItem := &ValListItem{Signer: account}
+	posTable.PosNodeSortList.RemoveVal(valListItem)
 
 	return true, nil
 }
