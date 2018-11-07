@@ -28,18 +28,18 @@ type Strategy struct {
 
 	//if height = 1 ,currentValidator come from genesis.json
 	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
+	//only need once,dont need persistence
 	currentValidators []*abciTypes.Validator
 
 	FirstInitial bool
 
-	ProposerAddress string
-
-	CurrRoundValData CurrentRoundValData
-
-	TotalBalance *big.Int
-
 	BlsSelectStrategy bool
-
+	
+	
+	
+	// reused,need persistence
+	CurrRoundValData CurrentRoundValData
+	
 	NextRoundValData NextRoundValData
 }
 
@@ -85,6 +85,10 @@ type CurrentRoundValData struct {
 	// will used to accumulateReward for next height
 	CurrentValidatorWeight []int64
 
+	TotalBalance *big.Int
+
+	ProposerAddress string
+
 	// note : if we get a addValidatorsTx at height 101,
 	// we will put it into the NextCandidateValidators and move into postable
 	// NextCandidateValidator will used in the next height200
@@ -103,8 +107,9 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	return &Strategy{
 		CurrRoundValData: CurrentRoundValData{
 			PosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			TotalBalance: totalBalance,
 		},
-		TotalBalance: totalBalance,
+
 		NextRoundValData: NextRoundValData{
 			NextRoundPosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
 			NextAccountMapList: &AccountMapList{
@@ -116,12 +121,12 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
-	if s.ProposerAddress == "" || len(s.CurrRoundValData.AccountMapList.MapList) == 0 {
+	if s.CurrRoundValData.ProposerAddress == "" || len(s.CurrRoundValData.AccountMapList.MapList) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	} else if s.CurrRoundValData.AccountMapList.MapList[s.ProposerAddress] != nil {
-		return s.CurrRoundValData.AccountMapList.MapList[s.ProposerAddress].Beneficiary
+	} else if s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress] != nil {
+		return s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
 	} else {
-		return s.CurrRoundValData.AccMapInitial.MapList[s.ProposerAddress].Beneficiary
+		return s.CurrRoundValData.AccMapInitial.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
 	}
 }
 
