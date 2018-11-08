@@ -8,8 +8,8 @@ import (
 )
 
 type ValSortlist struct {
-	ValList *list.List
-	Len     int
+	ValList *list.List `json:"valList"`
+	Len     int        `json:"len"`
 }
 
 type ValListItem struct {

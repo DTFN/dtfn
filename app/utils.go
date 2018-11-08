@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"container/list"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -421,11 +422,22 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 }
 
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
-
 	var validatorsSlice []abciTypes.Validator
 	var blsPubkeySlice []string
 
 	app.strategy.CurrRoundValData.CurrentValidators = nil
+
+	for i:=0;i<len(app.strategy.NextRoundValData.NextRoundCandidateValidators);i++{
+		pubkey, _ := tmTypes.PB2TM.PubKey(app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey)
+		tmAddress := strings.ToLower(pubkey.Address().String())
+		valListItem := &ethmintTypes.ValListItem{
+			Signer:    app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer,
+			Balance:   app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].SignerBalance,
+			TmAddress: tmAddress,
+		}
+		app.strategy.CurrRoundValData.PosTable.PosNodeSortList.UpsertVal(valListItem, false)
+	}
+
 	tmAddressMap := app.strategy.CurrRoundValData.PosTable.PosNodeSortList.GetTopValTmAddress()
 
 	for i := 0; i < len(app.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
@@ -456,58 +468,69 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	}
 
 	app.strategy.CurrRoundValData.CurrentValidatorWeight = nil
+	app.strategy.CurrRoundValData.PosTable.PosNodeSortList.ValList = list.New()
+	app.strategy.CurrRoundValData.PosTable.PosNodeSortList.Len = 0
 
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice}
 }
 
 func (app *EthermintApplication) InitPersistData() bool {
-	app.logger.Info("BeginBlock")
+	app.logger.Info("Init Persist Data")
 	// marshal map to jsonBytes,is it sorted?
 	wsState, _ := app.backend.Es().State()
-	app.logger.Info("Read accountMap")
-	currBytes := wsState.GetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"))
 
 	var initFlag bool
-	if len(currBytes) == 0 {
-		// no predata existed
 
-	} else {
-		err := json.Unmarshal(currBytes, app.strategy.CurrRoundValData)
-		if err != nil {
-			panic("initial accountmap error")
-		} else {
-			initFlag = true
-		}
-	}
-
-	app.logger.Info("Read Pos Table")
+	app.logger.Info("Read NextRoundValData")
 	nextBytes := wsState.GetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"))
+
+	app.logger.Info("Read currentRoundValData")
+	currBytes := wsState.GetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"))
+
 	if len(nextBytes) == 0 {
 		// no predata existed
+		app.logger.Info("no pre data")
 	} else {
-		app.logger.Info("PosTable Not nil")
-		err := json.Unmarshal(nextBytes, app.strategy.NextRoundValData)
+		app.logger.Info("NextRoundValData Not nil")
+		err := json.Unmarshal(nextBytes, &app.strategy.NextRoundValData)
 		if err != nil {
-			panic("initial postable error")
+			panic("initial NextRoundValData error")
 		} else {
 			initFlag = true
 		}
 	}
+
+	if len(currBytes) == 0 {
+		// no predata existed
+		app.logger.Info("no pre data")
+	} else {
+		err := json.Unmarshal(currBytes, &app.strategy.CurrRoundValData)
+		if err != nil {
+			panic("initial currentRoundValData error")
+		} else {
+			initFlag = true
+		}
+	}
+
 	return initFlag
 }
 
 func (app *EthermintApplication) PersistenceData() {
-	app.logger.Info("EndBlock")
+	app.logger.Info("persist data")
+	wsState, _ := app.backend.Es().State()
 	if app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock {
 		app.logger.Info("PosTable has changed")
 		app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = false
 		app.logger.Info("write accountMap")
-		currBytes, _ := json.Marshal(app.strategy.CurrRoundValData)
+
 		nextBytes, _ := json.Marshal(app.strategy.NextRoundValData)
-		wsState, _ := app.backend.Es().State()
-		wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"), currBytes)
+
+
+
 		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)
 	} else {
 		app.logger.Info("PosTable hasn't changed")
 	}
+	currBytes, _ := json.Marshal(app.strategy.CurrRoundValData)
+	wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"), currBytes)
 }

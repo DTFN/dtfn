@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
-	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
 	"math/rand"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -25,7 +23,7 @@ type PosTable struct {
 	PosArraySize         int                         `json:"posArraySize"` // real size of posArray
 	Threshold            *big.Int                    `json:"threshold"`    // threshold value of PosTable
 	ChangedFlagThisBlock bool                        `json:"changedFlagThisBlock"`
-	PosNodeSortList      *ValSortlist                `json:"posNodeSortList"`
+	PosNodeSortList      *ValSortlist                `json:"-"`
 	// whether upsert or remove in this block
 	// but when we need to write into the ethstate ,we set it to false
 }
@@ -47,15 +45,8 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	defer posTable.mtx.Unlock()
 
 	balanceCopy := big.NewInt(1)
-
 	posOriginPtr, exist := posTable.PosItemMap[signer]
-	pubKey,_:= tmTypes.PB2TM.PubKey(pubkey)
 
-	valListItem := &ValListItem{
-		Signer:    signer,
-		Balance:   balance,
-		TmAddress: strings.ToLower(pubKey.Address().String()),
-	}
 
 	if exist {
 		posTableCopy := big.NewInt(1)
@@ -72,7 +63,7 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 			}
 			posTable.PosItemMap[signer].Balance = balance
 
-			posTable.PosNodeSortList.UpsertVal(valListItem, true)
+
 			return true, nil
 		}
 	}
@@ -87,7 +78,6 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 		posItemPtr.Indexes[posTable.PosArraySize] = true
 		posTable.PosArraySize++
 	}
-	posTable.PosNodeSortList.UpsertVal(valListItem, false)
 	return true, nil
 }
 
@@ -123,8 +113,8 @@ func (posTable *PosTable) RemovePosItem(account common.Address) (bool, error) {
 	delete(posTable.PosItemMap, account)
 
 	//remove val from posNodeSortList
-	valListItem := &ValListItem{Signer: account}
-	posTable.PosNodeSortList.RemoveVal(valListItem)
+	//valListItem := &ValListItem{Signer: account}
+	//posTable.PosNodeSortList.RemoveVal(valListItem)
 
 	return true, nil
 }
