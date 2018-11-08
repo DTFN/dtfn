@@ -48,7 +48,7 @@ type Strategy struct {
 type NextRoundValData struct {
 	//we should deepcopy evert 200 height
 	//first deepcopy:copy at height 1 from CurrentRoundValData to NextRoundValData
-	//height/200 ==0:c from NextRoundValData to CurrentRoundValData
+	//height/200 ==0:c from NextRoundValData to CurrentRoundValData   `json:"-"`
 	NextRoundPosTable *PosTable  `json:"nextRoundPosTable"`
 
 	NextRoundCandidateValidators []*abciTypes.Validator    `json:"nextRoundCandidateValidators"`
@@ -58,7 +58,6 @@ type NextRoundValData struct {
 
 type CurrentRoundValData struct {
 	AccountMapList *AccountMapList `json:"accountMapList"`
-
 	//This map was used when some validator was removed and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
 	//AccountMapListTemp *AccountMapList
@@ -66,16 +65,16 @@ type CurrentRoundValData struct {
 	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
 	// and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
-	AccMapInitial *AccountMapList
+	AccMapInitial *AccountMapList   `json:"accMapInitial"`
 
 	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable *PosTable `json:"posTable"`
 
-	// Next candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
+	// current candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
 	CurrCandidateValidators []*abciTypes.Validator `json:"currCandidateValidators"`
 
 	// Initial validators , only use for once
-	InitialValidators []*abciTypes.Validator
+	InitialValidators []*abciTypes.Validator  `json:"initialValidators"`
 
 	// validators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
 	// will be select by postable.
