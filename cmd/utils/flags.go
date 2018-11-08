@@ -46,6 +46,14 @@ var (
 		Usage: "Logging verbosity: 0=silent, 1=error, 2=warn, 3=info, 4=core, 5=debug, 6=detail",
 	}
 
+	// TrieTimeLimitFlag defines how long would a memory trie flush into database
+	// #unstable
+	TrieTimeLimitFlag = cli.IntFlag{
+		Name:  "trie_time_limit",
+		Value: 60,			//Second
+		Usage: "how long would a memory trie flush into database",
+	}
+
 	// ConfigFileFlag defines the path to a TOML config for go-ethereum
 	// #unstable
 	ConfigFileFlag = cli.StringFlag{
@@ -56,7 +64,7 @@ var (
 	// TargetGasLimitFlag defines gas limit of the Genesis block
 	// #unstable
 	TargetGasLimitFlag = cli.Uint64Flag{
-		Name:  "targetgaslimit",
+		Name:  "target_gas_limit",
 		Usage: "Target gas limit sets the artificial target gas floor for the blocks to mine",
 		Value: GenesisTargetGasLimit.Uint64(),
 	}

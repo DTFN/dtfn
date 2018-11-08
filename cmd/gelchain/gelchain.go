@@ -50,6 +50,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	for key, _ := range genesis.Alloc {
 		totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
 	}
+
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
 	if err := node.Service(&backend); err != nil {
@@ -69,6 +70,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
 	ethApp.StartHttpServer()
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
 	configLoggerLevel(ctx, &ethLogger)
