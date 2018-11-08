@@ -1,130 +1,120 @@
 package types
 
 import (
-	"encoding/hex"
+	"crypto/sha256"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"log"
 	"math/big"
+	"math/rand"
+	"os"
 	"testing"
+	"time"
 )
 
-func TestUpsertPosTable(t *testing.T) {
-	pubk := abciTypes.PubKey{}
+func TestUpsertandRemovePosTable(t *testing.T) {
+	//手动构造Postable
 	table := NewPosTable(big.NewInt(1000))
-	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(300), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
+	PubKey1 := abciTypes.PubKey{
+		Type: "ed25519",
+		Data: []byte("00000000000000000000000000000001"),
+	}
+	PubKey2 := abciTypes.PubKey{
+		Type: "ed25519",
+		Data: []byte("00000000000000000000000000000002"),
+	}
+	PubKey3 := abciTypes.PubKey{
+		Type: "ed25519",
+		Data: []byte("00000000000000000000000000000003"),
+	}
+	Address1 := common.HexToAddress("0x0000000000000000000000000000000000000001")
+	Address2 := common.HexToAddress("0x0000000000000000000000000000000000000002")
+	Address3 := common.HexToAddress("0x0000000000000000000000000000000000000003")
+	Address4 := common.HexToAddress("0x0000000000000000000000000000000000000004")
+	Indexes1 := map[int]bool{}
+	Indexes2 := map[int]bool{}
+	PosItem1 := PosItem{
+		Address1,
+		big.NewInt(0),
+		PubKey1,
+		Indexes1,
+		Address1,
+	}
+	PosItem2 := PosItem{
+		Address2,
+		big.NewInt(0),
+		PubKey2,
+		Indexes2,
+		Address2,
+	}
+	var PosItemMap = map[common.Address]*PosItem{
+		Address1: &PosItem1,
+		Address2: &PosItem2,
+	}
+	table.PosItemMap = PosItemMap
 
-	require.Equal(t, 0, table.PosArraySize)
+	//TestUpsertPosTable
+	upsertFlag, err := table.UpsertPosItem(Address1, big.NewInt(10000), Address1, PubKey1)
+	require.NoError(t, nil, err)
+	require.Equal(t, 10, table.PosArraySize)
+	require.Equal(t,10,len(table.PosItemMap[Address1].Indexes))
+	for i:=0;i<10;i++{
+		require.Equal(t,true,table.PosItemMap[Address1].Indexes[i])
+	}
+	require.Equal(t, big.NewInt(10000), table.PosItemMap[Address1].Balance)
+
+	upsertFlag, err = table.UpsertPosItem(Address1, big.NewInt(9000), Address1, PubKey1)
+	require.Error(t, fmt.Errorf("situation should happened in real world"))
 	require.Equal(t, false, upsertFlag)
-	require.Error(t, err)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(1000), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 1, table.PosArraySize)
-	require.Equal(t, true, upsertFlag)
-	require.NoError(t, err)
+	upsertFlag, err = table.UpsertPosItem(Address3, big.NewInt(15000), Address3, PubKey3)
+	require.NoError(t, nil, err)
+	require.Equal(t, 25, table.PosArraySize)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(3500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 3, table.PosArraySize)
-	require.Equal(t, true, upsertFlag)
-	require.NoError(t, err)
+	for i := 0; i < 10; i++ {
+		require.Equal(t, Address1, table.PosArray[i])
+	}
+	for i := 10; i < 25; i++ {
+		require.Equal(t, Address3, table.PosArray[i])
+		require.Equal(t,true,table.PosItemMap[Address3].Indexes[i])
+	}
+	require.Equal(t,15,len(table.PosItemMap[Address3].Indexes))
+	upsertFlag, err = table.UpsertPosItem(Address1, big.NewInt(30998), Address1, PubKey1)
+	require.NoError(t, nil, err)
+	require.Equal(t, 45, table.PosArraySize)
+	require.Equal(t, big.NewInt(30998), table.PosItemMap[Address1].Balance)
+	//require.Equal(t,45,len(table.))
+	for i := 25; i < 45; i++ {
+		require.Equal(t, Address1, table.PosArray[i])
+	}
+	upsertFlag, err = table.UpsertPosItem(Address1, big.NewInt(30999), Address1, PubKey1)
+	require.Equal(t, big.NewInt(30998), table.PosItemMap[Address1].Balance)
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(6500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 9, table.PosArraySize)
-	require.Equal(t, true, upsertFlag)
-	require.NoError(t, err)
+	//引发val_sortlist.go错误处：更新一个比sortlist行首更小的数值
+	upsertFlag, err = table.UpsertPosItem(Address2, big.NewInt(8000), Address3, PubKey3)
+	require.NoError(t, nil, err)
+	require.Equal(t, 53, table.PosArraySize)
+	for i := 45; i < 53; i++ {
+		require.Equal(t, Address2, table.PosArray[i])
+		require.Equal(t,true,table.PosItemMap[Address2].Indexes[i])
+	}
 
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 9, table.PosArraySize)
-	require.Equal(t, false, upsertFlag)
-	require.Error(t, err)
-}
+	//TestRemovePosTable
+	upsertFlag, err = table.RemovePosItem(Address4)
+	require.Error(t,fmt.Errorf("address not existed in the postable"))
+	require.Equal(t,false,upsertFlag)
 
-func TestRemovePosTable(t *testing.T) {
-	pubk := abciTypes.PubKey{}
-	table := NewPosTable(big.NewInt(1000))
-	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(300), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-
-	require.Equal(t, 0, table.PosArraySize)
-	require.Equal(t, false, upsertFlag)
-	require.Error(t, err)
-
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(1000), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(3500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(6500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(500), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-
-	table.RemovePosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"))
-	require.Equal(t, 3, table.PosArraySize)
-
-	table.RemovePosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"))
-	require.Equal(t, 0, table.PosArraySize)
-}
-
-func TestComplicated(t *testing.T) {
-	pubk := abciTypes.PubKey{}
-	table := NewPosTable(big.NewInt(1000))
-
-	upsertFlag, err := table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(1000), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 1, table.PosArraySize)
-	require.Equal(t, true, upsertFlag)
-	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[0].Signer)
-	require.NoError(t, err)
-
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(3200), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 4, table.PosArraySize)
-	require.Equal(t, true, upsertFlag)
-	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[1].Signer)
-	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[2].Signer)
-	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[3].Signer)
-	require.NoError(t, err)
-
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(3610), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 6, table.PosArraySize)
-	require.Equal(t, true, upsertFlag)
-	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[4].Signer)
-	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[5].Signer)
-	require.NoError(t, err)
-
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), big.NewInt(2116), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 8, table.PosArraySize)
-	require.Equal(t, true, upsertFlag)
-	require.Equal(t, common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), table.PosArray[6].Signer)
-	require.Equal(t, common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), table.PosArray[7].Signer)
-	require.NoError(t, err)
-
-	upsertFlag, err = table.UpsertPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(4610), common.HexToAddress("0x0000000000000000000000000000000000000001"), pubk)
-	require.Equal(t, 9, table.PosArraySize)
-	require.Equal(t, true, upsertFlag)
-	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[0].Signer)
-	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[4].Signer)
-	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[5].Signer)
-	require.Equal(t, common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), table.PosArray[8].Signer)
-	require.NoError(t, err)
-
-	removeFlag, error := table.RemovePosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"))
-	require.Equal(t, true, removeFlag)
-	require.Equal(t, 5, table.PosArraySize)
-	require.NoError(t, error)
-	require.Equal(t, common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), table.PosArray[0].Signer)
-	require.Equal(t, common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"), table.PosArray[4].Signer)
-
-	removeFlag, error = table.RemovePosItem(common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0"))
-	require.Equal(t, true, removeFlag)
-	require.Equal(t, 3, table.PosArraySize)
-	require.NoError(t, error)
-	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[0].Signer)
-	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[1].Signer)
-	require.Equal(t, common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), table.PosArray[2].Signer)
+	upsertFlag, err = table.RemovePosItem(Address1)
+	require.Equal(t, 15, table.PosArraySize)
+	require.NotEqual(t,&PosItem1,table.PosItemMap[Address1])
 }
 
 func TestSelectItemByHeightValue(t *testing.T) {
-	pubk := abciTypes.PubKey{}
 	table := NewPosTable(big.NewInt(1000))
-	table.PosArray[0] = newPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(500), common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), pubk)
-	table.PosArray[1] = newPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(1500), common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), pubk)
+	//table.PosArray[0] = newPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(500), common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), pubk)
+	//table.PosArray[1] = newPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(1500), common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), pubk)
 	table.PosArraySize = 2
 	for height := 200; height <= 210; height++ {
 		testItem := table.SelectItemByHeightValue(height)
@@ -139,21 +129,128 @@ func TestSelectItemByHeightValue(t *testing.T) {
 }
 
 func TestSelectItemBySeedValue(t *testing.T) {
-	pubk := abciTypes.PubKey{}
+	//手动构造Postable
 	table := NewPosTable(big.NewInt(1000))
+	PubKey1 := abciTypes.PubKey{
+		Type: "ed25519",
+		Data: []byte("00000000000000000000000000000001"),
+	}
+	PubKey2 := abciTypes.PubKey{
+		Type: "ed25519",
+		Data: []byte("00000000000000000000000000000002"),
+	}
+	PubKey3 := abciTypes.PubKey{
+		Type: "ed25519",
+		Data: []byte("00000000000000000000000000000003"),
+	}
+	Address1 := common.HexToAddress("0x0000000000000000000000000000000000000001")
+	Address2 := common.HexToAddress("0x0000000000000000000000000000000000000002")
+	Address3 := common.HexToAddress("0x0000000000000000000000000000000000000003")
+	Address4 := common.HexToAddress("0x0000000000000000000000000000000000000004")
+	Indexes1 := map[int]bool{}
+	Indexes2 := map[int]bool{}
+	PosItem1 := PosItem{
+		Address1,
+		big.NewInt(0),
+		PubKey1,
+		Indexes1,
+		Address1,
+	}
+	PosItem2 := PosItem{
+		Address2,
+		big.NewInt(0),
+		PubKey2,
+		Indexes2,
+		Address2,
+	}
+	var PosItemMap = map[common.Address]*PosItem{
+		Address1: &PosItem1,
+		Address2: &PosItem2,
+	}
+	table.PosItemMap = PosItemMap
 
-	vrf, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
-	table.PosArray[0] = newPosItem(common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), big.NewInt(500), common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), pubk)
-	table.PosArray[1] = newPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(1500), common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), pubk)
-	table.PosArraySize = 2
-	for i := 200; i <= 210; i++ {
-		testItem := table.SelectItemBySeedValue(vrf, i)
-		// 根据SelectItemByRandomValue逻辑，我们已经设定PosArray的具体长度为2,内部元素为table.PosArray[0]与[1]
-		// 所以随机选取时,肯定在table.PosArray[0]与[1]中选,那么Balance的值不是500就是1500
-		if testItem.Signer == common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d") {
-			require.Equal(t, big.NewInt(500), testItem.Balance)
-		} else {
-			require.Equal(t, big.NewInt(1500), testItem.Balance)
+	_, err := table.UpsertPosItem(Address1, big.NewInt(30000), Address1, PubKey1)
+	_, err = table.UpsertPosItem(Address3, big.NewInt(60000), Address3, PubKey3)
+	require.NoError(t, nil, err)
+	//require.Equal(t,75,len(table.PosArray))
+	require.Equal(t,Address1,table.PosArray[20])
+	require.Equal(t,Address3,table.PosArray[40])
+	require.Equal(t,90,table.PosArraySize)
+
+	logFile, err := os.Create("./" + time.Now().Format("20060102") + ".txt");
+	loger := log.New(logFile, "test_", log.Ldate|log.Ltime|log.Lshortfile);
+	//loger.Output(2, "打印一条日志信息")
+
+
+	//TestSelectItemBySeedValue
+	vrf:=[]byte("0000000000000000000000000000000000000000000000000000000000000003") //64位
+	r := rand.New(rand.NewSource(int64(3)))
+	//PosItem_vrf := PosItem{}
+	list:=map[common.Address]int{
+		Address1:0,
+		Address2:0,
+		Address3:0,
+		Address4:0,
+	}
+	var list_v = make(map[uint32]int,table.PosArraySize)
+	var list_rand=make(map[int]int,table.PosArraySize)
+	for i:=0;i<512;i++{
+		//为了测试，更改测试对象代码，测试完恢复原代码
+		PosItem_vrf,v:=table.SelectItemBySeedValue(vrf, i)
+		if _,exist:=list_v[v]; !exist{
+			list_v[v]=1
+		} else{
+			list_v[v]++
+		}
+
+		rint:=r.Intn(90)
+		if _,exist:=list_rand[rint]; !exist{
+			list_rand[rint]=1
+		} else{
+			list_rand[rint]++
+		}
+
+		list[PosItem_vrf.Signer]++
+	}
+
+	//fmt.Print("list_v", list_v)
+	loger.Print("内容list_v:%s",list_v)
+	loger.Print("内容list_rand:%s",list_rand)
+	//fmt.Print("结果情况Address1:", list[Address1])
+	//fmt.Print("结果情况Address2:", list[Address2])
+	//fmt.Print("结果情况Address3:", list[Address3])
+	//fmt.Print("结果情况Address4:", list[Address4])
+
+
+
+	var list_v_time = make(map[uint32]int,table.PosArraySize)
+	var rand_time = make(map[int]int,table.PosArraySize)
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	r.Intn(100)
+	for i:=0; i<1000; i++ {
+		//r.Intn(100)
+		h:=sha256.New()
+		rint:=r.Intn(100)
+		h.Write([]byte(string(rint)))
+		if _,exist:=rand_time[rint]; !exist{
+			rand_time[rint]=1
+		} else{
+			rand_time[rint]++
+		}
+
+		hash:=h.Sum(nil)
+		vrf=hash
+		for i:=0;i<1;i++{
+			//为了测试，更改测试对象代码，测试完恢复原代码
+			PosItem_vrf,v:=table.SelectItemBySeedValue(vrf, i)
+			if _,exist:=list_v_time[v]; !exist{
+				list_v_time[v]=1
+			} else{
+				list_v_time[v]++
+			}
+
+			list[PosItem_vrf.Signer]++
 		}
 	}
+	fmt.Print("list_v_time: ", list_v_time)
 }
