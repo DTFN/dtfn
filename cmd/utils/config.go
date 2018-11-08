@@ -14,6 +14,7 @@ import (
 	"github.com/green-element-chain/gelchain/ethereum"
 
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
+	"time"
 )
 
 const (
@@ -67,7 +68,7 @@ func makeConfigNode(ctx *cli.Context) (*ethereum.Node, gethConfig) {
 		ethUtils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
 
-	SetEthermintEthConfig(&cfg.Eth)
+	SetEthermintEthConfig(ctx,&cfg.Eth)
 	ethUtils.SetEthConfig(ctx, &stack.Node, &cfg.Eth)
 
 	return stack, cfg
@@ -100,10 +101,15 @@ func SetEthermintNodeConfig(cfg *node.Config) {
 
 // SetEthermintEthConfig takes a ethereum configuration and applies gelchain specific configuration
 // #unstable
-func SetEthermintEthConfig(cfg *eth.Config) {
+func SetEthermintEthConfig(ctx *cli.Context,cfg *eth.Config) {
 	/*cfg.MaxPeers = 0
 	cfg.PowFake = true*/
 	cfg.Ethash.PowMode=3
+	trieTimeLimit := ctx.GlobalInt(TrieTimeLimitFlag.Name)
+	if trieTimeLimit > 0 {
+		trieTimeout:=int64(trieTimeLimit)*int64(time.Second)
+		cfg.TrieTimeout = time.Duration(trieTimeout)
+	}
 
 }
 
