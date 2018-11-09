@@ -14,8 +14,6 @@ import (
 	gelTypes "github.com/green-element-chain/gelchain/types"
 	"strings"
 	"encoding/hex"
-	"fmt"
-	"reflect"
 )
 
 var (
