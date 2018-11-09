@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/murmur3"
+	"github.com/spaolacci/murmur3"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	"math/rand"
@@ -131,12 +131,9 @@ func (posTable *PosTable) SelectItemByHeightValue(random int) PosItem {
 
 func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, len int) PosItem {
 	res64:=murmur3.Sum32(vrf)
-	r := rand.New(rand.NewSource(int64(res64)))
-	var v = map[int]int{}
-	for i:=0;i<=len;i++ {
-		v[i] = r.Intn(posTable.PosArraySize)
-	}
-	return *posTable.PosItemMap[posTable.PosArray[v[len]]]
+	r := rand.New(rand.NewSource(int64(res64)+int64(len)))
+	value := r.Intn(posTable.PosArraySize)
+	return *posTable.PosItemMap[posTable.PosArray[value]]
 }
 
 type PosItem struct {
