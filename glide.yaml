@@ -12,4 +12,6 @@ import:
   version: v2.1.0
 - package: github.com/cosmos/cosmos-sdk
   version: v0.23.1
+- package: github.com/spaolacci/murmur3
+  version: master
 
