@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/spaolacci/murmur3"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	"math/rand"
@@ -128,25 +129,11 @@ func (posTable *PosTable) SelectItemByHeightValue(random int) PosItem {
 	return *posTable.PosItemMap[posTable.PosArray[r.Intn(posTable.PosArraySize)]]
 }
 
-func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, i int) PosItem {
-
-	var v1, v2 uint32
-	k := uint32(i)
-	bIdx := k / 8
-	bits1 := k % 8
-	bits2 := 8 + bits1 // L - 8 + bits1
-
-	v1 = uint32(vrf[bIdx]) >> bits1
-	if bIdx+1 < uint32(len(vrf)) {
-		v2 = uint32(vrf[bIdx+1])
-	} else {
-		v2 = uint32(vrf[0])
-	}
-
-	v2 = v2 & ((1 << bits2) - 1)
-	v := (v2 << (8 - bits1)) + v1
-	v = v % uint32(posTable.PosArraySize)
-	return *posTable.PosItemMap[posTable.PosArray[v]]
+func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, len int) PosItem {
+	res64:=murmur3.Sum32(vrf)
+	r := rand.New(rand.NewSource(int64(res64)+int64(len)))
+	value := r.Intn(posTable.PosArraySize)
+	return *posTable.PosItemMap[posTable.PosArray[value]]
 }
 
 type PosItem struct {
