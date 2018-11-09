@@ -1,17 +1,12 @@
 package types
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
-	"log"
 	"math/big"
-	"math/rand"
-	"os"
 	"testing"
-	"time"
 )
 
 func TestUpsertandRemovePosTable(t *testing.T) {
@@ -169,22 +164,14 @@ func TestSelectItemBySeedValue(t *testing.T) {
 	}
 	table.PosItemMap = PosItemMap
 
-	_, err := table.UpsertPosItem(Address1, big.NewInt(30000), Address1, PubKey1)
-	_, err = table.UpsertPosItem(Address3, big.NewInt(60000), Address3, PubKey3)
+	_, err := table.UpsertPosItem(Address1, big.NewInt(60000), Address1, PubKey1)
+	_, err = table.UpsertPosItem(Address3, big.NewInt(30000), Address3, PubKey3)
 	require.NoError(t, nil, err)
-	//require.Equal(t,75,len(table.PosArray))
 	require.Equal(t,Address1,table.PosArray[20])
-	require.Equal(t,Address3,table.PosArray[40])
+	require.Equal(t,Address3,table.PosArray[70])
 	require.Equal(t,90,table.PosArraySize)
-
-	logFile, err := os.Create("./" + time.Now().Format("20060102") + ".txt");
-	loger := log.New(logFile, "test_", log.Ldate|log.Ltime|log.Lshortfile);
-	//loger.Output(2, "打印一条日志信息")
-
-
 	//TestSelectItemBySeedValue
-	vrf:=[]byte("0000000000000000000000000000000000000000000000000000000000000003") //64位
-	r := rand.New(rand.NewSource(int64(3)))
+	vrf:=[]byte("00000000000000000000000000000003") //32字
 	//PosItem_vrf := PosItem{}
 	list:=map[common.Address]int{
 		Address1:0,
@@ -192,65 +179,14 @@ func TestSelectItemBySeedValue(t *testing.T) {
 		Address3:0,
 		Address4:0,
 	}
-	var list_v = make(map[uint32]int,table.PosArraySize)
-	var list_rand=make(map[int]int,table.PosArraySize)
-	for i:=0;i<512;i++{
-		//为了测试，更改测试对象代码，测试完恢复原代码
-		PosItem_vrf,v:=table.SelectItemBySeedValue(vrf, i)
-		if _,exist:=list_v[v]; !exist{
-			list_v[v]=1
-		} else{
-			list_v[v]++
-		}
-
-		rint:=r.Intn(90)
-		if _,exist:=list_rand[rint]; !exist{
-			list_rand[rint]=1
-		} else{
-			list_rand[rint]++
-		}
-
+	for i:=0;i<256;i++{
+		PosItem_vrf:=table.SelectItemBySeedValue(vrf,i)
 		list[PosItem_vrf.Signer]++
 	}
 
-	//fmt.Print("list_v", list_v)
-	loger.Print("内容list_v:%s",list_v)
-	loger.Print("内容list_rand:%s",list_rand)
-	//fmt.Print("结果情况Address1:", list[Address1])
-	//fmt.Print("结果情况Address2:", list[Address2])
-	//fmt.Print("结果情况Address3:", list[Address3])
-	//fmt.Print("结果情况Address4:", list[Address4])
+	fmt.Print("结果情况Address1:", list[Address1])
+	fmt.Print("结果情况Address2:", list[Address2])
+	fmt.Print("结果情况Address3:", list[Address3])
+	fmt.Print("结果情况Address4:", list[Address4])
 
-
-
-	var list_v_time = make(map[uint32]int,table.PosArraySize)
-	var rand_time = make(map[int]int,table.PosArraySize)
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-	r.Intn(100)
-	for i:=0; i<1000; i++ {
-		//r.Intn(100)
-		h:=sha256.New()
-		rint:=r.Intn(100)
-		h.Write([]byte(string(rint)))
-		if _,exist:=rand_time[rint]; !exist{
-			rand_time[rint]=1
-		} else{
-			rand_time[rint]++
-		}
-
-		hash:=h.Sum(nil)
-		vrf=hash
-		for i:=0;i<1;i++{
-			//为了测试，更改测试对象代码，测试完恢复原代码
-			PosItem_vrf,v:=table.SelectItemBySeedValue(vrf, i)
-			if _,exist:=list_v_time[v]; !exist{
-				list_v_time[v]=1
-			} else{
-				list_v_time[v]++
-			}
-
-			list[PosItem_vrf.Signer]++
-		}
-	}
-	fmt.Print("list_v_time: ", list_v_time)
 }
