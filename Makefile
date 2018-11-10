@@ -23,10 +23,12 @@ glide_vendor_deps:
 
 develop_ubuntu:
 	@echo "create develop_enviorment"
+	@git checkout gelchain-pos
 	@bash ./scripts/develop_env_ubuntu.sh
 
 develop_centos:
 	@echo "create develop_enviorment"
+	@git checkout gelchain-pos
 	@bash ./scripts/develop_env_centos.sh
 
 develop_build:
