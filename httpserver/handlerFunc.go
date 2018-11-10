@@ -108,8 +108,9 @@ func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 // This function will return the used data structure
 func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Request) {
 	PosTable := &PosItemMapData{
-		PosItemMap: tHandler.strategy.CurrRoundValData.PosTable.PosItemMap,
-		Threshold:  tHandler.strategy.CurrRoundValData.PosTable.Threshold,
+		PosItemMap:   tHandler.strategy.CurrRoundValData.PosTable.PosItemMap,
+		Threshold:    tHandler.strategy.CurrRoundValData.PosTable.Threshold,
+		PosArraySize: tHandler.strategy.CurrRoundValData.PosTable.PosArraySize,
 	}
 	jsonStr, err := json.Marshal(PosTable)
 	if err != nil {

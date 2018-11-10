@@ -292,10 +292,11 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 
 		//select validators from posTable
 		for j := 0; len(validatorsSlice) != maxValidators; j++ {
-			tmPubKey, _ := tmTypes.PB2TM.PubKey(app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey)
+			pubkey := app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubkey)
 			validator := abciTypes.Validator{
 				Address: tmPubKey.Address(),
-				PubKey:  app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey,
+				PubKey:  pubkey,
 				Power:   1000,
 			}
 			if votedValidators[tmPubKey.Address().String()] {
@@ -370,18 +371,21 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		var validator abciTypes.Validator
 		if height == -1 {
 			//height=-1 表示 seed 存在，使用seed
-			tmPubKey, _ = tmTypes.PB2TM.PubKey(app.strategy.CurrRoundValData.PosTable.SelectItemBySeedValue(seed, i).PubKey)
+			pubkey := app.strategy.CurrRoundValData.PosTable.SelectItemBySeedValue(seed, i).PubKey
+			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubkey)
 			validator = abciTypes.Validator{
 				Address: tmPubKey.Address(),
-				PubKey:  app.strategy.CurrRoundValData.PosTable.SelectItemBySeedValue(seed, i).PubKey,
+				PubKey:  pubkey,
 				Power:   1000,
 			}
 		} else {
 			//seed 不存在，使用height
-			tmPubKey, _ = tmTypes.PB2TM.PubKey(app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(int(height) + i - 1).PubKey)
+			startIndex := int(height) * 100
+			pubkey := app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(startIndex + i - 1).PubKey
+			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubkey)
 			validator = abciTypes.Validator{
 				Address: tmPubKey.Address(),
-				PubKey:  app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(int(height) + i - 1).PubKey,
+				PubKey:  pubkey,
 				Power:   1000,
 			}
 		}
@@ -427,7 +431,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 
 	app.strategy.CurrRoundValData.CurrentValidators = nil
 
-	for i:=0;i<len(app.strategy.NextRoundValData.NextRoundCandidateValidators);i++{
+	for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
 		pubkey, _ := tmTypes.PB2TM.PubKey(app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey)
 		tmAddress := strings.ToLower(pubkey.Address().String())
 		valListItem := &ethmintTypes.ValListItem{
@@ -524,8 +528,6 @@ func (app *EthermintApplication) PersistenceData() {
 		app.logger.Info("write accountMap")
 
 		nextBytes, _ := json.Marshal(app.strategy.NextRoundValData)
-
-
 
 		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)
 	} else {

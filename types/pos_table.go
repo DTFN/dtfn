@@ -48,7 +48,6 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 	balanceCopy := big.NewInt(1)
 	posOriginPtr, exist := posTable.PosItemMap[signer]
 
-
 	if exist {
 		posTableCopy := big.NewInt(1)
 		originPosWeight, _ := strconv.Atoi(posTableCopy.
@@ -63,7 +62,6 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 				posTable.PosArraySize++
 			}
 			posTable.PosItemMap[signer].Balance = balance
-
 
 			return true, nil
 		}
@@ -126,12 +124,13 @@ func (posTable *PosTable) SetThreShold(threShold *big.Int) {
 
 func (posTable *PosTable) SelectItemByHeightValue(random int) PosItem {
 	r := rand.New(rand.NewSource(int64(random)))
-	return *posTable.PosItemMap[posTable.PosArray[r.Intn(posTable.PosArraySize)]]
+	value := r.Intn(posTable.PosArraySize)
+	return *posTable.PosItemMap[posTable.PosArray[value]]
 }
 
 func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, len int) PosItem {
-	res64:=murmur3.Sum32(vrf)
-	r := rand.New(rand.NewSource(int64(res64)+int64(len)))
+	res64 := murmur3.Sum32(vrf)
+	r := rand.New(rand.NewSource(int64(res64) + int64(len)))
 	value := r.Intn(posTable.PosArraySize)
 	return *posTable.PosItemMap[posTable.PosArray[value]]
 }
