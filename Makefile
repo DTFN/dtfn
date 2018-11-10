@@ -18,7 +18,7 @@ gelchain: glide_vendor_deps build
 
 glide_vendor_deps:
 	@echo "build gelChain"
-	@cd $GOPATH/src/github.com/green-element-chain/gelchain && git checkout gelchain-pos
+	@git checkout gelchain-pos
 	@curl https://glide.sh/get | sh && glide install
 
 develop_ubuntu:
