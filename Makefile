@@ -20,12 +20,20 @@ glide_vendor_deps:
 	@echo "build gelChain"
 	@curl https://glide.sh/get | sh && glide install
 
+bls_ubuntu:
+	@echo "create bls environment"
+	@bash ./scripts/install_bls_ubuntu.sh
+
+bls_centos:
+	@echo "create bls environment"
+	@bash ./scripts/install_bls_centos.sh
+
 develop_ubuntu:
-	@echo "create develop_enviorment"
+	@echo "create develop_environment"
 	@bash ./scripts/develop_env_ubuntu.sh
 
 develop_centos:
-	@echo "create develop_enviorment"
+	@echo "create develop_environment"
 	@bash ./scripts/develop_env_centos.sh
 
 develop_build:
