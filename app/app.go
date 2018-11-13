@@ -290,7 +290,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 }
 
 func (app *EthermintApplication) GetAccountMap(tmAddress string) *emtTypes.AccountMap {
-	return app.strategy.AccountMapList.MapList[tmAddress]
+	return app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
 }
 
 // EndBlock accumulates rewards for the validators and updates them
