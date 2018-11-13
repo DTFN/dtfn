@@ -18,6 +18,7 @@ gelchain: glide_vendor_deps build
 
 glide_vendor_deps:
 	@echo "build gelChain"
+	@git checkout gelchain-pos
 	@curl https://glide.sh/get | sh && glide install
 
 bls_ubuntu:
@@ -33,7 +34,8 @@ develop_ubuntu:
 	@bash ./scripts/develop_env_ubuntu.sh
 
 develop_centos:
-	@echo "create develop_environment"
+	@echo "create develop_enviorment"
+	@git checkout gelchain-pos
 	@bash ./scripts/develop_env_centos.sh
 
 develop_build:

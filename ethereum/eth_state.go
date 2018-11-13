@@ -218,56 +218,60 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
 	//todo:后续要获取到块的validators列表根据voting power按比例分配收益
 	var validators []*abciTypes.Validator
-	for i := 0; i < len(strategy.ValidatorSet.CurrentValidators); i++ {
-		validators = append(validators, strategy.ValidatorSet.CurrentValidators[i])
+	for i := 0; i < len(strategy.CurrRoundValData.CurrentValidators); i++ {
+		validators = append(validators, strategy.CurrRoundValData.CurrentValidators[i])
 	}
 	minerBonus := big.NewInt(1)
 	divisor := big.NewInt(1)
 	// for 1% every year increment
-	minerBonus.Div(strategy.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	minerBonus.Div(strategy.CurrRoundValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
 	if strategy.FirstInitial {
 		strategy.FirstInitial = false
-		for i := 0; i < len(strategy.ValidatorSet.InitialValidators); i++ {
+		for i := 0; i < len(strategy.CurrRoundValData.InitialValidators); i++ {
 			bonusAverage := big.NewInt(1)
-			bonusAverage.Div(minerBonus, big.NewInt(int64(len(strategy.ValidatorSet.InitialValidators))))
+			bonusAverage.Div(minerBonus, big.NewInt(int64(len(strategy.CurrRoundValData.InitialValidators))))
 
-			address := strings.ToLower(hex.EncodeToString(strategy.ValidatorSet.InitialValidators[i].Address))
-			if strategy.AccountMapListTemp.MapList[address] != nil {
-				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
+			address := strings.ToLower(hex.EncodeToString(strategy.CurrRoundValData.InitialValidators[i].Address))
+			if strategy.CurrRoundValData.AccMapInitial.MapList[address] != nil {
+				ws.state.AddBalance(strategy.CurrRoundValData.AccMapInitial.MapList[address].Beneficiary, bonusAverage)
 			} else {
-				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 			}
 		}
-	} else if len(strategy.ValidatorSet.CurrentValidatorWeight) == 0 {
+	} else if len(strategy.CurrRoundValData.CurrentValidatorWeight) == 0 {
 		for i := 0; i < len(validators); i++ {
 			bonusAverage := big.NewInt(1)
 			bonusAverage.Div(minerBonus, big.NewInt(int64(len(validators))))
 
 			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
-			if strategy.AccountMapListTemp.MapList[address] != nil {
-				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
-			} else {
-				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusAverage)
-			}
+			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+
+			//if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
+			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
+			//} else {
+			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			//}
 		}
 	} else {
 		weightSum := 0
-		for i := 0; i < len(strategy.ValidatorSet.CurrentValidatorWeight); i++ {
-			weightSum = weightSum + int(strategy.ValidatorSet.CurrentValidatorWeight[i])
+		for i := 0; i < len(strategy.CurrRoundValData.CurrentValidatorWeight); i++ {
+			weightSum = weightSum + int(strategy.CurrRoundValData.CurrentValidatorWeight[i])
 		}
 		for i := 0; i < len(validators); i++ {
 			bonusAverage := big.NewInt(1)
 			bonusSpecify := big.NewInt(1)
-			bonusSpecify.Mul(big.NewInt(strategy.ValidatorSet.CurrentValidatorWeight[i]), bonusAverage.
+			bonusSpecify.Mul(big.NewInt(strategy.CurrRoundValData.CurrentValidatorWeight[i]), bonusAverage.
 				Div(minerBonus, big.NewInt(int64(weightSum))))
 
 			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
-			if strategy.AccountMapListTemp.MapList[address] != nil {
-				ws.state.AddBalance(strategy.AccountMapListTemp.MapList[address].Beneficiary, bonusSpecify)
-			} else {
-				ws.state.AddBalance(strategy.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
-			}
+			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+
+			//if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
+			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusSpecify)
+			//} else {
+			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
+			//}
 		}
 	}
 	ws.header.GasUsed = *ws.totalUsedGas
