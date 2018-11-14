@@ -16,12 +16,19 @@ all: glide_vendor_deps install test
 
 gelchain: glide_vendor_deps build
 
+gelchain_pos: glide_vendor_deps_pos build
+
 gelchain_bls_ubuntu_pre: bls_ubuntu develop_ubuntu
 
 gelchain_bls_centos_pre: bls_centos develop_centos
 
 glide_vendor_deps:
 	@echo "build gelChain"
+	@curl https://glide.sh/get | sh && glide install
+
+glide_vendor_deps_pos:
+	@echo "build gelChain"
+	@git checkout gelchain-pos
 	@curl https://glide.sh/get | sh && glide install
 
 bls_ubuntu:
