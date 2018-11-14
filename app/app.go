@@ -135,6 +135,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	ethState, _ := app.getCurrentState()
 
 	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
+		app.GetLogger().Info("CurrRoundValData.InitialValidators sige", "blacklist",
+			len(app.strategy.CurrRoundValData.InitialValidators))
 		address := strings.ToLower(hex.EncodeToString(app.strategy.CurrRoundValData.
 			InitialValidators[j].Address))
 		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
