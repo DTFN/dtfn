@@ -122,7 +122,7 @@ func init() {
 		},
 		{
 			Action: testnetCmd,
-			Name:   "generate test file",
+			Name:   "testnet",
 			Usage:  "generate ,the test config file",
 		},
 	}
