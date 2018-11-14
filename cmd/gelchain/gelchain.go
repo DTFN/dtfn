@@ -9,6 +9,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -96,8 +97,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		log.Info("get Initial accounts")
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
-			blsKey := validators[i].BlsPubKey
-			blsKeyJsonStr,_ := json.Marshal(blsKey)
+			blsKeyJsonStr := strconv.Itoa(i)
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
 			if i == len(ethAccounts.EthAccounts) {
@@ -108,7 +108,7 @@ func ethermintCmd(ctx *cli.Context) error {
 				ethAccounts.EthBalances[i],
 				big.NewInt(0),
 				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
-				string(blsKeyJsonStr),
+				blsKeyJsonStr,
 			}
 		}
 	}

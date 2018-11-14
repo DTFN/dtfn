@@ -22,6 +22,7 @@ gelchain_bls_centos_pre: bls_centos develop_centos
 
 glide_vendor_deps:
 	@echo "build gelChain"
+	@git checkout gelchain-pos
 	@curl https://glide.sh/get | sh && glide install
 
 bls_ubuntu:
