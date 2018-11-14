@@ -50,7 +50,7 @@ var (
 	// #unstable
 	TrieTimeLimitFlag = cli.IntFlag{
 		Name:  "trie_time_limit",
-		Value: 60,			//Second
+		Value: 60, //Second
 		Usage: "how long would a memory trie flush into database",
 	}
 
@@ -160,5 +160,53 @@ var (
 	TmBlsSelectStrategy = cli.BoolFlag{
 		Name:  "bls_select_strategy",
 		Usage: "specify select strategy for bls",
+	}
+
+	TestNetVals = cli.IntFlag{
+		Name:  "v",
+		Value: 4,
+		Usage: "Number of validators to initialize the testnet with",
+	}
+
+	TestNetNVals = cli.IntFlag{
+		Name:  "n",
+		Value: 0,
+		Usage: "Number of non-validators to initialize the testnet with",
+	}
+
+	TestNetP2PPort = cli.IntFlag{
+		Name:  "p2p-port",
+		Value: 26656,
+		Usage: "P2P Port",
+	}
+
+	TestNetpOpulatePersistentPeers = cli.BoolFlag{
+		Name:   "populate-persistent-peers",
+		Hidden: true,
+		Usage:  "Update config of each node with the list of persistent peers build using either hostname-prefix or starting-ip-address",
+	}
+
+	TestNetOutput = cli.StringFlag{
+		Name:  "o",
+		Value: "./mytestnet",
+		Usage: "Directory to store initialization data for the testnet",
+	}
+
+	TestNetNodeDir = cli.StringFlag{
+		Name:  "node-dir-prefix",
+		Value: "node",
+		Usage: "Prefix the directory name for each node with (node results in node0, node1, ...)",
+	}
+
+	TestNetHostnamePrefix = cli.StringFlag{
+		Name:  "hostname-prefix",
+		Value: "node",
+		Usage: "Hostname prefix (node results in persistent peers list ID0@node0:26656, ID1@node1:26656, ...)",
+	}
+
+	TestnetStartingIPAddress = cli.StringFlag{
+		Name:  "starting-ip-address",
+		Value: "",
+		Usage: "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:26656, ID1@192.168.0.2:26656, ...)",
 	}
 )

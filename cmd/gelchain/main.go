@@ -88,6 +88,14 @@ var (
 		utils.TmConsNeedProofBlock,
 		utils.TmInitialEthAccount,
 		utils.TmBlsSelectStrategy,
+		utils.TestNetHostnamePrefix,
+		utils.TestNetNodeDir,
+		utils.TestNetNVals,
+		utils.TestNetOutput,
+		utils.TestNetP2PPort,
+		utils.TestNetpOpulatePersistentPeers,
+		utils.TestnetStartingIPAddress,
+		utils.TestNetVals,
 	}
 )
 
@@ -111,6 +119,11 @@ func init() {
 			Action: resetCmd,
 			Name:   "unsafe_reset_all",
 			Usage:  "(unsafe) Remove gelchain database",
+		},
+		{
+			Action: testnetCmd,
+			Name:   "generate test file",
+			Usage:  "generate ,the test config file",
 		},
 	}
 
