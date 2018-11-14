@@ -13,6 +13,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -35,9 +36,15 @@ const (
 
 func testnetCmd(ctx *cli.Context) error {
 	config := cfg.DefaultConfig()
-	genVals := make([]types.GenesisValidator, nValidators)
 
-	nValidators = ctx.GlobalInt(emtUtils.TestNetVals.Name)
+	nValiString := ctx.Args().First()
+	nVali, err := strconv.Atoi(nValiString)
+	if len(nValiString) != 0 && err == nil {
+		nValidators = nVali
+	} else {
+		nValidators = ctx.GlobalInt(emtUtils.TestNetVals.Name)
+	}
+
 	nNonValidators = ctx.GlobalInt(emtUtils.TestNetNVals.Name)
 	p2pPort = ctx.GlobalInt(emtUtils.TestNetP2PPort.Name)
 	populatePersistentPeers = ctx.GlobalBool(emtUtils.TestNetpOpulatePersistentPeers.Name)
@@ -46,6 +53,8 @@ func testnetCmd(ctx *cli.Context) error {
 	nodeDirPrefix = ctx.GlobalString(emtUtils.TestNetNodeDir.Name)
 	hostnamePrefix = ctx.GlobalString(emtUtils.TestNetHostnamePrefix.Name)
 	startingIPAddress = ctx.GlobalString(emtUtils.TestnetStartingIPAddress.Name)
+
+	genVals := make([]types.GenesisValidator, nValidators)
 
 	for i := 0; i < nValidators; i++ {
 		nodeDirName := cmn.Fmt("%s%d", nodeDirPrefix, i)
