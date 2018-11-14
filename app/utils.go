@@ -106,7 +106,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 
 		stateDb, _ := app.getCurrentState()
 		if !signerExisted && !existFlag && !blsExisted &&
-			blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
+			!blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
