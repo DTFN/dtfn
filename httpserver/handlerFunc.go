@@ -37,6 +37,10 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetAllCandidateValidators"] = tHandler.GetAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetEncourage"] = tHandler.GetEncourage
 
+	tHandler.HandlersMap["/GetNextPosTable"] = tHandler.GetNextPosTableData
+	tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
+	tHandler.HandlersMap["/GetAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
+
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -108,8 +112,24 @@ func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 // This function will return the used data structure
 func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Request) {
 	PosTable := &PosItemMapData{
-		PosItemMap: tHandler.strategy.CurrRoundValData.PosTable.PosItemMap,
-		Threshold:  tHandler.strategy.CurrRoundValData.PosTable.Threshold,
+		PosItemMap:   tHandler.strategy.CurrRoundValData.PosTable.PosItemMap,
+		Threshold:    tHandler.strategy.CurrRoundValData.PosTable.Threshold,
+		PosArraySize: tHandler.strategy.CurrRoundValData.PosTable.PosArraySize,
+	}
+	jsonStr, err := json.Marshal(PosTable)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+// This function will return the used data structure
+func (tHandler *THandler) GetNextPosTableData(w http.ResponseWriter, req *http.Request) {
+	PosTable := &PosItemMapData{
+		PosItemMap:   tHandler.strategy.NextRoundValData.NextRoundPosTable.PosItemMap,
+		Threshold:    tHandler.strategy.NextRoundValData.NextRoundPosTable.Threshold,
+		PosArraySize: tHandler.strategy.NextRoundValData.NextRoundPosTable.PosArraySize,
 	}
 	jsonStr, err := json.Marshal(PosTable)
 	if err != nil {
@@ -123,6 +143,19 @@ func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Reque
 func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Request) {
 	AccountMap := &AccountMapData{
 		MapList: tHandler.strategy.CurrRoundValData.AccountMapList.MapList,
+	}
+	jsonStr, err := json.Marshal(AccountMap)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+// This function will return the used data structure
+func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http.Request) {
+	AccountMap := &AccountMapData{
+		MapList: tHandler.strategy.NextRoundValData.NextAccountMapList.MapList,
 	}
 	jsonStr, err := json.Marshal(AccountMap)
 	if err != nil {
@@ -195,6 +228,32 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 		w.Write(jsonStr)
 	}
 }
+
+func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
+	var preValidators []*Validator
+	for i := 0; i < len(tHandler.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
+		tmAddress := tHandler.strategy.NextRoundValData.NextRoundCandidateValidators[i].Address
+		tmAddressStr := strings.ToLower(hex.EncodeToString(tmAddress))
+		preValidators = append(preValidators, &Validator{
+			Address:       tmAddress,
+			Power:         int64(1),
+			AddressString: tmAddressStr,
+			PubKey:        tHandler.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey,
+			SignerBalance: tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].SignerBalance,
+			Signer:        tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].Signer,
+			Beneficiary:   tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].Beneficiary,
+		})
+	}
+
+	jsonStr, err := json.Marshal(preValidators)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+
 
 func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request) {
 	minerBonus := big.NewInt(1)

@@ -8,7 +8,7 @@ import (
 )
 
 type EthAccounts struct {
-	EthAccounts []string `json:"ethAccounts"`
+	EthAccounts     []string   `json:"ethAccounts"`
 	EthBalances     []*big.Int `json:"ethBalances"`
 	EthBeneficiarys []string   `json:"ethBeneficiarys"`
 }

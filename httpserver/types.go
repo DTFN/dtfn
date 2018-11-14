@@ -32,8 +32,9 @@ type AccountMapData struct {
 }
 
 type PosItemMapData struct {
-	PosItemMap map[common.Address]*types.PosItem `json:"posTableMap"`
-	Threshold  *big.Int                          `json:"threshold"`
+	PosItemMap   map[common.Address]*types.PosItem `json:"posTableMap"`
+	Threshold    *big.Int                          `json:"threshold"`
+	PosArraySize int                               `json:"posArraySize"`
 }
 
 type PreBlockProposer struct {
