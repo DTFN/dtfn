@@ -97,7 +97,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
 			blsKey := validators[i].BlsPubKey
-			blsKeyJsonStr,_ := json.Marshal(blsKey)
+			blsKeyJsonStr, _ := json.Marshal(blsKey)
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
 			if i == len(ethAccounts.EthAccounts) {
