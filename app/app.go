@@ -268,12 +268,19 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.InitPersistData()
 
-	if (header.Height-1)%20 == 0 && header.Height != 1 {
+	if (header.Height)%20 == 0 && header.Height != 1 {
 		app.logger.Info("DeepCopy")
 		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
 		json.Unmarshal(accByte, app.strategy.CurrRoundValData.AccountMapList)
-		valByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundCandidateValidators)
-		json.Unmarshal(valByte, app.strategy.CurrRoundValData.CurrCandidateValidators)
+
+		app.strategy.CurrRoundValData.CurrCandidateValidators = nil
+
+		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
+			app.strategy.CurrRoundValData.CurrCandidateValidators = append(
+				app.strategy.CurrRoundValData.CurrCandidateValidators,
+				app.strategy.NextRoundValData.NextRoundCandidateValidators[i])
+		}
+
 		posByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundPosTable)
 		json.Unmarshal(posByte, app.strategy.CurrRoundValData.PosTable)
 	}
