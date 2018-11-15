@@ -29,7 +29,7 @@ glide_vendor_deps:
 glide_vendor_deps_pos:
 	@echo "build gelChain"
 	@git checkout gelchain-pos
-	@curl https://glide.sh/get | sh && glide install
+	@curl https://glide.sh/get | sh && glide cc && glide install
 
 bls_ubuntu:
 	@echo "create bls environment"
