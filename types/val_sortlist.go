@@ -34,7 +34,7 @@ func (valSortlist *ValSortlist) UpsertVal(valListItem *ValListItem, existFlag bo
 	if existFlag {
 		currentEle := valSortlist.ValList.Front()
 		currentItem := valSortlist.ValList.Front().Value.(*ValListItem)
-		for i := 0; i < valSortlist.Len; i++ {
+		for i := 0; i < valSortlist.Len-1; i++ {
 			if bytes.Equal(currentItem.Signer.Bytes(), valListItem.Signer.Bytes()) {
 				valSortlist.ValList.Remove(currentEle)
 				valSortlist.Len = valSortlist.Len - 1
@@ -50,9 +50,12 @@ func (valSortlist *ValSortlist) UpsertVal(valListItem *ValListItem, existFlag bo
 		if valListItem.Balance.Cmp(compareItem.Balance) >= 0 {
 			valSortlist.ValList.InsertBefore(valListItem, compareEle)
 			break
+		} else if i == valSortlist.Len-1 {
+			valSortlist.ValList.InsertAfter(valListItem,compareEle)
+		} else {
+			compareEle = compareEle.Next()
+			compareItem = compareEle.Value.(*ValListItem)
 		}
-		compareEle = compareEle.Next()
-		compareItem = compareEle.Value.(*ValListItem)
 	}
 	valSortlist.Len = valSortlist.Len + 1
 }
