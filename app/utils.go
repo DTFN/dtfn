@@ -63,6 +63,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 	beneficiary common.Address, pubkey crypto.PubKey, blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
 
+
 	if pubkey == nil || len(blsKeyString) == 0 {
 		app.GetLogger().Info("nil validator pubkey or bls pubkey")
 		return false, errors.New("nil validator pubkey or bls pubkey")
@@ -75,6 +76,9 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+		app.GetLogger().Info("blsKeyString: "+blsKeyString)
+		app.GetLogger().Info("tmAddress: "+tmAddress)
+
 		existFlag := false
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
 			if bytes.Equal(pubkey.Address(), app.strategy.
