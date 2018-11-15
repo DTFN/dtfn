@@ -16,5 +16,9 @@ import:
   version: master
 - package: github.com/golang/mock/gomock
   version: master
+- package: github.com/spf13/cobra
+  version: 0.0.1
+- package: github.com/spf13/viper
+  version: 1.0.0
 
 
