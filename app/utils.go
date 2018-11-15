@@ -433,6 +433,15 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	var validatorsSlice []abciTypes.Validator
 	var blsPubkeySlice []string
 
+	for i:=0;i<len(app.strategy.CurrRoundValData.CurrentValidators);i++{
+		validatorsSlice = append(validatorsSlice,
+			abciTypes.Validator{
+				Address: app.strategy.CurrRoundValData.CurrentValidators[i].Address,
+				PubKey:  app.strategy.CurrRoundValData.CurrentValidators[i].PubKey,
+				Power:   int64(0),
+			})
+	}
+
 	app.strategy.CurrRoundValData.CurrentValidators = nil
 
 	for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
