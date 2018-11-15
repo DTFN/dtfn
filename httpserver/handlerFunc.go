@@ -39,7 +39,7 @@ func (tHandler *THandler) RegisterFunc() {
 
 	tHandler.HandlersMap["/GetNextPosTable"] = tHandler.GetNextPosTableData
 	tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
-	tHandler.HandlersMap["/GetAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
+	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
 
 }
 

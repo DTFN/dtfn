@@ -149,8 +149,8 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			return true, nil
 		} else {
 			//同singer，不同MapList[tmAddress]，来捣乱的
-			app.GetLogger().Info("signer has voted")
-			return false, errors.New("signer has voted")
+			app.GetLogger().Info("signer,validator key ,bls key should keep accordance")
+			return false, errors.New("signer,validator key ,bls key should keep accordance")
 		}
 
 	}

@@ -61,7 +61,7 @@ func TestUpsertandRemovePosTable(t *testing.T) {
 	require.Equal(t, big.NewInt(10000), table.PosItemMap[Address1].Balance)
 
 	upsertFlag, err = table.UpsertPosItem(Address1, big.NewInt(9000), Address1, PubKey1)
-	require.Error(t, fmt.Errorf("situation should happened in real world"))
+	require.Error(t, fmt.Errorf("situation shouldn't happened in real world"))
 	require.Equal(t, false, upsertFlag)
 
 	upsertFlag, err = table.UpsertPosItem(Address3, big.NewInt(15000), Address3, PubKey3)
