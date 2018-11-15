@@ -148,9 +148,9 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
 			return true, nil
 		} else {
-			//同singer，不同MapList[tmAddress]，来捣乱的
-			app.GetLogger().Info("signer has voted")
-			return false, errors.New("signer has voted")
+			//signer,validator key,bls key 不符合一致性条件 来捣乱的
+			app.GetLogger().Info("signer,validator key ,bls key should keep accordance")
+			return false, errors.New("signer,validator key ,bls key should keep accordance")
 		}
 
 	}
@@ -245,7 +245,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else if int(height)%200 != 0 {
+		} else if int(height)%20 != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)

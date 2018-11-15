@@ -268,7 +268,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.InitPersistData()
 
-	if (header.Height-1)%200 == 0 && header.Height != 1 {
+	if (header.Height-1)%20 == 0 && header.Height != 1 {
 		app.logger.Info("DeepCopy")
 		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
 		json.Unmarshal(accByte, app.strategy.CurrRoundValData.AccountMapList)
