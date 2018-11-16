@@ -63,7 +63,6 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 	beneficiary common.Address, pubkey crypto.PubKey, blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
 
-
 	if pubkey == nil || len(blsKeyString) == 0 {
 		app.GetLogger().Info("nil validator pubkey or bls pubkey")
 		return false, errors.New("nil validator pubkey or bls pubkey")
@@ -76,8 +75,8 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
-		app.GetLogger().Info("blsKeyString: "+blsKeyString)
-		app.GetLogger().Info("tmAddress: "+tmAddress)
+		app.GetLogger().Info("blsKeyString: " + blsKeyString)
+		app.GetLogger().Info("tmAddress: " + tmAddress)
 
 		existFlag := false
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
@@ -135,7 +134,8 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			app.GetLogger().Info("add Validator Tx success")
 			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
 			return true, nil
-		} else if existFlag && signerExisted && blsExisted {
+		} else if existFlag && signerExisted && blsExisted &&
+			!blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
 			if app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].BlsKeyString != blsKeyString || !bytes.
 				Equal(app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer.Bytes(), signer.Bytes()) {
 				return false, errors.New("bls or validator pubkey was signed by other people")
@@ -433,7 +433,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	var validatorsSlice []abciTypes.Validator
 	var blsPubkeySlice []string
 
-	for i:=0;i<len(app.strategy.CurrRoundValData.CurrentValidators);i++{
+	for i := 0; i < len(app.strategy.CurrRoundValData.CurrentValidators); i++ {
 		validatorsSlice = append(validatorsSlice,
 			abciTypes.Validator{
 				Address: app.strategy.CurrRoundValData.CurrentValidators[i].Address,
