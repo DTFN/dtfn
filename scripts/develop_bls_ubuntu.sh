@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#!/usr/bin/env bash
 installEthereum(){
     mkdir -p $GOPATH/src/github.com/ethereum  && cd $_
     git clone git@github.com:green-element-chain/go-ethereum.git
