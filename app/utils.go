@@ -63,7 +63,6 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 	beneficiary common.Address, pubkey crypto.PubKey, blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
 
-
 	if pubkey == nil || len(blsKeyString) == 0 {
 		app.GetLogger().Info("nil validator pubkey or bls pubkey")
 		return false, errors.New("nil validator pubkey or bls pubkey")
@@ -76,8 +75,8 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
-		app.GetLogger().Info("blsKeyString: "+blsKeyString)
-		app.GetLogger().Info("tmAddress: "+tmAddress)
+		app.GetLogger().Info("blsKeyString: " + blsKeyString)
+		app.GetLogger().Info("tmAddress: " + tmAddress)
 
 		existFlag := false
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
@@ -109,8 +108,11 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		}
 
 		stateDb, _ := app.getCurrentState()
-		if !signerExisted && !existFlag && !blsExisted &&
-			!blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
+		if blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
+			app.GetLogger().Info("signer is locked")
+			return false, errors.New("signer is locked")
+		}
+		if !signerExisted && !existFlag && !blsExisted {
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
@@ -433,7 +435,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	var validatorsSlice []abciTypes.Validator
 	var blsPubkeySlice []string
 
-	for i:=0;i<len(app.strategy.CurrRoundValData.CurrentValidators);i++{
+	for i := 0; i < len(app.strategy.CurrRoundValData.CurrentValidators); i++ {
 		validatorsSlice = append(validatorsSlice,
 			abciTypes.Validator{
 				Address: app.strategy.CurrRoundValData.CurrentValidators[i].Address,
