@@ -75,6 +75,9 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
 
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+		app.GetLogger().Info("blsKeyString: " + blsKeyString)
+		app.GetLogger().Info("tmAddress: " + tmAddress)
+
 		existFlag := false
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
 			if bytes.Equal(pubkey.Address(), app.strategy.
@@ -131,7 +134,8 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			app.GetLogger().Info("add Validator Tx success")
 			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
 			return true, nil
-		} else if existFlag && signerExisted && blsExisted {
+		} else if existFlag && signerExisted && blsExisted &&
+			!blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
 			if app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].BlsKeyString != blsKeyString || !bytes.
 				Equal(app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer.Bytes(), signer.Bytes()) {
 				return false, errors.New("bls or validator pubkey was signed by other people")
@@ -148,7 +152,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
 			return true, nil
 		} else {
-			//同singer，不同MapList[tmAddress]，来捣乱的
+			//signer,validator key,bls key 不符合一致性条件 来捣乱的
 			app.GetLogger().Info("signer,validator key ,bls key should keep accordance")
 			return false, errors.New("signer,validator key ,bls key should keep accordance")
 		}
@@ -245,7 +249,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else if int(height)%200 != 0 {
+		} else if int(height)%20 != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)
@@ -428,6 +432,15 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
 	var validatorsSlice []abciTypes.Validator
 	var blsPubkeySlice []string
+
+	for i := 0; i < len(app.strategy.CurrRoundValData.CurrentValidators); i++ {
+		validatorsSlice = append(validatorsSlice,
+			abciTypes.Validator{
+				Address: app.strategy.CurrRoundValData.CurrentValidators[i].Address,
+				PubKey:  app.strategy.CurrRoundValData.CurrentValidators[i].PubKey,
+				Power:   int64(0),
+			})
+	}
 
 	app.strategy.CurrRoundValData.CurrentValidators = nil
 

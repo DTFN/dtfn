@@ -40,6 +40,7 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetNextPosTable"] = tHandler.GetNextPosTableData
 	tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
 	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
+	tHandler.HandlersMap["/GetInitialValidator"] = tHandler.GetInitialValidator
 
 }
 
@@ -242,6 +243,26 @@ func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter
 			SignerBalance: tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].SignerBalance,
 			Signer:        tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].Signer,
 			Beneficiary:   tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].Beneficiary,
+		})
+	}
+
+	jsonStr, err := json.Marshal(preValidators)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.Request) {
+	var preValidators []*Validator
+	for i := 0; i < len(tHandler.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
+		tmAddress := tHandler.strategy.CurrRoundValData.InitialValidators[i].Address
+		tmAddressStr := strings.ToLower(hex.EncodeToString(tmAddress))
+		preValidators = append(preValidators, &Validator{
+			Address:       tmAddress,
+			AddressString: tmAddressStr,
+			PubKey:        tHandler.strategy.CurrRoundValData.InitialValidators[i].PubKey,
 		})
 	}
 
