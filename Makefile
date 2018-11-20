@@ -14,7 +14,7 @@ BUILD_FLAGS = -ldflags "-X github.com/green-element-chain/gelchain/version.GitCo
 ### Development ###
 all: glide_vendor_deps install test
 
-gelchain: glide_vendor_deps build
+gelchain_ubuntu: bls_ubuntu develop_ubuntu develop_build
 
 gelchain_pos: glide_vendor_deps_pos build
 

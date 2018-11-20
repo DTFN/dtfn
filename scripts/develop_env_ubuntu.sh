@@ -25,6 +25,7 @@ installEthermintDependency(){
     go get github.com/tendermint/go-amino
     go get github.com/stretchr/testify/require
     go get github.com/spaolacci/murmur3
+    go get github.com/golang/mock/gomock
 }
 
 
