@@ -9,7 +9,6 @@ import (
 	"gopkg.in/urfave/cli.v1"
 	"math/big"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts"
