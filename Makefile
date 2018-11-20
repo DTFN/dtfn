@@ -16,7 +16,7 @@ all: glide_vendor_deps install test
 
 gelchain_ubuntu: bls_ubuntu develop_ubuntu develop_build
 
-gelchain_pos: glide_vendor_deps_pos build
+gelchain_pos_ubuntu: glide_vendor_deps_pos build
 
 gelchain_bls_ubuntu_pre: bls_ubuntu develop_ubuntu
 
@@ -28,7 +28,7 @@ glide_vendor_deps:
 
 glide_vendor_deps_pos:
 	@echo "build gelChain"
-	@git checkout gelchain-pos
+	@git checkout gelchain-wenbin
 	@curl https://glide.sh/get | sh && glide cc && glide install
 
 bls_ubuntu:
@@ -55,7 +55,7 @@ install:
 	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/gelchain
 
 build:
-	CGO_ENABLED=1 go build $(BUILD_FLAGS) -o ./build/gelchain ./cmd/gelchain
+	CGO_ENABLED=1 go build $(BUILD_FLAGS) -o /usr/bin/gelchain ./cmd/gelchain
 
 test:
 	@echo "--> Running go test"
