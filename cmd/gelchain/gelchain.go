@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/green-element-chain/gelchain/utils"
@@ -96,7 +97,8 @@ func ethermintCmd(ctx *cli.Context) error {
 		log.Info("get Initial accounts")
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
-			blsKeyJsonStr := strconv.Itoa(i)
+			blsKey := validators[i].BlsPubKey
+			blsKeyJsonStr, _ := json.Marshal(blsKey)
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
 			if i == len(ethAccounts.EthAccounts) {
