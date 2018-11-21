@@ -15,6 +15,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -108,8 +109,13 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		}
 
 		stateDb, _ := app.getCurrentState()
-		if !signerExisted && !existFlag && !blsExisted &&
-			!blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
+
+		if !signerExisted && !existFlag && !blsExisted {
+			if blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
+				lockHeight := blacklist.LockHeight(stateDb,signer)
+				app.GetLogger().Info("signer is locked "+strconv.FormatInt(lockHeight,10))
+				return false, errors.New("signer is locked "+strconv.FormatInt(lockHeight,10))
+			}
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
@@ -134,8 +140,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			app.GetLogger().Info("add Validator Tx success")
 			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
 			return true, nil
-		} else if existFlag && signerExisted && blsExisted &&
-			!blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
+		} else if existFlag && signerExisted && blsExisted {
 			if app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].BlsKeyString != blsKeyString || !bytes.
 				Equal(app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer.Bytes(), signer.Bytes()) {
 				return false, errors.New("bls or validator pubkey was signed by other people")
