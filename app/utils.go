@@ -112,9 +112,9 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 
 		if !signerExisted && !existFlag && !blsExisted {
 			if blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
-				lockHeight := blacklist.LockHeight(stateDb,signer)
-				app.GetLogger().Info("signer is locked "+strconv.FormatInt(lockHeight,10))
-				return false, errors.New("signer is locked "+strconv.FormatInt(lockHeight,10))
+				lockHeight := blacklist.LockHeight(stateDb, signer)
+				app.GetLogger().Info("signer is locked " + strconv.FormatInt(lockHeight, 10))
+				return false, errors.New("signer is locked " + strconv.FormatInt(lockHeight, 10))
 			}
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
@@ -254,7 +254,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else if int(height)%20 != 0 {
+		} else if int(height)%200 != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)
@@ -436,10 +436,12 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
 	var validatorsSlice []abciTypes.Validator
+	var currValidatorSlice []abciTypes.Validator
 	var blsPubkeySlice []string
 
+	//currValidatorSlice should remember all the current validator for delete
 	for i := 0; i < len(app.strategy.CurrRoundValData.CurrentValidators); i++ {
-		validatorsSlice = append(validatorsSlice,
+		currValidatorSlice = append(currValidatorSlice,
 			abciTypes.Validator{
 				Address: app.strategy.CurrRoundValData.CurrentValidators[i].Address,
 				PubKey:  app.strategy.CurrRoundValData.CurrentValidators[i].PubKey,
@@ -486,6 +488,20 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 					Power:   blsPower.Int64(),
 				})
 			blsPubkeySlice = append(blsPubkeySlice, app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].BlsKeyString)
+		}
+	}
+
+	for i := 0; i < len(currValidatorSlice); i++ {
+		pubkey, _ := tmTypes.PB2TM.PubKey(currValidatorSlice[i].PubKey)
+		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+
+		if !tmAddressMap[tmAddress] {
+			validatorsSlice = append(validatorsSlice,
+				abciTypes.Validator{
+					Address: currValidatorSlice[i].Address,
+					PubKey:  currValidatorSlice[i].PubKey,
+					Power:   int64(0),
+				})
 		}
 	}
 
