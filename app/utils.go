@@ -15,6 +15,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -111,8 +112,9 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 
 		if !signerExisted && !existFlag && !blsExisted {
 			if blacklist.IsLock(stateDb, currentHeight.Int64(), signer) {
-				app.GetLogger().Info("signer is locked")
-				return false, errors.New("signer is locked")
+				lockHeight := blacklist.LockHeight(stateDb,signer)
+				app.GetLogger().Info("signer is locked "+strconv.FormatInt(lockHeight,10))
+				return false, errors.New("signer is locked "+strconv.FormatInt(lockHeight,10))
 			}
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
