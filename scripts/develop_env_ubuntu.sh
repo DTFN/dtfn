@@ -33,7 +33,7 @@ modifyDepVersion(){
     cd $GOPATH/src/github.com/cosmos/cosmos-sdk
     git reset --hard 1e26ba2e0e9c1e0457383ff302a97396c227cddb
     cd $GOPATH/src/github.com/tendermint/go-amino
-    git reset --hard c344a05f4a36122a04508bee480ada33dc8be350
+    git reset --hard dc14acf9ef15f85828bfbc561ed9dd9d2a284885
 }
 
 
