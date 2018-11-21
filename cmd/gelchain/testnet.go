@@ -5,6 +5,7 @@ import (
 	emtUtils "github.com/green-element-chain/gelchain/cmd/utils"
 	"github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cfg "github.com/tendermint/tendermint/config"
+	"github.com/tendermint/tendermint/consensus"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
@@ -71,10 +72,17 @@ func testnetCmd(ctx *cli.Context) error {
 
 		pvFile := filepath.Join(nodeDir, config.BaseConfig.PrivValidator)
 		pv := privval.LoadFilePV(pvFile)
+		blsState := consensus.LoadFileBS(filepath.Join(nodeDir, config.BaseConfig.BlsState))
+		blsPubK := types.BLSPubKey{
+			Type:    "Secp256k1",
+			Address: pv.Address.String(),
+			Value:   blsState.GetPubKPKE(),
+		}
 		genVals[i] = types.GenesisValidator{
-			PubKey: pv.GetPubKey(),
-			Power:  1,
-			Name:   nodeDirName,
+			PubKey:    pv.GetPubKey(),
+			BlsPubKey: blsPubK,
+			Power:     1,
+			Name:      nodeDirName,
 		}
 	}
 
