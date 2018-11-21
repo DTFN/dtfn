@@ -10,7 +10,7 @@ installBLS(){
 
     cd $GOPATH/src/github.com/herumi
     git clone https://github.com/green-element-chain/bls.git && cd $GOPATH/src/github.com/herumi/bls
-    git reset --hard e95a58e9d6e83f940cf6fec5906c4599ef455282 && make
+    git reset --hard e9c72f18ab9bc09923da739151821cc588c0d295 && make
 }
 
 installBLS
