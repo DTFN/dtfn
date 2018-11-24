@@ -43,6 +43,10 @@ develop_ubuntu:
 	@echo "create develop_environment"
 	@bash ./scripts/develop_env_ubuntu.sh
 
+develop_pos_ubuntu:
+	@echo "create develop_environment"
+	@bash ./scripts/develop_pos_ubuntu.sh
+
 develop_centos:
 	@echo "create develop_enviorment"
 	@bash ./scripts/develop_env_centos.sh
