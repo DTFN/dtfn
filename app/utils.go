@@ -254,7 +254,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 	if app.strategy != nil {
 		if int(height) == 1 {
 			return app.enterInitial(height)
-		} else if int(height)%200 != 0 {
+		} else if int(height)%20 != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)
