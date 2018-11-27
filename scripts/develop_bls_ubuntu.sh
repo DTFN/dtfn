@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#!/usr/bin/env bash
 installEthereum(){
     mkdir -p $GOPATH/src/github.com/ethereum  && cd $_
     git clone git@github.com:green-element-chain/go-ethereum.git
@@ -8,9 +7,7 @@ installEthereum(){
 
 installTendermint(){
     cd ../
-    mkdir tendermint && cd tendermint/
-    git clone -b "feature/test_evidence" git@github.com:green-element-chain/tendermint.git
-    cd tendermint
+    cd tendermint/tendermint
     make get_tools
     make get_vendor_deps
     rm -r vendor/github.com/ethereum
