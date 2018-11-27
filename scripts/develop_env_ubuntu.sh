@@ -10,7 +10,6 @@ installTendermint(){
     mkdir tendermint && cd tendermint/
     git clone git@github.com:green-element-chain/tendermint.git
     cd tendermint
-    go get github.com/ebuchman/fail-test
     make get_tools
     make get_vendor_deps
     rm -r vendor/github.com/ethereum
