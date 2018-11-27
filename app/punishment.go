@@ -9,7 +9,6 @@ import (
 	tmTypes "github.com/tendermint/tendermint/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/green-element-chain/gelchain/types"
-	"fmt"
 )
 
 type Punishment struct {
@@ -71,19 +70,14 @@ func (s *TransferStrategy) subBalance(stateDB *state.StateDB, addr common.Addres
 }
 
 func subBalance(stateDB *state.StateDB, addr common.Address, amount *big.Int) *big.Int {
-	fmt.Println("addr:", addr.Hex())
-	fmt.Println("1", amount)
 	if amount.Cmp(big.NewInt(0)) <= 0 {
 		return big.NewInt(0)
 	}
 	balance := stateDB.GetBalance(addr)
-	fmt.Println("2", balance)
 	if balance.Cmp(amount) < 0 {
 		amount = balance
 	}
 	balance = big.NewInt(0).Sub(balance, amount)
-	fmt.Println("3", balance)
-	fmt.Println("4", amount)
 	stateDB.SetBalance(addr, balance)
 	stateDB.Commit(false)
 	return amount
@@ -99,7 +93,6 @@ func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abci
 		pk := e.Validator.PubKey
 
 		for _, v := range vs {
-			fmt.Println("vvv:", string(e.Validator.Address), string(v.Address))
 			if strings.EqualFold(string(e.Validator.Address), string(v.Address)) {
 				pk = v.PubKey
 				break
@@ -109,14 +102,12 @@ func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abci
 		if e != nil {
 			continue
 		}
-		fmt.Println("punish:", pubkey)
 		if pubkey != nil {
 			tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 			accountMap := app.GetAccountMap(tmAddress)
 			signer := accountMap.Signer
 			p.Punish(stateDB, signer)
-			b, _ := app.RemoveValidatorTx(signer)
-			fmt.Println("b", b)
+			app.RemoveValidatorTx(signer)
 		}
 	}
 }
