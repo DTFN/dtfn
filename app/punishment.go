@@ -9,23 +9,23 @@ import (
 	tmTypes "github.com/tendermint/tendermint/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/green-element-chain/gelchain/types"
+	"fmt"
 )
 
 type Punishment struct {
 	amountStrategy     AmountStrategy
 	subBalanceStrategy SubBalanceStrategy
-	stateDB            *state.StateDB
 }
 
-func NewPunishment(as AmountStrategy, ss SubBalanceStrategy, stateDB *state.StateDB) *Punishment {
-	punishment := &Punishment{amountStrategy: as, subBalanceStrategy: ss, stateDB: stateDB}
+func NewPunishment(as AmountStrategy, ss SubBalanceStrategy) *Punishment {
+	punishment := &Punishment{amountStrategy: as, subBalanceStrategy: ss}
 	return punishment
 }
 
-func (p *Punishment) Punish(byzantine common.Address) error {
+func (p *Punishment) Punish(stateDB *state.StateDB, byzantine common.Address) error {
 	as := p.amountStrategy
 	ss := p.subBalanceStrategy
-	ss.subBalance(p.stateDB, byzantine, as.amount(p.stateDB, byzantine))
+	ss.subBalance(stateDB, byzantine, as.amount(stateDB, byzantine))
 	return nil
 }
 
@@ -41,22 +41,11 @@ func (f *FixedAmountStrategy) amount(stateDB *state.StateDB, byzantine common.Ad
 	return f.fixedAmount
 }
 
-type PercentAmountStrategy struct {
-	percent uint
+type Percent100AmountStrategy struct {
 }
 
-func (f *PercentAmountStrategy) amount(stateDB *state.StateDB, byzantine common.Address) *big.Int {
-	if f.percent > 100 {
-		f.percent = 100
-	}
-	if f.percent < 0 {
-		f.percent = 0
-	}
-	var p float64 = float64(f.percent) / 100.0
-	balance := stateDB.GetBalance(byzantine)
-	amount := big.NewFloat(0).Mul(big.NewFloat(p), big.NewFloat(float64(balance.Int64())))
-	i, _ := amount.Int64()
-	return big.NewInt(i)
+func (f *Percent100AmountStrategy) amount(stateDB *state.StateDB, byzantine common.Address) *big.Int {
+	return stateDB.GetBalance(byzantine)
 }
 
 type SubBalanceStrategy interface {
@@ -82,15 +71,21 @@ func (s *TransferStrategy) subBalance(stateDB *state.StateDB, addr common.Addres
 }
 
 func subBalance(stateDB *state.StateDB, addr common.Address, amount *big.Int) *big.Int {
+	fmt.Println("addr:", addr.Hex())
+	fmt.Println("1", amount)
 	if amount.Cmp(big.NewInt(0)) <= 0 {
 		return big.NewInt(0)
 	}
 	balance := stateDB.GetBalance(addr)
+	fmt.Println("2", balance)
 	if balance.Cmp(amount) < 0 {
 		amount = balance
 	}
 	balance = big.NewInt(0).Sub(balance, amount)
+	fmt.Println("3", balance)
+	fmt.Println("4", amount)
 	stateDB.SetBalance(addr, balance)
+	stateDB.Commit(false)
 	return amount
 }
 
@@ -99,13 +94,29 @@ type IApp interface {
 	GetAccountMap(tmAddress string) *types.AccountMap
 }
 
-func (p *Punishment) DoPunish(app IApp, evidences []abciTypes.Evidence) {
+func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs []*abciTypes.Validator) {
 	for _, e := range evidences {
-		pubkey, _ := tmTypes.PB2TM.PubKey(e.Validator.PubKey)
-		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
-		accountMap := app.GetAccountMap(tmAddress)
-		signer := accountMap.Signer
-		p.Punish(signer)
-		app.RemoveValidatorTx(signer)
+		pk := e.Validator.PubKey
+
+		for _, v := range vs {
+			fmt.Println("vvv:", string(e.Validator.Address), string(v.Address))
+			if strings.EqualFold(string(e.Validator.Address), string(v.Address)) {
+				pk = v.PubKey
+				break
+			}
+		}
+		pubkey, e := tmTypes.PB2TM.PubKey(pk)
+		if e != nil {
+			continue
+		}
+		fmt.Println("punish:", pubkey)
+		if pubkey != nil {
+			tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+			accountMap := app.GetAccountMap(tmAddress)
+			signer := accountMap.Signer
+			p.Punish(stateDB, signer)
+			b, _ := app.RemoveValidatorTx(signer)
+			fmt.Println("b", b)
+		}
 	}
 }
