@@ -3,7 +3,6 @@ package app
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	errors "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -18,6 +17,7 @@ import (
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
 	"strings"
+	"fmt"
 )
 
 // EthermintApplication implements an ABCI application
@@ -55,7 +55,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		return nil, err
 	}
 
-	amountStrategy := &PercentAmountStrategy{percent: 100}
+	amountStrategy := &Percent100AmountStrategy{}
 	subBalanceStrategy := &BurnStrategy{}
 	app := &EthermintApplication{
 		backend:         backend,
@@ -64,7 +64,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
 		httpServer:      httpserver.NewBaseServer(strategy),
-		punishment:      NewPunishment(amountStrategy, subBalanceStrategy, state),
+		punishment:      NewPunishment(amountStrategy, subBalanceStrategy),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -293,7 +293,11 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	} else {
 	}
 
-	app.punishment.DoPunish(app, beginBlock.ByzantineValidators)
+	db, e := app.getCurrentState()
+	if e == nil {
+		app.logger.Info("do punish")
+		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrRoundValData.CurrentValidators)
+	}
 
 	return abciTypes.ResponseBeginBlock{}
 }
