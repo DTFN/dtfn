@@ -48,6 +48,8 @@ function do_blsDependencies() {
         sudo yum install -y gmp-devel openssl-devel gcc
     elif [[ "${OS_ARCH}" == "mint" || "${OS_ARCH}" == "ubuntu" ]]; then
         sudo apt-get install -y libgmp-dev libssl-dev openssl gcc
+    elif [[ "${OS_ARCH}" =~ "macbook" ]]; then
+        sudo brew install gmp openssl gcc
     fi
 }
 
@@ -68,11 +70,16 @@ function do_executeCmd() {
     
     echo $1
     cd ${ROOT_DIR} && sh -c "$1"
+
+    tagbin=${ROOT_DIR}/${BUILD_TAGS}
+    if [[ -f "${tagbin}" ]]; then
+        sudo mv ${tagbin} /usr/bin/${BUILD_TAGS}
+    fi
 }
 
 function do_remove_file() {
     if [ -f "$1" ]; then
-        rm -f $1
+        sudo rm -f $1
     fi
 }
 
@@ -82,6 +89,7 @@ function do_clean() {
    
     cd ${ROOT_DIR}
     do_remove_file ${BUILD_TAGS}
+    do_remove_file /usr/bin/${BUILD_TAGS}
     do_remove_file ${GOPATH}/bin/${BUILD_TAGS}
 }
 
@@ -89,7 +97,7 @@ function main() {
     current=$(pwd)
     case ${OP_TAGET} in
         "blsdep")
-            do_blsDependencies
+            do_blsDependencies 2>&1 >/dev/null
             ;;
         "glide")
             do_getDependencies
