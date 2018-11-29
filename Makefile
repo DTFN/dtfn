@@ -59,7 +59,7 @@ install:
 	CGO_ENABLED=1 go install $(BUILD_FLAGS) ./cmd/gelchain
 
 build:
-	CGO_ENABLED=1 go build $(BUILD_FLAGS) -o /usr/bin/gelchain ./cmd/gelchain
+	CGO_ENABLED=1 go build $(BUILD_FLAGS) -o ./gelchain ./cmd/gelchain
 
 test:
 	@echo "--> Running go test"

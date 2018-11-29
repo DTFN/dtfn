@@ -5,8 +5,16 @@ import:
   repo:    git@github.com:green-element-chain/go-ethereum.git
   vcs:     git
 - package: github.com/tendermint/tendermint
-  version: geltm-pos
+  version: xubing
   repo:    git@github.com:green-element-chain/tendermint.git
+  vcs:     git
+- package: github.com/herumi/mcl
+  version: master
+  repo:    git@github.com:green-element-chain/mcl.git
+  vcs:     git
+- package: github.com/herumi/bls
+  version: master
+  repo:    git@github.com:green-element-chain/bls.git
   vcs:     git
 - package: github.com/prometheus/prometheus
   version: v2.1.0
