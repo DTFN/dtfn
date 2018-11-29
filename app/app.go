@@ -292,6 +292,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		json.Unmarshal(posByte, &postable)
 
 		app.strategy.CurrRoundValData.PosTable = &postable
+		app.strategy.CurrRoundValData.PosTable.PosNodeSortList = emtTypes.NewValSortlist()
 	}
 
 
