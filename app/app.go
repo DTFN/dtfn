@@ -268,12 +268,18 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.InitPersistData()
 
-	if (header.Height)%20 == 0 && header.Height != 1 {
+	if (header.Height)%200 == 0  {
 		app.logger.Info("DeepCopy")
 		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
-		json.Unmarshal(accByte, app.strategy.CurrRoundValData.AccountMapList)
 
 		app.strategy.CurrRoundValData.CurrCandidateValidators = nil
+		app.strategy.CurrRoundValData.AccountMapList = nil
+		app.strategy.CurrRoundValData.PosTable = nil
+
+		accountMaplist := emtTypes.AccountMapList{}
+
+		json.Unmarshal(accByte, &accountMaplist)
+		app.strategy.CurrRoundValData.AccountMapList = &accountMaplist
 
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
 			app.strategy.CurrRoundValData.CurrCandidateValidators = append(
@@ -282,8 +288,12 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		}
 
 		posByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundPosTable)
-		json.Unmarshal(posByte, app.strategy.CurrRoundValData.PosTable)
+		postable := emtTypes.PosTable{}
+		json.Unmarshal(posByte, &postable)
+
+		app.strategy.CurrRoundValData.PosTable = &postable
 	}
+
 
 	if !app.strategy.FirstInitial {
 		// before next bonus ,clear accountMapListTemp
