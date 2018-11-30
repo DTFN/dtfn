@@ -209,7 +209,6 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 				return false, errors.New("posTable remove failed")
 			}
 			//app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
-			delete(app.strategy.NextRoundValData.NextAccountMapList.MapList, tmAddress)
 
 			var validatorPre, validatorNext []*abciTypes.Validator
 
@@ -230,6 +229,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 						strategy.NextRoundValData.NextRoundCandidateValidators, validatorNext[i])
 				}
 			}
+			delete(app.strategy.NextRoundValData.NextAccountMapList.MapList, tmAddress)
 			//if validator is exist in the currentValidators,it must be removed
 			app.GetLogger().Info("remove validatorTx success")
 			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
@@ -438,6 +438,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	var validatorsSlice []abciTypes.Validator
 	var currValidatorSlice []abciTypes.Validator
 	var blsPubkeySlice []string
+	app.strategy.CurrRoundValData.PosTable.PosNodeSortList = ethmintTypes.NewValSortlist()
 
 	//currValidatorSlice should remember all the current validator for delete
 	for i := 0; i < len(app.strategy.CurrRoundValData.CurrentValidators); i++ {
@@ -542,6 +543,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 		// no predata existed
 		app.logger.Info("no pre data")
 	} else {
+		app.logger.Info("Current RoundValData Not nil")
 		err := json.Unmarshal(currBytes, &app.strategy.CurrRoundValData)
 		if err != nil {
 			panic("initial currentRoundValData error")
@@ -556,17 +558,10 @@ func (app *EthermintApplication) InitPersistData() bool {
 func (app *EthermintApplication) PersistenceData() {
 	app.logger.Info("persist data")
 	wsState, _ := app.backend.Es().State()
-	if app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock {
-		app.logger.Info("PosTable has changed")
-		app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = false
-		app.logger.Info("write accountMap")
 
-		nextBytes, _ := json.Marshal(app.strategy.NextRoundValData)
+	nextBytes, _ := json.Marshal(app.strategy.NextRoundValData)
+	wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)
 
-		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)
-	} else {
-		app.logger.Info("PosTable hasn't changed")
-	}
 	currBytes, _ := json.Marshal(app.strategy.CurrRoundValData)
 	wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"), currBytes)
 }
