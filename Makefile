@@ -4,6 +4,7 @@ BUILD_TAGS? := gelchain
 
 ### Development ###
 all: glide_vendor_deps install test
+dev: glide_vendor_deps build
 
 gelchain_ubuntu: develop_bls develop_ubuntu develop_build
 
