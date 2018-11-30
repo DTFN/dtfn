@@ -5,7 +5,7 @@ import:
   repo:    git@github.com:green-element-chain/go-ethereum.git
   vcs:     git
 - package: github.com/tendermint/tendermint
-  version: develop
+  version: xubing
   repo:    git@github.com:green-element-chain/tendermint.git
   vcs:     git
 - package: github.com/herumi/mcl
