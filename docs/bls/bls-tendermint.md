@@ -77,6 +77,25 @@ type BLSInit struct {
 - `internalBLSInitMsgQueue`: msg queue to solve internal message
 - `commitInHeight`: the height in block of commit
 
+In the beginning of BLS initialization, we should know all node ID in the BLS
+init group, and sort the init group, find the location of the current node as
+`nodeIndex`, then confirm the threshold of init group, we use half of group
+number as `thresholdNum`. when we have `thresholdNum`, it is time for generating
+multinomial coefficient, using`SecretKey.SetByCSPRNG()`to generate the constant
+term of polynomial as `priva0`, according to `priva0`, generate coefficient.
+When multinomial is ready, we should calculate our commits according to coefficient
+of multinomial, and use p2p network to broadcast to other peer. Next step is that
+broadcasts secrets, first, we should generate secret according to multinomial for
+each peer, and then send the secret for corresponding peer. Other peer receive the
+secret, they can use the commit to verify the secret and put the result of
+verification in block, if they verify success, store the secret. After that, all
+node make a statistics for result of verification in block, remove the node that
+failed to verify.
+When the above process ends, we use the secret that all the remaining nodes send
+to me to generate private key for BLS as `skAgg`, generate public key for all the
+remaining nodes as `pubkPKEVec`, and generate group public key as `groupPK`. This
+is the end of initialization
+
 ##Generate random number
 We use BLSState struct to generate random number, as follow:
 ```
@@ -132,7 +151,35 @@ type BLSState struct {
 - `nodeID`: ID of current node
 - `signSlice`: receive the sign slice of current height
 - `isSignReady`: whether generate the group sign
-- `curSign`: the group sign of current height 
+- `curSign`: the group sign of current height
 - `groupSign`: store group sign for recent 3 height
 - `peerBLSMsgQueue`: msg queue to solve external message
 - `internalBLSMsgQueue`: msg queue to solve internal message
+
+When initialization of BLS ends, we get some important operational parameters,
+such as `SkAgg`, `GroupPK` and `PkAggVec`, these parameters can be used to
+participate in random number generation. The working process is as follows:
+all peer use their `SkAgg` to sign on the same message, the message is the
+`groupSign` of last height add Hash(`groupSign`), the`groupSign` of last height
+is sane for all peers, so message is same. When we sign for the message, broadcast
+the sign to other peer. if other peers receive the sign, use `PkAggVec` to verify
+the sign. if verify successful, store the sign. Once the number of sign greater
+than `ThresholdNum`, recover group sign by the receiving sign slice, and we can
+use `GroupPK` to verify the group sign.
+
+##About BLS initialization
+We distinguish initialization as the first initialization and continuous
+initialization. First initialization use p2p network to send messages between
+different peers, If a peer does not receive all message from another peer due to
+network problem, the initialization will cause failure. because we can not
+guarantee all peer receive message from same peer, in the first initialization,
+we required all peer receive all message from others strictly, there is no fault
+tolerance in the first initialization.
+In continuous initialization, we use p2p network and data in block to broadcast
+message in different peers, the data in the block is consistent as you can see,
+so we put some important data in block to make consensus in different peers, if
+peer A don't reveive data from peer B, peer A will write the info in block that
+A don't pass B's secret, when other peer see the message in block, they will
+record the info. When they generate BLS data, they will remove the failed node,
+use valid data to generate BLS data. So continuous initialization has some fault
+tolerance.
