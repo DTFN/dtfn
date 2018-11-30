@@ -1,27 +1,31 @@
-#Tendermint
+# Tendermint
+
 Tendermint Core is Byzantine Fault Tolerant (BFT) middleware that takes
 a state transition machine - written in any programming language and
 securely replicates it on many machines.
 
-##BLS In Tendermint
+## BLS In Tendermint
+
 We use BLS in Tendermint to generate random number among some peers. each
 peer can broadcast its sign slice to other peers, when the peer receive the
 number of sign slice greater than threshold, it can recover group sign, and
 use the group sign to generate random number by hash function. All peers
-work together to generate a random number at each height of block, each peer
-generate the random number is equal and this can proved by mathematics, the
+work together to generate a random number at each height of block, the random 
+number each peer generates is equal and this can proved by mathematics, the
 random number of each height is completely different, and nobody knows what
 the next random number is. We used the random number to select the sequence
 who make next block. This means that we reach a consensus among different
-people about random number in every height.
+peers about random number in every height.
 
-#Implement BLS
+# Implement BLS
+
 BLS algorithm is divided into two processes, the first is initialization, and
 the second is generating random number. We should have a successful completion
 of the initialization, than use the result of initialization to join generating
 random number.
 
-##BLS initialization
+## BLS initialization
+
 We use BLSInit struct to complete initialization, as follow:
 ```
 type BLSInit struct {
@@ -96,7 +100,8 @@ to me to generate private key for BLS as `skAgg`, generate public key for all th
 remaining nodes as `pubkPKEVec`, and generate group public key as `groupPK`. This
 is the end of initialization
 
-##Generate random number
+## Generate random number
+
 We use BLSState struct to generate random number, as follow:
 ```
 type BLSState struct {
@@ -156,7 +161,7 @@ type BLSState struct {
 - `peerBLSMsgQueue`: msg queue to solve external message
 - `internalBLSMsgQueue`: msg queue to solve internal message
 
-When initialization of BLS ends, we get some important operational parameters,
+When BLS's initialization finished, we get some important operational parameters,
 such as `SkAgg`, `GroupPK` and `PkAggVec`, these parameters can be used to
 participate in random number generation. The working process is as follows:
 all peer use their `SkAgg` to sign on the same message, the message is the
@@ -167,7 +172,8 @@ the sign. if verify successful, store the sign. Once the number of sign greater
 than `ThresholdNum`, recover group sign by the receiving sign slice, and we can
 use `GroupPK` to verify the group sign.
 
-##About BLS initialization
+## About BLS initialization
+
 We distinguish initialization as the first initialization and continuous
 initialization. First initialization use p2p network to send messages between
 different peers, If a peer does not receive all message from another peer due to
