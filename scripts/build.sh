@@ -6,6 +6,7 @@ ROOT_DIR=$(cd `dirname $(readlink -f "$0")`/.. && pwd)
 OS_ARCH=$(uname -n|tr '[:upper:]' '[:lower:]')
 BUILD_FLAGS="-ldflags \"-X github.com/green-element-chain/gelchain/version.GitCommit=\`git rev-parse --short HEAD\`\""
 BUILD_TAGS=gelchain
+ETH_ACCOUNT=ethAccount
 
 function printHelp () {
     echo "Usage: ./`basename $0` -t [blsdep|glide|build|install|clean]"
@@ -63,21 +64,30 @@ function do_blsPackageCmd() {
     cd ${pkg_herumi}/bls && ${exeCmd}
 }
 
-function do_executeCmd() {
-    echo "do execute command for gelchain"
-    # do_getDependencies
+function do_move_file() {
+    if [ -f "$1/$2" ]; then
+        sudo mv $1/$2 /usr/bin/$2
+    fi
+}
+
+function do_executeCmdGelChain() {
+    echo "do execute command for gelchain ..."
     do_blsPackageCmd 
     
     echo $1
     cd ${ROOT_DIR} && sh -c "$1"
-
-    tagbin=${ROOT_DIR}/${BUILD_TAGS}
-    if [[ -f "${tagbin}" ]]; then
-        sudo mv ${tagbin} /usr/bin/${BUILD_TAGS}
-    fi
+    do_move_file ${ROOT_DIR} ${BUILD_TAGS}
 }
 
-function do_remove_file() {
+function do_executeCmdAccount() {
+    echo "do execute command for account ..."
+    
+    echo $1
+    cd ${ROOT_DIR} && sh -c "$1"
+    do_move_file ${ROOT_DIR} ${ETH_ACCOUNT}
+}
+
+function do_delete_file() {
     if [ -f "$1" ]; then
         sudo rm -f $1
     fi
@@ -88,9 +98,13 @@ function do_clean() {
     do_blsPackageCmd 'clean'
    
     cd ${ROOT_DIR}
-    do_remove_file ${BUILD_TAGS}
-    do_remove_file /usr/bin/${BUILD_TAGS}
-    do_remove_file ${GOPATH}/bin/${BUILD_TAGS}
+    do_delete_file ${BUILD_TAGS}
+    do_delete_file /usr/bin/${BUILD_TAGS}
+    do_delete_file ${GOPATH}/bin/${BUILD_TAGS}
+    
+    do_delete_file ${ETH_ACCOUNT}
+    do_delete_file /usr/bin/${ETH_ACCOUNT}
+    do_delete_file ${GOPATH}/bin/${ETH_ACCOUNT}
 }
 
 function main() {
@@ -103,12 +117,12 @@ function main() {
             do_getDependencies
             ;;
         "build")
-            shellCmd="CGO_ENABLED=1 go build ${BUILD_FLAGS} -o ./${BUILD_TAGS} ./cmd/gelchain"
-            do_executeCmd "${shellCmd}"
+            do_executeCmdGelChain "CGO_ENABLED=1 go build ${BUILD_FLAGS} -o ./${BUILD_TAGS} ./cmd/gelchain"
+            do_executeCmdAccount "CGO_ENABLED=1 go build ${BUILD_FLAGS} -o ./${ETH_ACCOUNT} ./cmd/ethAccount"
             ;;
         "install")
-            shellCmd="CGO_ENABLED=1 go install ${BUILD_FLAGS} ./cmd/gelchain"
-            do_executeCmd "${shellCmd}"
+            do_executeCmdGelChain "CGO_ENABLED=1 go install ${BUILD_FLAGS} ./cmd/gelchain}"
+            do_executeCmdAccount "CGO_ENABLED=1 go install ${BUILD_FLAGS} ./cmd/ethAccount}"
             ;;
         "clean")
             do_clean
