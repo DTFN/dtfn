@@ -2,7 +2,9 @@ package ethereum
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -234,8 +236,21 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 
 			address := strings.ToLower(hex.EncodeToString(strategy.CurrRoundValData.InitialValidators[i].Address))
 			if strategy.CurrRoundValData.AccMapInitial.MapList[address] != nil {
+				fmt.Println(("validator " + strconv.Itoa(i+1)) +
+					" Beneficiary address: " + strategy.CurrRoundValData.
+					AccMapInitial.MapList[address].Beneficiary.String() +
+					" get money: " + bonusAverage.String() +
+					" power: 1" +
+					" validator address: " + address)
 				ws.state.AddBalance(strategy.CurrRoundValData.AccMapInitial.MapList[address].Beneficiary, bonusAverage)
 			} else {
+				fmt.Println(("validator " + strconv.Itoa(i+1)) +
+					" Beneficiary address: " + strategy.CurrRoundValData.
+					AccountMapList.MapList[address].Beneficiary.String() +
+					" get money: " + bonusAverage.String() +
+					" power: 1" +
+					" validator address: " + address)
+
 				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 			}
 		}
@@ -247,11 +262,12 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
 			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 
-			//if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
-			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusAverage)
-			//} else {
-			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
-			//}
+			fmt.Println(("validator " + strconv.Itoa(i+1)) +
+				" Beneficiary address: " + strategy.CurrRoundValData.
+				AccountMapList.MapList[address].Beneficiary.String() +
+				" get money: " + bonusAverage.String() +
+				" power: 1" +
+				" validator address: " + address)
 		}
 	} else {
 		weightSum := 0
@@ -265,13 +281,14 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 				Div(minerBonus, big.NewInt(int64(weightSum))))
 
 			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
-			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 
-			//if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
-			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapListTemp.MapList[address].Beneficiary, bonusSpecify)
-			//} else {
-			//	ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
-			//}
+			fmt.Println(("validator " + strconv.Itoa(i+1)) +
+				" Beneficiary address: " + strategy.CurrRoundValData.
+				AccountMapList.MapList[address].Beneficiary.String() +
+				" get money: " + bonusSpecify.String() +
+				" power: " + strconv.Itoa(int(strategy.CurrRoundValData.CurrentValidatorWeight[i])) +
+				" validator address: " + address)
+			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
 		}
 	}
 	ws.header.GasUsed = *ws.totalUsedGas

@@ -3,10 +3,8 @@ package types
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
-	"reflect"
 )
 
 // MinerRewardStrategy is a mining strategy
@@ -138,17 +136,17 @@ func (strategy *Strategy) SetValidators(validators []*abciTypes.Validator) {
 
 // CollectTx collects the rewards for a transaction
 func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
-	if reflect.DeepEqual(tx.To(), common.HexToAddress("0000000000000000000000000000000000000001")) {
-		log.Info("Adding validator", "data", tx.Data())
-		pubKey := abciTypes.PubKey{Data: tx.Data()}
-		strategy.currentValidators = append(
-			strategy.currentValidators,
-			&abciTypes.Validator{
-				PubKey: pubKey,
-				Power:  tx.Value().Int64(),
-			},
-		)
-	}
+	//if reflect.DeepEqual(tx.To(), common.HexToAddress("0000000000000000000000000000000000000001")) {
+	//	log.Info("Adding validator", "data", tx.Data())
+	//	pubKey := abciTypes.PubKey{Data: tx.Data()}
+	//	strategy.currentValidators = append(
+	//		strategy.currentValidators,
+	//		&abciTypes.Validator{
+	//			PubKey: pubKey,
+	//			Power:  tx.Value().Int64(),
+	//		},
+	//	)
+	//}
 }
 
 // GetUpdatedValidators returns the current validators
