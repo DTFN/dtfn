@@ -33,6 +33,7 @@ import (
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
+	"github.com/tendermint/tendermint/p2p"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -126,8 +127,15 @@ func ethermintCmd(ctx *cli.Context) error {
 		tmLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "tendermint")
 		configLoggerLevel(ctx, &tmLogger)
 
+		// Generate node PrivKey
+		nodeKey, err := p2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
+		if err != nil {
+			return err
+		}
+
 		n, err := tmNode.NewNode(tmConfig,
 			privval.LoadOrGenFilePV(tmConfig.PrivValidatorFile()),
+			nodeKey,
 			clientCreator,
 			tmNode.DefaultGenesisDocProviderFunc(tmConfig),
 			tmNode.DefaultDBProvider,

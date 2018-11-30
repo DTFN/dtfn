@@ -18,6 +18,7 @@ import (
 	"math/big"
 	"strings"
 	"fmt"
+	"github.com/tendermint/tendermint/types"
 )
 
 // EthermintApplication implements an ABCI application
@@ -130,20 +131,17 @@ func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) abciT
 func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciTypes.ResponseInitChain {
 
 	app.logger.Debug("InitChain") // nolint: errcheck
-	var validators []*abciTypes.Validator
-	for i := 0; i < len(req.GetValidators()); i++ {
-		validators = append(validators, &req.GetValidators()[i])
-	}
-	app.SetValidators(validators)
-	app.strategy.CurrRoundValData.InitialValidators = validators
+	app.SetValidators(req.Validators)
+	app.strategy.CurrRoundValData.InitialValidators=req.Validators
 
 	ethState, _ := app.getCurrentState()
 
 	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
 		app.GetLogger().Info("CurrRoundValData.InitialValidators sige", "blacklist",
 			len(app.strategy.CurrRoundValData.InitialValidators))
-		address := strings.ToLower(hex.EncodeToString(app.strategy.CurrRoundValData.
-			InitialValidators[j].Address))
+		pubKey:=app.strategy.CurrRoundValData.InitialValidators[j].PubKey
+		tmPubKey,_:=types.PB2TM.PubKey(pubKey)
+		address := strings.ToLower(tmPubKey.Address().String())
 		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
 			continue
 		}
@@ -168,8 +166,9 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			//This is used to remove the validators who dont have enough balance
 			//but he is in the accountmap.
 			app.strategy.FirstInitial = true
-			tmAddress := hex.EncodeToString(app.strategy.CurrRoundValData.
-				InitialValidators[j].Address)
+			pubKey:=app.strategy.CurrRoundValData.InitialValidators[j].PubKey
+			tmPubKey,_:=types.PB2TM.PubKey(pubKey)
+			tmAddress := strings.ToLower(tmPubKey.Address().String())
 			app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
 			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
 			app.GetLogger().Info("remove not enough balance validators")
@@ -302,6 +301,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		app.strategy.CurrRoundValData.PosTable = &postable
 		app.strategy.CurrRoundValData.PosTable.PosNodeSortList = emtTypes.NewValSortlist()
 	}
+
 	if !app.strategy.FirstInitial {
 		// before next bonus ,clear accountMapListTemp
 		for key, _ := range app.strategy.CurrRoundValData.AccMapInitial.MapList {

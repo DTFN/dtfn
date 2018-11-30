@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spaolacci/murmur3"
-	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	"math/rand"
 	"sort"
 	"strconv"
 	"sync"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
 )
 
 const PosTableMaxSize = 2000
@@ -136,11 +136,11 @@ func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, len int) PosItem {
 }
 
 type PosItem struct {
-	Signer      common.Address   `json:"signer"`
-	Balance     *big.Int         `json:"balance"`
-	PubKey      abciTypes.PubKey `json:"pubKey"`
-	Indexes     map[int]bool     `json:"indexes"`
-	Beneficiary common.Address   `json:"beneficiary"`
+	Signer      common.Address `json:"signer"`
+	Balance     *big.Int       `json:"balance"`
+	PubKey      abciTypes.PubKey  `json:"pubKey"`
+	Indexes     map[int]bool   `json:"indexes"`
+	Beneficiary common.Address `json:"beneficiary"`
 }
 
 func newPosItem(signer common.Address, balance *big.Int, beneficiary common.Address, pubKey abciTypes.PubKey) *PosItem {
