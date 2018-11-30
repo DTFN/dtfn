@@ -88,22 +88,21 @@ type IApp interface {
 	GetAccountMap(tmAddress string) *types.AccountMap
 }
 
-func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs []*abciTypes.Validator) {
+func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs []abciTypes.ValidatorUpdate) {
 	for _, e := range evidences {
-		pk := e.Validator.PubKey
+		var addr []byte
 
 		for _, v := range vs {
-			if strings.EqualFold(string(e.Validator.Address), string(v.Address)) {
-				pk = v.PubKey
+			pubKey:=v.PubKey
+			tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)
+			tmAddress := strings.ToLower(tmPubKey.Address().String())
+			if strings.EqualFold(string(e.Validator.Address), tmAddress) {
+				addr=e.Validator.Address
 				break
 			}
 		}
-		pubkey, e := tmTypes.PB2TM.PubKey(pk)
-		if e != nil {
-			continue
-		}
-		if pubkey != nil {
-			tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+		if addr != nil {
+			tmAddress := strings.ToLower(hex.EncodeToString(addr))
 			accountMap := app.GetAccountMap(tmAddress)
 			signer := accountMap.Signer
 			p.Punish(stateDB, signer)

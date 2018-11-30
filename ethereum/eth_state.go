@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"encoding/hex"
 	"math/big"
 	"strings"
 	"sync"
@@ -23,6 +22,7 @@ import (
 	emtTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/tendermint/tendermint/crypto"
 	"time"
+	"github.com/tendermint/tendermint/types"
 )
 
 const errorCode = 1
@@ -217,7 +217,7 @@ func (ws *workState) State() *state.StateDB {
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
 	//todo:后续要获取到块的validators列表根据voting power按比例分配收益
-	var validators []*abciTypes.Validator
+	var validators []abciTypes.ValidatorUpdate
 	for i := 0; i < len(strategy.CurrRoundValData.CurrentValidators); i++ {
 		validators = append(validators, strategy.CurrRoundValData.CurrentValidators[i])
 	}
@@ -232,7 +232,9 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			bonusAverage := big.NewInt(1)
 			bonusAverage.Div(minerBonus, big.NewInt(int64(len(strategy.CurrRoundValData.InitialValidators))))
 
-			address := strings.ToLower(hex.EncodeToString(strategy.CurrRoundValData.InitialValidators[i].Address))
+			pubKey := strategy.CurrRoundValData.InitialValidators[i].PubKey
+			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
+			address := strings.ToLower(tmPubKey.Address().String())
 			if strategy.CurrRoundValData.AccMapInitial.MapList[address] != nil {
 				ws.state.AddBalance(strategy.CurrRoundValData.AccMapInitial.MapList[address].Beneficiary, bonusAverage)
 			} else {
@@ -244,7 +246,9 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			bonusAverage := big.NewInt(1)
 			bonusAverage.Div(minerBonus, big.NewInt(int64(len(validators))))
 
-			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
+			pubKey := validators[i].PubKey
+			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
+			address := strings.ToLower(tmPubKey.Address().String())
 			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 
 			//if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {
@@ -264,7 +268,9 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			bonusSpecify.Mul(big.NewInt(strategy.CurrRoundValData.CurrentValidatorWeight[i]), bonusAverage.
 				Div(minerBonus, big.NewInt(int64(weightSum))))
 
-			address := strings.ToLower(hex.EncodeToString(validators[i].Address))
+			pubKey := validators[i].PubKey
+			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
+			address := strings.ToLower(tmPubKey.Address().String())
 			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
 
 			//if strategy.CurrRoundValData.AccountMapListTemp.MapList[address] != nil {

@@ -8,7 +8,7 @@ import (
 )
 
 type Validator struct {
-	Address       []byte           `json:"address"`
+	//Address       []byte           `json:"address"`
 	PubKey        abciTypes.PubKey `json:"pubKey"`
 	Power         int64            `json:"power"`
 	AddressString string           `json:"addressString"`

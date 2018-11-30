@@ -130,15 +130,15 @@ func TestenterInitial(t *testing.T){
 	ResBlock:=ethapp.enterInitial(1)
 	require.Equal(t,abciTypes.ResponseEndBlock{},ResBlock)
 
-	var Validators=[]*abciTypes.Validator{
-		{	Address: []byte("43A280B075C15EEA8EDE123ED84462C260F780CC"),
+	var Validators=[]*abciTypes.ValidatorUpdate{
+		{	//Address: []byte("43A280B075C15EEA8EDE123ED84462C260F780CC"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("lSk6hpSsP+Vpi/yfNFbfqK4x99jx1zTkf7On60ES3I4="),
 			},
 			Power: 1,},
 		{
-			Address: []byte("E431AE48F0F9894E7FBE06CF5CCF66B326D7439F"),
+			//Address: []byte("E431AE48F0F9894E7FBE06CF5CCF66B326D7439F"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("DAgy3l3jPF8L24KBTs7oJfyduihcBoiOOYIstEMx9VY="),

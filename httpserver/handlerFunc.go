@@ -64,7 +64,7 @@ func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
 	for i := 0; i < len(tHandler.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey)
 		nextValidators = append(nextValidators, &Validator{
-			Address:       tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Address,
+			//Address:       tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Address,
 			PubKey:        tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
 			Power:         tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Power,
 			AddressString: hex.EncodeToString(tmPubKey.Address()),
@@ -90,7 +90,7 @@ func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 	for i := 0; i < len(tHandler.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey)
 		nextValidators = append(nextValidators, &Validator{
-			Address:       tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Address,
+			//Address:       tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Address,
 			PubKey:        tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
 			Power:         tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Power,
 			AddressString: hex.EncodeToString(tmPubKey.Address()),
@@ -170,10 +170,11 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
 	for i := 0; i < len(tHandler.strategy.CurrRoundValData.CurrentValidators); i++ {
-		tmAddress := tHandler.strategy.CurrRoundValData.CurrentValidators[i].Address
-		tmAddressStr := strings.ToLower(hex.EncodeToString(tmAddress))
+		pubKey := tHandler.strategy.CurrRoundValData.CurrentValidators[i].PubKey
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
+		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
 		preValidators = append(preValidators, &Validator{
-			Address:       tmAddress,
+			//Address:       tmAddress,
 			AddressString: tmAddressStr,
 			PubKey:        tHandler.strategy.CurrRoundValData.CurrentValidators[i].PubKey,
 			Power:         tHandler.strategy.CurrRoundValData.CurrentValidatorWeight[i],
@@ -209,10 +210,11 @@ func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.R
 func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
 	for i := 0; i < len(tHandler.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
-		tmAddress := tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Address
-		tmAddressStr := strings.ToLower(hex.EncodeToString(tmAddress))
+		pubKey := tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
+		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
 		preValidators = append(preValidators, &Validator{
-			Address:       tmAddress,
+			//Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: tmAddressStr,
 			PubKey:        tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
@@ -233,10 +235,11 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
 	for i := 0; i < len(tHandler.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-		tmAddress := tHandler.strategy.NextRoundValData.NextRoundCandidateValidators[i].Address
-		tmAddressStr := strings.ToLower(hex.EncodeToString(tmAddress))
+		pubKey := tHandler.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
+		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
 		preValidators = append(preValidators, &Validator{
-			Address:       tmAddress,
+			//Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: tmAddressStr,
 			PubKey:        tHandler.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey,
@@ -257,10 +260,11 @@ func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter
 func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
 	for i := 0; i < len(tHandler.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-		tmAddress := tHandler.strategy.CurrRoundValData.InitialValidators[i].Address
-		tmAddressStr := strings.ToLower(hex.EncodeToString(tmAddress))
+		pubKey := tHandler.strategy.CurrRoundValData.InitialValidators[i].PubKey
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
+		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
 		preValidators = append(preValidators, &Validator{
-			Address:       tmAddress,
+			//Address:       tmAddress,
 			AddressString: tmAddressStr,
 			PubKey:        tHandler.strategy.CurrRoundValData.InitialValidators[i].PubKey,
 		})
@@ -273,8 +277,6 @@ func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.R
 		w.Write(jsonStr)
 	}
 }
-
-
 
 func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request) {
 	minerBonus := big.NewInt(1)

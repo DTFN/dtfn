@@ -30,7 +30,7 @@ type Strategy struct {
 	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
 	//only need once,dont need persistence
 	//needn't to be persisted
-	currentValidators []*abciTypes.Validator
+	currentValidators []abciTypes.ValidatorUpdate
 
 	//need to be persisted
 	FirstInitial bool
@@ -49,11 +49,11 @@ type NextRoundValData struct {
 	//we should deepcopy evert 200 height
 	//first deepcopy:copy at height 1 from CurrentRoundValData to NextRoundValData
 	//height/200 ==0:c from NextRoundValData to CurrentRoundValData   `json:"-"`
-	NextRoundPosTable *PosTable  `json:"nextRoundPosTable"`
+	NextRoundPosTable *PosTable `json:"nextRoundPosTable"`
 
-	NextRoundCandidateValidators []*abciTypes.Validator    `json:"nextRoundCandidateValidators"`
+	NextRoundCandidateValidators []abciTypes.ValidatorUpdate `json:"nextRoundCandidateValidators"`
 
-	NextAccountMapList *AccountMapList   `json:"nextAccountMapList"`
+	NextAccountMapList *AccountMapList `json:"nextAccountMapList"`
 }
 
 type CurrentRoundValData struct {
@@ -65,22 +65,22 @@ type CurrentRoundValData struct {
 	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
 	// and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
-	AccMapInitial *AccountMapList   `json:"accMapInitial"`
+	AccMapInitial *AccountMapList `json:"accMapInitial"`
 
 	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable *PosTable `json:"posTable"`
 
 	// current candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
-	CurrCandidateValidators []*abciTypes.Validator `json:"currCandidateValidators"`
+	CurrCandidateValidators []abciTypes.ValidatorUpdate `json:"currCandidateValidators"`
 
 	// Initial validators , only use for once
-	InitialValidators []*abciTypes.Validator  `json:"initialValidators"`
+	InitialValidators []abciTypes.ValidatorUpdate `json:"initialValidators"`
 
 	// validators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
 	// will be select by postable.
 	// CurrentValidators is the true validators except commmittee validator when height != 1
 	// if height =1 ,CurrentValidator = nil
-	CurrentValidators []*abciTypes.Validator `json:"currentValidators"`
+	CurrentValidators []abciTypes.ValidatorUpdate `json:"currentValidators"`
 
 	// current validator weight represent the weight of random select.
 	// will used to accumulateReward for next height
@@ -132,7 +132,7 @@ func (s *Strategy) Receiver() common.Address {
 }
 
 // SetValidators updates the current validators
-func (strategy *Strategy) SetValidators(validators []*abciTypes.Validator) {
+func (strategy *Strategy) SetValidators(validators []abciTypes.ValidatorUpdate) {
 	strategy.currentValidators = validators
 }
 
@@ -143,7 +143,7 @@ func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
 		pubKey := abciTypes.PubKey{Data: tx.Data()}
 		strategy.currentValidators = append(
 			strategy.currentValidators,
-			&abciTypes.Validator{
+			abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
 				Power:  tx.Value().Int64(),
 			},
@@ -152,7 +152,7 @@ func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
 }
 
 // GetUpdatedValidators returns the current validators
-func (strategy *Strategy) GetUpdatedValidators() []*abciTypes.Validator {
+func (strategy *Strategy) GetUpdatedValidators() []abciTypes.ValidatorUpdate {
 	return strategy.currentValidators
 }
 
