@@ -19,9 +19,7 @@ import:
 - package: github.com/cosmos/cosmos-sdk
   version: 1e26ba2e0e9c1e0457383ff302a97396c227cddb
 - package: github.com/tendermint/go-amino
-  version: v0.14.1
-- package: github.com/prometheus/prometheus
-  version: v2.1.0
+  version: dc14acf9ef15f85828bfbc561ed9dd9d2a284885
 - package: github.com/spaolacci/murmur3
   version: master
 - package: github.com/golang/mock/gomock
