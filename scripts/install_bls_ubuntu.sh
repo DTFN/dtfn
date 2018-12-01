@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 installBLS(){
-    sudo apt-get install -y libgmp-dev libssl-dev openssl gcc
+    sudo apt-get install -y libgmp-dev libssl-dev openssl gcc g++
     mkdir -p $GOPATH/src/github.com/herumi
 
     cd $GOPATH/src/github.com/herumi
