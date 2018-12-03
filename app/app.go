@@ -3,8 +3,8 @@ package app
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	errors "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -17,6 +17,7 @@ import (
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"math/big"
 	"strings"
+	"fmt"
 )
 
 // EthermintApplication implements an ABCI application
@@ -39,6 +40,8 @@ type EthermintApplication struct {
 
 	httpServer *httpserver.BaseServer
 
+	punishment *Punishment
+
 	logger tmLog.Logger
 }
 
@@ -52,6 +55,8 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		return nil, err
 	}
 
+	amountStrategy := &Percent100AmountStrategy{}
+	subBalanceStrategy := &BurnStrategy{}
 	app := &EthermintApplication{
 		backend:         backend,
 		rpcClient:       client,
@@ -59,6 +64,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
 		httpServer:      httpserver.NewBaseServer(strategy),
+		punishment:      NewPunishment(amountStrategy, subBalanceStrategy),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -129,35 +135,54 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		validators = append(validators, &req.GetValidators()[i])
 	}
 	app.SetValidators(validators)
-	app.strategy.ValidatorSet.InitialValidators = validators
-	//if len(validators) > 4 {
-	//	app.strategy.ValidatorSet.CornerStoneValidators = validators[0:4]
-	//	//app.strategy.ValidatorSet.NextCandidateValidators = validators[5:]
-	//	app.strategy.ValidatorSet.InitialValidators = validators[4:]
-	//} else {
-	//	app.strategy.ValidatorSet.CornerStoneValidators = validators
-	//}
-	for j := 0; j < len(app.strategy.ValidatorSet.InitialValidators); j++ {
-		address := strings.ToLower(hex.EncodeToString(app.strategy.ValidatorSet.
+	app.strategy.CurrRoundValData.InitialValidators = validators
+
+	ethState, _ := app.getCurrentState()
+
+	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
+		app.GetLogger().Info("CurrRoundValData.InitialValidators sige", "blacklist",
+			len(app.strategy.CurrRoundValData.InitialValidators))
+		address := strings.ToLower(hex.EncodeToString(app.strategy.CurrRoundValData.
 			InitialValidators[j].Address))
-		upsertFlag, _ := app.UpsertPosItem(
-			app.strategy.AccountMapList.MapList[address].Signer,
-			app.strategy.AccountMapList.MapList[address].SignerBalance,
-			app.strategy.AccountMapList.MapList[address].Beneficiary,
-			app.strategy.ValidatorSet.InitialValidators[j].PubKey)
+		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
+			continue
+		}
+		upsertFlag, _ := app.UpsertPosItemInit(
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer,
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].SignerBalance,
+			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary,
+			app.strategy.CurrRoundValData.InitialValidators[j].PubKey)
 		if upsertFlag {
-			app.strategy.ValidatorSet.NextHeightCandidateValidators = append(app.
-				strategy.ValidatorSet.NextHeightCandidateValidators, app.
-				strategy.ValidatorSet.InitialValidators[j])
+			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
+				strategy.CurrRoundValData.CurrCandidateValidators, app.
+				strategy.CurrRoundValData.InitialValidators[j])
+
+			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
+				strategy.NextRoundValData.NextRoundCandidateValidators, app.
+				strategy.CurrRoundValData.InitialValidators[j])
+
+			blacklist.Lock(ethState, app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
+			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
+				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
 		} else {
+			//This is used to remove the validators who dont have enough balance
+			//but he is in the accountmap.
 			app.strategy.FirstInitial = true
-			tmAddress := hex.EncodeToString(app.strategy.ValidatorSet.
+			tmAddress := hex.EncodeToString(app.strategy.CurrRoundValData.
 				InitialValidators[j].Address)
-			app.strategy.AccountMapListTemp.MapList[tmAddress] = app.strategy.AccountMapList.MapList[tmAddress]
-			delete(app.strategy.AccountMapList.MapList, tmAddress)
+			app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
+			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
 			app.GetLogger().Info("remove not enough balance validators")
 		}
 	}
+
+	app.logger.Info("deep copy when initChain")
+	accByte, _ := json.Marshal(app.strategy.CurrRoundValData.AccountMapList)
+	json.Unmarshal(accByte, app.strategy.NextRoundValData.NextAccountMapList)
+	posByte, _ := json.Marshal(app.strategy.CurrRoundValData.PosTable)
+	json.Unmarshal(posByte, app.strategy.NextRoundValData.NextRoundPosTable)
+	app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
+	app.PersistenceData()
 
 	return abciTypes.ResponseInitChain{}
 }
@@ -204,7 +229,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	db, e := app.getCurrentState()
 	if e == nil {
 		if wrap.Type == "upsert" {
-			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Balance, wrap.Beneficiary, wrap.Pubkey,wrap.BlsKeyString)
+			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Height, wrap.Balance, wrap.Beneficiary, wrap.Pubkey, wrap.BlsKeyString)
 			if e == nil && b {
 				blacklist.Lock(db, wrap.Signer)
 			} else {
@@ -234,25 +259,68 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 // BeginBlock starts a new Ethereum block
 // #stable - 0.4.0
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
-
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!br0ken!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
-	app.strategy.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
+	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 
-	app.InitialPos()
-
-	if !app.strategy.FirstInitial{
-		// before next bonus ,clear accountMapListTemp
-		for key, _ := range app.strategy.AccountMapListTemp.MapList {
-			delete(app.strategy.AccountMapListTemp.MapList, key)
+	if !app.strategy.FirstInitial {
+		app.logger.Info("delete all current maplist")
+		for key, _ := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, key)
 		}
-	}else{
+	}
+	app.InitPersistData()
+
+	if (header.Height)%200 == 0 {
+		app.logger.Info("DeepCopy")
+		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
+
+		app.strategy.CurrRoundValData.CurrCandidateValidators = nil
+		app.strategy.CurrRoundValData.PosTable = nil
+		for key, _ := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, key)
+		}
+		accountMaplist := emtTypes.AccountMapList{}
+
+		json.Unmarshal(accByte, &accountMaplist)
+		for key, value := range accountMaplist.MapList {
+			app.strategy.CurrRoundValData.AccountMapList.MapList[key] = value
+		}
+
+		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
+			app.strategy.CurrRoundValData.CurrCandidateValidators = append(
+				app.strategy.CurrRoundValData.CurrCandidateValidators,
+				app.strategy.NextRoundValData.NextRoundCandidateValidators[i])
+		}
+
+		posByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundPosTable)
+		postable := emtTypes.PosTable{}
+		json.Unmarshal(posByte, &postable)
+
+		app.strategy.CurrRoundValData.PosTable = &postable
+		app.strategy.CurrRoundValData.PosTable.PosNodeSortList = emtTypes.NewValSortlist()
+	}
+	if !app.strategy.FirstInitial {
+		// before next bonus ,clear accountMapListTemp
+		for key, _ := range app.strategy.CurrRoundValData.AccMapInitial.MapList {
+			delete(app.strategy.CurrRoundValData.AccMapInitial.MapList, key)
+		}
+	} else {
 	}
 
+	db, e := app.getCurrentState()
+	if e == nil {
+		app.logger.Info("do punish")
+		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrRoundValData.CurrentValidators)
+	}
 
 	return abciTypes.ResponseBeginBlock{}
+}
+
+func (app *EthermintApplication) GetAccountMap(tmAddress string) *emtTypes.AccountMap {
+	return app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
 }
 
 // EndBlock accumulates rewards for the validators and updates them
@@ -264,8 +332,6 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
 
-
-
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
@@ -274,7 +340,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
 	app.backend.AccumulateRewards(app.strategy)
-	app.PersistencePos()
+	app.PersistenceData()
 
 	app.logger.Debug("Commit") // nolint: errcheck
 	state, err := app.getCurrentState()
@@ -417,4 +483,21 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 
 func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 	return app.strategy
+}
+
+func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balance *big.Int, beneficiary common.Address,
+	pubkey abciTypes.PubKey) (bool, error) {
+	if app.strategy != nil {
+		bool, err := app.strategy.CurrRoundValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
+		return bool, err
+	}
+	return false, nil
+}
+
+func (app *EthermintApplication) RemovePosItemInit(account common.Address) (bool, error) {
+	if app.strategy != nil {
+		bool, err := app.strategy.CurrRoundValData.PosTable.RemovePosItem(account)
+		return bool, err
+	}
+	return false, nil
 }

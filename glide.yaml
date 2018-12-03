@@ -5,11 +5,14 @@ import:
   repo:    git@github.com:green-element-chain/go-ethereum.git
   vcs:     git
 - package: github.com/tendermint/tendermint
-  version: develop
+  version: geltm-pos
   repo:    git@github.com:green-element-chain/tendermint.git
   vcs:     git
 - package: github.com/prometheus/prometheus
   version: v2.1.0
 - package: github.com/cosmos/cosmos-sdk
   version: v0.23.1
-
+- package: github.com/spaolacci/murmur3
+  version: master
+- package: github.com/golang/mock/gomock
+  version: master

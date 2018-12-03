@@ -26,6 +26,7 @@ var (
 		ethUtils.CacheFlag,
 		ethUtils.TrieCacheGenFlag,
 		ethUtils.GCModeFlag,
+		utils.TrieTimeLimitFlag,
 		// Account settings
 		ethUtils.UnlockedAccountFlag,
 		ethUtils.PasswordFileFlag,
@@ -87,6 +88,14 @@ var (
 		utils.TmConsNeedProofBlock,
 		utils.TmInitialEthAccount,
 		utils.TmBlsSelectStrategy,
+		utils.TestNetHostnamePrefix,
+		utils.TestNetNodeDir,
+		utils.TestNetNVals,
+		utils.TestNetOutput,
+		utils.TestNetP2PPort,
+		utils.TestNetpOpulatePersistentPeers,
+		utils.TestnetStartingIPAddress,
+		utils.TestNetVals,
 	}
 )
 
@@ -110,6 +119,11 @@ func init() {
 			Action: resetCmd,
 			Name:   "unsafe_reset_all",
 			Usage:  "(unsafe) Remove gelchain database",
+		},
+		{
+			Action: testnetCmd,
+			Name:   "testnet",
+			Usage:  "generate ,the test config file",
 		},
 	}
 

@@ -2,21 +2,22 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/green-element-chain/gelchain/utils"
-	"gopkg.in/urfave/cli.v1"
 	"math/big"
 	"os"
-	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/green-element-chain/gelchain/utils"
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/tendermint/tendermint/abci/server"
 
@@ -50,6 +51,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	for key, _ := range genesis.Alloc {
 		totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
 	}
+
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
 	if err := node.Service(&backend); err != nil {
@@ -69,6 +71,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
 	ethApp.StartHttpServer()
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
 	configLoggerLevel(ctx, &ethLogger)
@@ -94,17 +97,19 @@ func ethermintCmd(ctx *cli.Context) error {
 		log.Info("get Initial accounts")
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
+			blsKey := validators[i].BlsPubKey
+			blsKeyJsonStr, _ := json.Marshal(blsKey)
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
-			if i == len(ethAccounts.EthAccounts){
-				break;
+			if i == len(ethAccounts.EthAccounts) {
+				break
 			}
 			amlist.MapList[tmAddress[i]] = &types.AccountMap{
 				common.HexToAddress(ethAccounts.EthAccounts[i]),
 				ethAccounts.EthBalances[i],
 				big.NewInt(0),
 				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
-				strconv.Itoa(i),
+				string(blsKeyJsonStr),
 			}
 		}
 	}
@@ -183,7 +188,7 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.RPC.RootDir = tmHome
 	defaultTmConfig.Consensus.RootDir = tmHome
 	defaultTmConfig.Consensus.CreateEmptyBlocks = ctx.GlobalBool(emtUtils.TmConsEmptyBlock.Name)
-	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)
+	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = time.Duration(ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)) * time.Second
 	defaultTmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
 
 	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
