@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -44,6 +45,7 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
 	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetInitialValidator"] = tHandler.GetInitialValidator
+	tHandler.HandlersMap["/GetHeadEventSize"] = tHandler.GetTxPoolEventSize
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -287,6 +289,16 @@ func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request)
 	}
 
 	jsonStr, err := json.Marshal(encourage)
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+func (tHandler *THandler) GetTxPoolEventSize(w http.ResponseWriter, req *http.Request) {
+	jsonStr, err := json.Marshal("unread txpool event size: "+strconv.Itoa(tHandler.
+		backend.Ethereum().TxPool().GetTxpoolChainHeadSize()))
 	if err != nil {
 		w.Write([]byte("error occured when marshal into json"))
 	} else {
