@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"github.com/green-element-chain/gelchain/ethereum"
 	"net/http"
 	"time"
 	emtTypes "github.com/green-element-chain/gelchain/types"
@@ -10,8 +11,8 @@ type BaseServer struct {
 	HttpServer *http.Server
 }
 
-func NewBaseServer(strategy *emtTypes.Strategy) *BaseServer {
-	handler := NewTHandler(strategy)
+func NewBaseServer(strategy *emtTypes.Strategy,backend *ethereum.Backend) *BaseServer {
+	handler := NewTHandler(strategy,backend)
 	handler.RegisterFunc()
 	return &BaseServer{
 		HttpServer: &http.Server{

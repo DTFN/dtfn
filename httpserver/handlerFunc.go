@@ -3,6 +3,7 @@ package httpserver
 import (
 	"encoding/hex"
 	"encoding/json"
+	"github.com/green-element-chain/gelchain/ethereum"
 	emtTypes "github.com/green-element-chain/gelchain/types"
 	tmTypes "github.com/tendermint/tendermint/types"
 	"io"
@@ -14,14 +15,16 @@ import (
 type THandler struct {
 	HandlersMap map[string]HandlersFunc
 	strategy    *emtTypes.Strategy
+	backend     *ethereum.Backend
 }
 
 type HandlersFunc func(http.ResponseWriter, *http.Request)
 
-func NewTHandler(strategy *emtTypes.Strategy) *THandler {
+func NewTHandler(strategy *emtTypes.Strategy, backend *ethereum.Backend) *THandler {
 	return &THandler{
 		HandlersMap: make(map[string]HandlersFunc),
 		strategy:    strategy,
+		backend:     backend,
 	}
 }
 
@@ -41,7 +44,6 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
 	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetInitialValidator"] = tHandler.GetInitialValidator
-
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -273,8 +275,6 @@ func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.R
 		w.Write(jsonStr)
 	}
 }
-
-
 
 func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request) {
 	minerBonus := big.NewInt(1)
