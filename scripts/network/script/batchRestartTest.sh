@@ -10,7 +10,7 @@ NODE_PORT=$(cat ${ENV_FILE} |jq '.setup.port'[])
 CHAIN_DIR=$(echo ${NODE_PORT}  |jq '.db'|sed 's/"//g')
 
 LAST_HEIGHT=1
-MAX_ROUND=10
+MAX_ROUND_TEST=0
 
 function printHelp () {
     echo "Usage: ./`basename $0` -n [round]"
@@ -21,14 +21,19 @@ function printHelp () {
 while getopts ":n:" OPTION; do
     case ${OPTION} in
     n)
-        if [[ "$OPTARG" -lt 0 ]]; then
-            MAX_ROUND=$OPTARG
-        fi
+        MAX_ROUND_TEST=$OPTARG
         ;;
     ?)
         printHelp
     esac
 done
+
+function validateArgs() {
+    if [[ "${MAX_ROUND_TEST}" == "" 
+        || "${MAX_ROUND_TEST}" -le 0 ]]; then
+        MAX_ROUND_TEST=10
+    fi
+}
 
 function message_color() {
     echo -e "\033[40;31m[$1]\033[0m"
@@ -52,7 +57,7 @@ function get_current_block_height() {
 }
 
 function monitor_block() {
-    sleep 30 
+    sleep 60 
     docker ps -aq |xargs -ti docker stop {} > /dev/null 2>&1
 }
 
@@ -91,19 +96,20 @@ function round_test() {
 
 # main function
 function main() {
-    message_color "You want test round ${MAX_ROUND}"
-    if [[ "${MAX_ROUND}" -le 0 ]]; then
+    message_color "You want test round ${MAX_ROUND_TEST}"
+    if [[ "${MAX_ROUND_TEST}" -le 0 ]]; then
         message_color "test round must > 0"
         exit 1
     fi
     
     create_new_chain
     declare -i i=1
-    while ((i<=${MAX_ROUND})); do
+    while ((i<=${MAX_ROUND_TEST})); do
         message_color "execute test round ${i}"
         round_test
         let ++i
     done
     get_current_block_height
 }
+validateArgs
 main
