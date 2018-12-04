@@ -50,7 +50,7 @@ function do_blsDependencies() {
     elif [[ "${OS_ARCH}" == "mint" || "${OS_ARCH}" == "ubuntu" ]]; then
         sudo apt-get install -y libgmp-dev libssl-dev openssl gcc
     elif [[ "${OS_ARCH}" =~ "macbook" ]]; then
-        sudo brew install gmp openssl gcc
+        sudo brew install -y gmp openssl gcc
     fi
 }
 
