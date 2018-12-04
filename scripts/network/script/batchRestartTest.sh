@@ -3,15 +3,32 @@
 set -e
 
 # all global envirment parameter
-DO_VERSION_TEST=$1
-MAX_ROUND_TEST=$2
 ROOT_DIR=$(cd `dirname $(readlink -f "$0")`/.. && pwd)
 SHEL_DIR=${ROOT_DIR}/script
 ENV_FILE=${ROOT_DIR}/config/env.json
+NODE_PORT=$(cat ${ENV_FILE} |jq '.setup.port'[])
+CHAIN_DIR=$(echo ${NODE_PORT}  |jq '.db'|sed 's/"//g')
 
 LAST_HEIGHT=1
-OLD_DATA=$(cat ${ENV_FILE} |jq '.upgrade.old_data'|sed 's/"//g')
-NEW_DATA=$(cat ${ENV_FILE} |jq '.upgrade.new_data'|sed 's/"//g')
+MAX_ROUND=10
+
+function printHelp () {
+    echo "Usage: ./`basename $0` -n [round]"
+    exit 1
+}
+
+# parse script args
+while getopts ":n:" OPTION; do
+    case ${OPTION} in
+    n)
+        if [[ "$OPTARG" -lt 0 ]]; then
+            MAX_ROUND=$OPTARG
+        fi
+        ;;
+    ?)
+        printHelp
+    esac
+done
 
 function message_color() {
     echo -e "\033[40;31m[$1]\033[0m"
@@ -41,13 +58,11 @@ function monitor_block() {
 
 function create_new_chain() {
     kill_monitor
-    if [ "${DO_VERSION_TEST}" == "old" ]; then
-        echo "${SHEL_DIR}/network_setup.sh -t up -v 0.18.0"
-        ${SHEL_DIR}/network_setup.sh -t up -v 0.18.0
-    else 
-        echo "${SHEL_DIR}/network_setup.sh -t up -v 0.23.1"
-        ${SHEL_DIR}/network_setup.sh -t up -v 0.23.1
-    fi
+    
+    current=$(pwd)
+    cd ${ROOT_DIR} && make up
+    cd ${current}
+
     monitor_block
 }
 
@@ -58,13 +73,9 @@ function check_socket_port() {
 }
 
 function restart_chain() {
-    if [ "${DO_VERSION_TEST}" == "old" ]; then
-        peers=$(find ${OLD_DATA} -name "peer*")
-    else 
-        peers=$(find ${NEW_DATA} -name "peer*")
-    fi
-    
     check_socket_port
+
+    peers=$(find ${CHAIN_DIR} -maxdepth 1 -name "peer*")
     for p in ${peers}; do
         sh ${p}/start.sh
     done
@@ -78,28 +89,21 @@ function round_test() {
     monitor_block
 }
 
-function validateArgs () {
-    if [[ $1 != 1 && $1 != 2 ]]; then
-        echo "Usage: ./`basename $0` [old|new] [round]"
-        exit 1
-    fi
-}
-
 # main function
 function main() {
-    validateArgs $1
-    if [ "${DO_VERSION_TEST}" != "old" ]; then DO_VERSION_TEST='new'; fi
-    if [ "${MAX_ROUND_TEST}" == "" ]; then MAX_ROUND_TEST=10; fi
-
-    message_color "You want test round ${MAX_ROUND_TEST}, version ${DO_VERSION_TEST}"
+    message_color "You want test round ${MAX_ROUND}"
+    if [[ "${MAX_ROUND}" -le 0 ]]; then
+        message_color "test round must > 0"
+        exit 1
+    fi
     
     create_new_chain
     declare -i i=1
-    while ((i<=${MAX_ROUND_TEST})); do
+    while ((i<=${MAX_ROUND})); do
         message_color "execute test round ${i}"
         round_test
         let ++i
     done
     get_current_block_height
 }
-main $# 2>&1 |grep -v 'duplicate proto'
+main
