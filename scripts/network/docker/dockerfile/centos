@@ -1,0 +1,2 @@
+FROM centos:7
+RUN yum update && yum install -y gmp-devel openssl-devel gcc
