@@ -248,7 +248,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 		}
 	}
 
-	app.CollectTx(tx)
+	//app.CollectTx(tx)
 
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,

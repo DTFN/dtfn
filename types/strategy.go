@@ -5,6 +5,8 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
+	"reflect"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // MinerRewardStrategy is a mining strategy
