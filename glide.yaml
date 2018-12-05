@@ -5,13 +5,22 @@ import:
   repo:    git@github.com:green-element-chain/go-ethereum.git
   vcs:     git
 - package: github.com/tendermint/tendermint
-  version: geltm-pos
+  version: develop
   repo:    git@github.com:green-element-chain/tendermint.git
   vcs:     git
-- package: github.com/prometheus/prometheus
-  version: v2.1.0
+- package: github.com/herumi/mcl
+  version: fe95b63cc450bc1eb0459dda916a858b5442a258
+  repo:    git@github.com:green-element-chain/mcl.git
+  vcs:     git
+- package: github.com/herumi/bls
+  version: e9c72f18ab9bc09923da739151821cc588c0d295
+  repo:    git@github.com:green-element-chain/bls.git
+  vcs:     git
 - package: github.com/cosmos/cosmos-sdk
-  version: v0.23.1
+  version: 1e26ba2e0e9c1e0457383ff302a97396c227cddb
+- package: github.com/tendermint/go-amino
+  version: dc14acf9ef15f85828bfbc561ed9dd9d2a284885
+#for test
 - package: github.com/spaolacci/murmur3
   version: master
 - package: github.com/golang/mock/gomock

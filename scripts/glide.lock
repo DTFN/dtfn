@@ -1,0 +1,30 @@
+hash: 372f8b39656198c1568d954abf5a6377f15c009e904dd23071f04c735a6e3799
+updated: 2018-11-28T20:29:11.440855009+08:00
+imports:
+- name: github.com/cosmos/cosmos-sdk
+  version: 23e3d5ac12145c02fcb4b4767d7dfccad782aee5
+- name: github.com/ethereum/go-ethereum
+  version: e93024b9bb47c805bcc78b50555d906492538590
+  repo: git@github.com:green-element-chain/go-ethereum.git
+  vcs: git
+- name: github.com/golang/mock
+  version: bcfe3c1f21d5271939479786888af1338fa1b25c
+  subpackages:
+  - gomock
+- name: github.com/herumi/bls
+  version: 95af17bb7c0e94652b2674d6ef76ee8a7a23f3d7
+  repo: git@github.com:green-element-chain/bls.git
+  vcs: git
+- name: github.com/herumi/mcl
+  version: 951f57111ce2723685053cdc83abd1cf1afad22c
+  repo: git@github.com:green-element-chain/mcl.git
+  vcs: git
+- name: github.com/prometheus/prometheus
+  version: 85f23d82a045d103ea7f3c89a91fba4a93e6367a
+- name: github.com/spaolacci/murmur3
+  version: f09979ecbc725b9e6d41a297405f65e7e8804acc
+- name: github.com/tendermint/tendermint
+  version: 091fa0d0bd16c7f5fb6f20a47fc3f03d7f34f439
+  repo: git@github.com:green-element-chain/tendermint.git
+  vcs: git
+testImports: []
