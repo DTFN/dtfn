@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 installBLS(){
-    yum install -y gmp-devel openssl-devel gcc
+    yum install -y gmp-devel openssl-devel gcc g++
     mkdir -p $GOPATH/src/github.com/herumi
 
     cd $GOPATH/src/github.com/herumi
