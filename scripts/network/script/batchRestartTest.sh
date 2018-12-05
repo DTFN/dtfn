@@ -56,8 +56,19 @@ function get_current_block_height() {
     kill_monitor
 }
 
+function random() {
+    min=$1
+    max=$2-$1
+    num=$(date +%s+%N)
+    ((retnum=num%max+min))
+    echo $retnum
+}
+
 function monitor_block() {
-    sleep 60 
+    sleepTime=$(random 30 120)
+    echo "monitor block sleep time: ${sleepTime}"
+    sleep "${sleepTime}"
+
     docker ps -aq |xargs -ti docker stop {} > /dev/null 2>&1
 }
 
