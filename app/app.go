@@ -258,13 +258,18 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 // BeginBlock starts a new Ethereum block
 // #stable - 0.4.0
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
-
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!br0ken!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 
+	if !app.strategy.FirstInitial {
+		app.logger.Info("delete all current maplist")
+		for key, _ := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, key)
+		}
+	}
 	app.InitPersistData()
 
 	if (header.Height)%200 == 0 {
@@ -272,13 +277,16 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
 
 		app.strategy.CurrRoundValData.CurrCandidateValidators = nil
-		app.strategy.CurrRoundValData.AccountMapList = nil
 		app.strategy.CurrRoundValData.PosTable = nil
-
+		for key, _ := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, key)
+		}
 		accountMaplist := emtTypes.AccountMapList{}
 
 		json.Unmarshal(accByte, &accountMaplist)
-		app.strategy.CurrRoundValData.AccountMapList = &accountMaplist
+		for key, value := range accountMaplist.MapList {
+			app.strategy.CurrRoundValData.AccountMapList.MapList[key] = value
+		}
 
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
 			app.strategy.CurrRoundValData.CurrCandidateValidators = append(
