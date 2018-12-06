@@ -16,6 +16,8 @@ import:
   version: e9c72f18ab9bc09923da739151821cc588c0d295
   repo:    git@github.com:green-element-chain/bls.git
   vcs:     git
+- package: github.com/prometheus/prometheus
+  version: v2.1.0
 - package: github.com/cosmos/cosmos-sdk
   version: aa72e72ce4bf8dcd3a9897f32010c4dae9a376f7
 - package: github.com/tendermint/go-amino
