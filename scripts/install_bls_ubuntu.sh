@@ -11,7 +11,7 @@ installBLS(){
 		cd mcl
 		git pull
 	else 
-    	git clone github.com/green-element-chain/mcl.git && cd $GOPATH/src/github.com/herumi/mcl
+    	git clone https://github.com/green-element-chain/mcl.git && cd $GOPATH/src/github.com/herumi/mcl
     fi
     git reset --hard fe95b63cc450bc1eb0459dda916a858b5442a258 && make
     cd $GOPATH/src/github.com/herumi
