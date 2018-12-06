@@ -29,8 +29,6 @@ installEthermintDependency(){
     go get github.com/golang/mock/gomock
     go get github.com/rs/cors
     go get github.com/tendermint/btcd
-    cd $GOPATH/src/github.com/green-element-chain/gelchain
-    git checkout -b bls remotes/origin/bls
 }
 
 
