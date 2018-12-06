@@ -310,11 +310,11 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	} else {
 	}
 
-	db, e := app.getCurrentState()
-	if e == nil {
-		app.logger.Info("do punish")
-		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrRoundValData.CurrentValidators)
-	}
+	//db, e := app.getCurrentState()
+	//if e == nil {
+	//	app.logger.Info("do punish")
+	//	app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrRoundValData.CurrentValidators)
+	//}
 
 	return abciTypes.ResponseBeginBlock{}
 }
