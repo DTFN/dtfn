@@ -3,8 +3,8 @@
 set -e
 
 # all global envirment parameter
-OS_ARCH=$(uname -n|tr '[:upper:]' '[:lower:]')
 ROOT_DIR=$(cd `dirname $(readlink -f "$0")` && pwd)
+OS_ARCH=$(cat /etc/os-release |grep '^ID='|cut -d'=' -f2|sed 's/"//g'|tr '[:upper:]' '[:lower:]')
 
 function printHelp () {
     echo "Usage: ./`basename $0` -t [build|clean]"
@@ -35,9 +35,10 @@ function do_build() {
     
     if [[ "${OS_ARCH}" == "centos" ]]; then
         docker build -f dockerfile/centos -t "centos/${imageName}" .
-    elif [[ "${OS_ARCH}" == "mint" || "${OS_ARCH}" == "ubuntu" ]]; then
+    elif [[ "${OS_ARCH}" == "linuxmint" || "${OS_ARCH}" == "ubuntu" ]]; then
         docker build -f dockerfile/ubuntu -t "ubuntu/${imageName}" .
-    # elif [[ "${OS_ARCH}" =~ "macbook" ]]; then
+    else
+        echo "not support, maybe it is a macbook"
         # docker build -f dockerfile/draw -t "draw/${imageName}" .
     fi
 }
