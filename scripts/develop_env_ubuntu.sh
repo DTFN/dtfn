@@ -10,7 +10,7 @@ installTendermint(){
     mkdir tendermint && cd tendermint/
     git clone git@github.com:green-element-chain/tendermint.git
     cd tendermint
-    git checkout bls
+    git checkout -b bls remotes/origin/bls
     make get_tools
     make get_vendor_deps
     rm -r vendor/github.com/ethereum
@@ -30,7 +30,7 @@ installEthermintDependency(){
     go get github.com/rs/cors
     go get github.com/tendermint/btcd
     cd $GOPATH/src/github.com/green-element-chain/gelchain
-    git checkout bls
+    git checkout -b bls remotes/origin/bls
 }
 
 
