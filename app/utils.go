@@ -380,6 +380,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		if height == -1 {
 			//height=-1 表示 seed 存在，使用seed
 			pubKey := app.strategy.CurrRoundValData.PosTable.SelectItemBySeedValue(seed, i).PubKey
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{
 				PubKey:  pubKey,
 				Power:   1000,
@@ -388,6 +389,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			//seed 不存在，使用height
 			startIndex := int(height) * 100
 			pubKey := app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(startIndex + i - 1).PubKey
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{
 				PubKey:  pubKey,
 				Power:   1000,
