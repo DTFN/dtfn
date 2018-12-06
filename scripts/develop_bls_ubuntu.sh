@@ -20,6 +20,7 @@ installTendermint(){
 
 installEthermintDependency(){
     go get github.com/cosmos/cosmos-sdk
+    go get github.com/spf13/cobra
     go get github.com/mattn/go-colorable
     go get gopkg.in/urfave/cli.v1
     go get github.com/golang/protobuf/proto
