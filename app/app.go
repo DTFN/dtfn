@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	errors "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -15,10 +16,9 @@ import (
 	emtTypes "github.com/green-element-chain/gelchain/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/types"
 	"math/big"
 	"strings"
-	"fmt"
-	"github.com/tendermint/tendermint/types"
 )
 
 // EthermintApplication implements an ABCI application
@@ -64,11 +64,11 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		getCurrentState: backend.Es().State, //backend.Ethereum().BlockChain().State,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
-		httpServer:      httpserver.NewBaseServer(strategy,backend),
+		httpServer:      httpserver.NewBaseServer(strategy, backend),
 		punishment:      NewPunishment(amountStrategy, subBalanceStrategy),
 	}
 
-	if err := app.backend.InitEthState(app.Receiver()); err != nil {
+	if err := app.backend.InitEthState(common.HexToAddress(app.backend.InitReceiver())); err != nil {
 		return nil, err
 	}
 
@@ -132,15 +132,15 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 
 	app.logger.Debug("InitChain") // nolint: errcheck
 	app.SetValidators(req.Validators)
-	app.strategy.CurrRoundValData.InitialValidators=req.Validators
+	app.strategy.CurrRoundValData.InitialValidators = req.Validators
 
 	ethState, _ := app.getCurrentState()
 
 	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
 		app.GetLogger().Info("CurrRoundValData.InitialValidators sige", "blacklist",
 			len(app.strategy.CurrRoundValData.InitialValidators))
-		pubKey:=app.strategy.CurrRoundValData.InitialValidators[j].PubKey
-		tmPubKey,_:=types.PB2TM.PubKey(pubKey)
+		pubKey := app.strategy.CurrRoundValData.InitialValidators[j].PubKey
+		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		address := strings.ToLower(tmPubKey.Address().String())
 		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
 			continue
@@ -166,8 +166,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			//This is used to remove the validators who dont have enough balance
 			//but he is in the accountmap.
 			app.strategy.FirstInitial = true
-			pubKey:=app.strategy.CurrRoundValData.InitialValidators[j].PubKey
-			tmPubKey,_:=types.PB2TM.PubKey(pubKey)
+			pubKey := app.strategy.CurrRoundValData.InitialValidators[j].PubKey
+			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 			tmAddress := strings.ToLower(tmPubKey.Address().String())
 			app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
 			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
@@ -262,7 +262,6 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!br0ken!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
-	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 
 	if !app.strategy.FirstInitial {
 		app.logger.Info("delete all current maplist")
@@ -271,6 +270,8 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		}
 	}
 	app.InitPersistData()
+	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
+	app.strategy.CurrRoundValData.Receiver = app.Receiver().String()
 
 	if (header.Height)%200 == 0 {
 		app.logger.Info("DeepCopy")

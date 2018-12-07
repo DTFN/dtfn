@@ -56,6 +56,10 @@ type NextRoundValData struct {
 	NextAccountMapList *AccountMapList `json:"nextAccountMapList"`
 }
 
+type Proposer struct {
+	Receiver string `json:"receiver"`
+}
+
 type CurrentRoundValData struct {
 	AccountMapList *AccountMapList `json:"accountMapList"`
 	//This map was used when some validator was removed and didnt existed in the accountMapList
@@ -89,6 +93,8 @@ type CurrentRoundValData struct {
 	TotalBalance *big.Int `json:"totalBalance"`
 
 	ProposerAddress string `json:"proposerAddress"`
+
+	Receiver string `json:"receiver"`
 
 	// note : if we get a addValidatorsTx at height 101,
 	// we will put it into the NextCandidateValidators and move into postable
