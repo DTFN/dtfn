@@ -64,7 +64,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		getCurrentState: backend.Es().State, //backend.Ethereum().BlockChain().State,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
-		httpServer:      httpserver.NewBaseServer(strategy),
+		httpServer:      httpserver.NewBaseServer(strategy,backend),
 		punishment:      NewPunishment(amountStrategy, subBalanceStrategy),
 	}
 
