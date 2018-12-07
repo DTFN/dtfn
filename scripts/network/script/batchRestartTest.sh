@@ -59,7 +59,7 @@ function get_current_block_height() {
 function random() {
     min=$1
     max=$2-$1
-    num=$(date +%s+%N)
+    num=$(head -200 /dev/urandom |cksum|cut -d' ' -f1)
     ((retnum=num%max+min))
     echo $retnum
 }

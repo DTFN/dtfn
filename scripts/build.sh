@@ -3,7 +3,7 @@
 set -e
 
 ROOT_DIR=$(cd `dirname $(readlink -f "$0")`/.. && pwd)
-OS_ARCH=$(uname -n|tr '[:upper:]' '[:lower:]')
+OS_ARCH=$(cat /etc/os-release |grep '^ID='|cut -d'=' -f2|sed 's/"//g'|tr '[:upper:]' '[:lower:]')
 BUILD_FLAGS="-ldflags \"-X github.com/green-element-chain/gelchain/version.GitCommit=\`git rev-parse --short HEAD\`\""
 BUILD_TAGS=gelchain
 ETH_ACCOUNT=ethAccount
@@ -47,10 +47,11 @@ function do_blsDependencies() {
     echo "do install bls dependencies ..."
     if [[ "${OS_ARCH}" == "centos" ]]; then
         sudo yum install -y gmp-devel openssl-devel gcc
-    elif [[ "${OS_ARCH}" == "mint" || "${OS_ARCH}" == "ubuntu" ]]; then
+    elif [[ "${OS_ARCH}" == "linuxmint" || "${OS_ARCH}" == "ubuntu" ]]; then
         sudo apt-get install -y libgmp-dev libssl-dev openssl gcc
-    elif [[ "${OS_ARCH}" =~ "macbook" ]]; then
-        sudo brew install -y gmp openssl gcc
+    else
+        echo "not support, maybe it is a macbook"
+        # sudo brew install -y gmp openssl gcc
     fi
 }
 
@@ -111,7 +112,7 @@ function main() {
     current=$(pwd)
     case ${OP_TAGET} in
         "blsdep")
-            do_blsDependencies 2>&1 >/dev/null
+            do_blsDependencies
             ;;
         "glide")
             do_getDependencies
