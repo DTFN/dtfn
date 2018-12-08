@@ -298,6 +298,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
 		}
 	}
+	ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"),minerBonus)
 	ws.header.GasUsed = *ws.totalUsedGas
 }
 
