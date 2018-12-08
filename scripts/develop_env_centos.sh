@@ -10,7 +10,8 @@ installTendermint(){
     mkdir tendermint && cd tendermint/
     git clone git@github.com:green-element-chain/tendermint.git
     cd tendermint
-    git checkout geltm-pos
+    #git checkout -b develop remotes/origin/develop
+    git checkout develop
     make get_tools
     make get_vendor_deps
     rm -r vendor/github.com/ethereum
@@ -20,6 +21,7 @@ installTendermint(){
 
 installEthermintDependency(){
     go get github.com/cosmos/cosmos-sdk
+    go get github.com/spf13/cobra
     go get github.com/mattn/go-colorable
     go get gopkg.in/urfave/cli.v1
     go get github.com/golang/protobuf/proto
@@ -27,6 +29,8 @@ installEthermintDependency(){
     go get github.com/stretchr/testify/require
     go get github.com/spaolacci/murmur3
     go get github.com/golang/mock/gomock
+    go get github.com/rs/cors
+    go get github.com/tendermint/btcd
 }
 
 
