@@ -106,7 +106,8 @@ func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abci
 			accountMap := app.GetAccountMap(tmAddress)
 			signer := accountMap.Signer
 			p.Punish(stateDB, signer)
-			app.RemoveValidatorTx(signer)
+			//To do
+			//app.RemoveValidatorTx(signer)
 		}
 	}
 }
