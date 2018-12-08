@@ -42,6 +42,14 @@ develop_ubuntu:
 	@echo "create develop_environment"
 	@bash ./scripts/develop_env_ubuntu.sh
 
+bls_centos:
+	@echo "create bls environment"
+	@bash ./scripts/install_bls_centos.sh
+
+develop_centos:
+	@echo "create develop_enviorment"
+	@bash ./scripts/develop_env_centos.sh
+
 develop_build:
 	@bash $(GOPATH)/src/github.com/green-element-chain/gelchain/cmd/gelchain/rebuild.sh
 	@bash $(GOPATH)/src/github.com/tendermint/tendermint/cmd/tendermint/rebuild.sh
