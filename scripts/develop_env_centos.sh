@@ -10,7 +10,7 @@ installTendermint(){
     mkdir tendermint && cd tendermint/
     git clone git@github.com:green-element-chain/tendermint.git
     cd tendermint
-    git checkout develop
+    git checkout geltm-pos
     make get_tools
     make get_vendor_deps
     rm -r vendor/github.com/ethereum
@@ -27,18 +27,14 @@ installEthermintDependency(){
     go get github.com/stretchr/testify/require
     go get github.com/spaolacci/murmur3
     go get github.com/golang/mock/gomock
-    go get github.com/rs/cors
-    go get github.com/tendermint/btcd
-    cd $GOPATH/src/github.com/green-element-chain/gelchain
-    git checkout bls
 }
 
 
 modifyDepVersion(){
     cd $GOPATH/src/github.com/cosmos/cosmos-sdk
-    git reset --hard aa72e72ce4bf8dcd3a9897f32010c4dae9a376f7
+    git reset --hard 1e26ba2e0e9c1e0457383ff302a97396c227cddb
     cd $GOPATH/src/github.com/tendermint/go-amino
-    git reset --hard 833d32f0923bc8272155560b3ee602f05d579d75
+    git reset --hard dc14acf9ef15f85828bfbc561ed9dd9d2a284885
 }
 
 
