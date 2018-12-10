@@ -390,6 +390,7 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 // it duplicates the logic in ethereum's tx_pool
 func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.ResponseCheckTx {
 	if app.backend.Ethereum().TxPool().ValidateExist(tx.Hash()){
+		app.logger.Debug("ValidateTx: Received existed transaction", "txpool", tx.Hash()) // nolint: errcheck
 		return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 	}
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
