@@ -390,10 +390,6 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 // validateTx checks the validity of a tx against the blockchain's current state.
 // it duplicates the logic in ethereum's tx_pool
 func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.ResponseCheckTx {
-	if app.backend.Ethereum().TxPool().ValidateExist(tx.Hash()){
-		app.logger.Info("ValidateTx: Received existed transaction in txpool", "tx", tx.Hash()) // nolint: errcheck
-		return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
-	}
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
 	if tx.Size() > maxTransactionSize {
 		return abciTypes.ResponseCheckTx{
