@@ -3,10 +3,10 @@ package types
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	"reflect"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // MinerRewardStrategy is a mining strategy
@@ -43,6 +43,9 @@ type Strategy struct {
 
 	//reused,need persistence
 	NextRoundValData NextRoundValData
+
+	// add for hard fork
+	HFExpectedData HardForkExpectedData
 }
 
 type NextRoundValData struct {
@@ -58,6 +61,13 @@ type NextRoundValData struct {
 
 type Proposer struct {
 	Receiver string `json:"receiver"`
+}
+
+// no need to be persisted
+type HardForkExpectedData struct {
+	Height int64 // should remember and update it for every block to remember what height we located
+
+	IsHarfForkPassed bool // This flag is used to record whether the hardfork was passed by most of validators
 }
 
 type CurrentRoundValData struct {
@@ -111,11 +121,13 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	//If ThresholdUnit = 1000 ,it mean we set the lowest posTable threshold to 1/1000 of totalBalance.
 	thresholdUnit := big.NewInt(ThresholdUnit)
 	threshold := big.NewInt(1)
+	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true}
 	return &Strategy{
 		CurrRoundValData: CurrentRoundValData{
 			PosTable:     NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
 			TotalBalance: totalBalance,
 		},
+		HFExpectedData: hfExpectedData,
 
 		NextRoundValData: NextRoundValData{
 			NextRoundPosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
