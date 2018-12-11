@@ -81,8 +81,8 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 
 		existFlag := false
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-			pubKey:=app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
-			tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)
+			pubKey := app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 			if bytes.Equal(pubkey.Address(), tmPubKey.Address().Bytes()) {
 				origSigner := app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer
 				if origSigner.String() != signer.String() {
@@ -134,8 +134,8 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
 				strategy.NextRoundValData.NextRoundCandidateValidators,
 				abciTypes.ValidatorUpdate{
-					PubKey:  abciPubKey,
-					Power:   1,
+					PubKey: abciPubKey,
+					Power:  1,
 				})
 			app.GetLogger().Info("add Validator Tx success")
 			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
@@ -195,8 +195,8 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 			return false, err
 		}
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-			pubKey:=app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
-			tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)
+			pubKey := app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 			if bytes.Equal(tmBytes, tmPubKey.Address().Bytes()) {
 				existFlag = true
 				markIndex = i
@@ -267,7 +267,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 			return app.blsValidators(height)
 		}
 	}
-	return abciTypes.ResponseEndBlock{}
+	return abciTypes.ResponseEndBlock{AppVersion: 1}
 }
 
 // CollectTx invokes CollectTx on the strategy
@@ -281,13 +281,13 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEndBlock {
 	if len(app.strategy.CurrRoundValData.InitialValidators) == 0 {
 		// There is no nextCandidateValidators for initial height
-		return abciTypes.ResponseEndBlock{}
+		return abciTypes.ResponseEndBlock{AppVersion: 1}
 	} else {
 		var validatorsSlice []abciTypes.ValidatorUpdate
 		validators := app.strategy.GetUpdatedValidators()
 
 		if len(app.strategy.CurrRoundValData.CurrCandidateValidators) == 0 {
-			return abciTypes.ResponseEndBlock{}
+			return abciTypes.ResponseEndBlock{AppVersion: 1}
 		}
 
 		maxValidators := 0
@@ -303,10 +303,10 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		//select validators from posTable
 		for j := 0; len(validatorsSlice) != maxValidators; j++ {
 			pubKey := app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey
-			tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)
-			validator:= abciTypes.ValidatorUpdate{
-				PubKey:pubKey,
-				Power:1000,
+			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
+			validator := abciTypes.ValidatorUpdate{
+				PubKey: pubKey,
+				Power:  1000,
 			}
 			if votedValidators[tmPubKey.Address().String()] {
 				validatorsSlice[votedValidatorsIndex[tmPubKey.Address().String()]].Power++
@@ -335,12 +335,12 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 				validatorsSlice = append(validatorsSlice,
 					abciTypes.ValidatorUpdate{
 						//Address : app.strategy.PosTable.SelectItemByRandomValue(int(height)).Address,
-						Power:   int64(0),
-						PubKey:  validators[i].PubKey,
+						Power:  int64(0),
+						PubKey: validators[i].PubKey,
 					})
 			}
 		}
-		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
+		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: 1}
 	}
 }
 
@@ -355,7 +355,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 
 	maxValidatorSlice := 0
 	if len(app.strategy.CurrRoundValData.CurrCandidateValidators) <= 4 {
-		return abciTypes.ResponseEndBlock{}
+		return abciTypes.ResponseEndBlock{AppVersion: 1}
 	} else if len(app.strategy.CurrRoundValData.CurrCandidateValidators) < 7 {
 		maxValidatorSlice = len(app.strategy.CurrRoundValData.CurrCandidateValidators)
 	} else {
@@ -382,8 +382,8 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			pubKey := app.strategy.CurrRoundValData.PosTable.SelectItemBySeedValue(seed, i).PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{
-				PubKey:  pubKey,
-				Power:   1000,
+				PubKey: pubKey,
+				Power:  1000,
 			}
 		} else {
 			//seed 不存在，使用height
@@ -391,8 +391,8 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			pubKey := app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(startIndex + i - 1).PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{
-				PubKey:  pubKey,
-				Power:   1000,
+				PubKey: pubKey,
+				Power:  1000,
 			}
 		}
 
@@ -422,12 +422,12 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		if !votedValidators[tmPubKey.Address().String()] {
 			validatorsSlice = append(validatorsSlice,
 				abciTypes.ValidatorUpdate{
-					PubKey:  valCopy[i].PubKey,
-					Power:   int64(0),
+					PubKey: valCopy[i].PubKey,
+					Power:  int64(0),
 				})
 		}
 	}
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice}
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: 1}
 }
 
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
@@ -440,8 +440,8 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	for i := 0; i < len(app.strategy.CurrRoundValData.CurrentValidators); i++ {
 		currValidatorSlice = append(currValidatorSlice,
 			abciTypes.ValidatorUpdate{
-				PubKey:  app.strategy.CurrRoundValData.CurrentValidators[i].PubKey,
-				Power:   int64(0),
+				PubKey: app.strategy.CurrRoundValData.CurrentValidators[i].PubKey,
+				Power:  int64(0),
 			})
 	}
 
@@ -473,14 +473,14 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		if tmAddressMap[tmAddress] {
 			app.strategy.CurrRoundValData.CurrentValidators = append(app.
 				strategy.CurrRoundValData.CurrentValidators, abciTypes.ValidatorUpdate{
-				PubKey:  app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
-				Power:   blsPower.Int64(),
+				PubKey: app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
+				Power:  blsPower.Int64(),
 			})
 
 			validatorsSlice = append(validatorsSlice,
 				abciTypes.ValidatorUpdate{
-					PubKey:  app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
-					Power:   blsPower.Int64(),
+					PubKey: app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
+					Power:  blsPower.Int64(),
 				})
 			blsPubkeySlice = append(blsPubkeySlice, app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].BlsKeyString)
 		}
@@ -493,8 +493,8 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		if !tmAddressMap[tmAddress] {
 			validatorsSlice = append(validatorsSlice,
 				abciTypes.ValidatorUpdate{
-					PubKey:  currValidatorSlice[i].PubKey,
-					Power:   int64(0),
+					PubKey: currValidatorSlice[i].PubKey,
+					Power:  int64(0),
 				})
 		}
 	}
@@ -503,7 +503,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	app.strategy.CurrRoundValData.PosTable.PosNodeSortList.ValList = list.New()
 	app.strategy.CurrRoundValData.PosTable.PosNodeSortList.Len = 0
 
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice}
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: 1}
 }
 
 func (app *EthermintApplication) InitPersistData() bool {
