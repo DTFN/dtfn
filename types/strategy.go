@@ -68,6 +68,11 @@ type HardForkExpectedData struct {
 	Height int64 // should remember and update it for every block to remember what height we located
 
 	IsHarfForkPassed bool // This flag is used to record whether the hardfork was passed by most of validators
+
+	// This flag is remember the hard fork version that most of nodes want to upgrade
+	// If the statistic process doesn't exist, statisticsVersion = 0
+	StatisticsVersion int
+
 }
 
 type CurrentRoundValData struct {
@@ -121,7 +126,7 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	//If ThresholdUnit = 1000 ,it mean we set the lowest posTable threshold to 1/1000 of totalBalance.
 	thresholdUnit := big.NewInt(ThresholdUnit)
 	threshold := big.NewInt(1)
-	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true}
+	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true,StatisticsVersion:0}
 	return &Strategy{
 		CurrRoundValData: CurrentRoundValData{
 			PosTable:     NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
