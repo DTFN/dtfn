@@ -304,7 +304,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		if version.NextHardForkVersion - strategy.HFExpectedData.BlockVersion == 1 &&
 			strategy.HFExpectedData.Height>= version.NextHardForkHeight{
 			log.Info("fix gas bonus bug")
-			strategy.HFExpectedData.BlockVersion = 1
 		}else{
 			log.Info("mock gas bug")
 			ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"), minerBonus)
