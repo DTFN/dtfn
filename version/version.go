@@ -23,6 +23,13 @@ func init() {
 	}
 }
 
-const CurrentHardForkVersion = 0
+const BeforeHardForkVersion = 0
+//If height < NextHardForkHeight,run currentHardForkVersion
+//else run NextHardForkVersion
+const NextHardForkHeight = 400000
 const NextHardForkVersion = 1
-const NextHardForkHeight = 40
+
+//If we are in the version=4,we should remember all the
+//pre-version code and per-version height
+//and run the corresponding login to get the same state
+//as the main network
