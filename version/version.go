@@ -33,3 +33,15 @@ const NextHardForkVersion = 1
 //pre-version code and per-version height
 //and run the corresponding login to get the same state
 //as the main network
+//such
+/*
+const BeforeFirstHardForkVersion 0
+const FirstHardForkHeight  400
+const FirstHardForkVersion 1
+const SecondHardForkHeight 800
+const SecondHardForkVersion 2
+const ThirdHardForkHeight  1200
+const ThirdHardForkVersion  3
+const NextHardForkHeight 1600
+const NextHardForkVersion 4
+ */
