@@ -23,8 +23,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/tendermint/tendermint/crypto"
-	"time"
 	"github.com/tendermint/tendermint/types"
+	"time"
 )
 
 const errorCode = 1
@@ -298,7 +298,11 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
 		}
 	}
-	ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"),minerBonus)
+	//This is no statistic data
+	if strategy.HFExpectedData.StatisticsVersion == 0 {
+
+	}
+	ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"), minerBonus)
 	ws.header.GasUsed = *ws.totalUsedGas
 }
 
