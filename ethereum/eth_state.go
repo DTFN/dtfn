@@ -301,17 +301,19 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	}
 	//This is no statistic data
 	if strategy.HFExpectedData.StatisticsVersion == 0 {
-		if version.NextHardForkVersion - version.CurrentHardForkVersion == 1 &&
+		if version.NextHardForkVersion - strategy.HFExpectedData.BlockVersion == 1 &&
 			strategy.HFExpectedData.Height>= version.NextHardForkHeight{
 			log.Info("fix gas bonus bug")
+			strategy.HFExpectedData.BlockVersion = 1
 		}else{
 			log.Info("mock gas bug")
 			ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"), minerBonus)
 		}
 	}else{
 		if strategy.HFExpectedData.IsHarfForkPassed &&
-			strategy.HFExpectedData.StatisticsVersion - version.CurrentHardForkVersion == 1 &&
+			strategy.HFExpectedData.StatisticsVersion - strategy.HFExpectedData.BlockVersion == 1 &&
 			strategy.HFExpectedData.Height >= version.NextHardForkHeight{
+			strategy.HFExpectedData.BlockVersion = 1
 			log.Info("hard fork by statistic data")
 		}
 	}

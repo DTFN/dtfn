@@ -263,6 +263,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	// update the eth header with the tendermint header!br0ken!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.HFExpectedData.Height = beginBlock.GetHeader().Height
+	app.strategy.HFExpectedData.BlockVersion = beginBlock.GetHeader().Version.App
 
 	if !app.strategy.FirstInitial {
 		app.logger.Info("delete all current maplist")

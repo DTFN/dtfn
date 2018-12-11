@@ -23,6 +23,6 @@ func init() {
 	}
 }
 
-const CurrentHardForkVersion = 1
-const NextHardForkVersion = 2
+const CurrentHardForkVersion = 0
+const NextHardForkVersion = 1
 const NextHardForkHeight = 210000
