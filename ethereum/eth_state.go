@@ -301,7 +301,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	}
 	//This is no statistic data
 	if strategy.HFExpectedData.StatisticsVersion == 0 {
-		if version.NextHardForkHeight - version.CurrentHardForkVersion == 1 &&
+		if version.NextHardForkVersion - version.CurrentHardForkVersion == 1 &&
 			strategy.HFExpectedData.Height>= version.NextHardForkHeight{
 			log.Info("fix gas bonus bug")
 		}else{
