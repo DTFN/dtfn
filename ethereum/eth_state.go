@@ -301,8 +301,8 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	}
 	//This is no statistic data
 	if strategy.HFExpectedData.StatisticsVersion == 0 {
-		if version.BytnHardForkVersion - version.CurrentHardForkVersion == 1 &&
-			strategy.HFExpectedData.Height>= version.BytnExpHeight{
+		if version.NextHardForkHeight - version.CurrentHardForkVersion == 1 &&
+			strategy.HFExpectedData.Height>= version.NextHardForkHeight{
 			log.Info("fix gas bonus bug")
 		}else{
 			log.Info("mock gas bug")
@@ -311,7 +311,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	}else{
 		if strategy.HFExpectedData.IsHarfForkPassed &&
 			strategy.HFExpectedData.StatisticsVersion - version.CurrentHardForkVersion == 1 &&
-			strategy.HFExpectedData.Height >= version.BytnExpHeight{
+			strategy.HFExpectedData.Height >= version.NextHardForkHeight{
 			log.Info("hard fork by statistic data")
 		}
 	}

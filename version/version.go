@@ -23,7 +23,6 @@ func init() {
 	}
 }
 
-const BytnHardForkVersion = 2
-const BytnExpHeight = 210000
-
 const CurrentHardForkVersion = 1
+const NextHardForkVersion = 2
+const NextHardForkHeight = 210000

@@ -69,9 +69,13 @@ type HardForkExpectedData struct {
 
 	IsHarfForkPassed bool // This flag is used to record whether the hardfork was passed by most of validators
 
-	// This flag is remember the hard fork version that most of nodes want to upgrade
-	// If the statistic process doesn't exist, statisticsVersion = 0
+	// This flag is used to record the hard fork version that most of nodes want to upgrade
+	// If the statistic process doesn't exist, statisticsVersion = 0 , use const NextHardForkVersion = 2
 	StatisticsVersion int
+
+	//This variable is used to record the statisticHeight that most of nodes want to upgrade
+	//If the statistic process doesn't exist,statisticsHeight = 0 ,use const NextHardForkHeight = 2
+	StatisticHeight int64
 }
 
 type CurrentRoundValData struct {
