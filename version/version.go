@@ -22,3 +22,8 @@ func init() {
 		Version += "-" + GitCommit
 	}
 }
+
+const BytnHardForkVersion = 2
+const BytnExpHeight = 210000
+
+const CurrentHardForkVersion = 1
