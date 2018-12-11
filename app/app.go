@@ -14,6 +14,7 @@ import (
 	"github.com/green-element-chain/gelchain/ethereum"
 	"github.com/green-element-chain/gelchain/httpserver"
 	emtTypes "github.com/green-element-chain/gelchain/types"
+	"github.com/green-element-chain/gelchain/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
@@ -264,6 +265,11 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.HFExpectedData.Height = beginBlock.GetHeader().Height
 	app.strategy.HFExpectedData.BlockVersion = beginBlock.GetHeader().Version.App
+
+	//when we reach the upgrade height,we change the blockversion
+	if app.strategy.HFExpectedData.IsHarfForkPassed{
+		app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
+	}
 
 	if !app.strategy.FirstInitial {
 		app.logger.Info("delete all current maplist")

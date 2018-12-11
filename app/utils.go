@@ -267,7 +267,7 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 			return app.blsValidators(height)
 		}
 	}
-	return abciTypes.ResponseEndBlock{AppVersion: 1}
+	return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
 
 // CollectTx invokes CollectTx on the strategy
@@ -281,13 +281,13 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEndBlock {
 	if len(app.strategy.CurrRoundValData.InitialValidators) == 0 {
 		// There is no nextCandidateValidators for initial height
-		return abciTypes.ResponseEndBlock{AppVersion: 1}
+		return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
 	} else {
 		var validatorsSlice []abciTypes.ValidatorUpdate
 		validators := app.strategy.GetUpdatedValidators()
 
 		if len(app.strategy.CurrRoundValData.CurrCandidateValidators) == 0 {
-			return abciTypes.ResponseEndBlock{AppVersion: 1}
+			return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
 		}
 
 		maxValidators := 0
@@ -340,7 +340,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 					})
 			}
 		}
-		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: 1}
+		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 	}
 }
 
@@ -355,7 +355,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 
 	maxValidatorSlice := 0
 	if len(app.strategy.CurrRoundValData.CurrCandidateValidators) <= 4 {
-		return abciTypes.ResponseEndBlock{AppVersion: 1}
+		return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
 	} else if len(app.strategy.CurrRoundValData.CurrCandidateValidators) < 7 {
 		maxValidatorSlice = len(app.strategy.CurrRoundValData.CurrCandidateValidators)
 	} else {
@@ -427,7 +427,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 				})
 		}
 	}
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: 1}
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
 
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
@@ -503,7 +503,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	app.strategy.CurrRoundValData.PosTable.PosNodeSortList.ValList = list.New()
 	app.strategy.CurrRoundValData.PosTable.PosNodeSortList.Len = 0
 
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: 1}
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
 
 func (app *EthermintApplication) InitPersistData() bool {
