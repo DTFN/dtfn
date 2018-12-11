@@ -268,7 +268,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.logger.Info("block version","appversion",app.strategy.HFExpectedData.BlockVersion)
 
 	//when we reach the upgrade height,we change the blockversion
-	if app.strategy.HFExpectedData.IsHarfForkPassed{
+	if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight{
 		app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	}
 

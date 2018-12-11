@@ -25,4 +25,4 @@ func init() {
 
 const CurrentHardForkVersion = 0
 const NextHardForkVersion = 1
-const NextHardForkHeight = 210000
+const NextHardForkHeight = 100
