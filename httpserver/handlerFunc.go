@@ -225,6 +225,7 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 			SignerBalance: tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].SignerBalance,
 			Signer:        tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].Signer,
 			Beneficiary:   tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].Beneficiary,
+			BlsKeyString:  tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].BlsKeyString,
 		})
 	}
 
@@ -250,6 +251,7 @@ func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter
 			SignerBalance: tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].SignerBalance,
 			Signer:        tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].Signer,
 			Beneficiary:   tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].Beneficiary,
+			BlsKeyString:  tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].BlsKeyString,
 		})
 	}
 

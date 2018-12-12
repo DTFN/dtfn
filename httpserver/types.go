@@ -15,6 +15,7 @@ type Validator struct {
 	Signer        common.Address   `json:"signer"`
 	SignerBalance *big.Int         `json:"signerBalance"`
 	Beneficiary   common.Address   `json:"beneficiary"`
+	BlsKeyString  string           `json:"blsKeyString"`
 }
 
 type PTableAll struct {
