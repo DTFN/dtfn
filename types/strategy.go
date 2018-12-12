@@ -46,6 +46,9 @@ type Strategy struct {
 
 	// add for hard fork
 	HFExpectedData HardForkExpectedData
+
+	//This variable is used to remember the backup accountmap every height%200 ==0
+	AccountMapCacheList *AccountMapList
 }
 
 type NextRoundValData struct {
@@ -145,6 +148,9 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 			NextAccountMapList: &AccountMapList{
 				MapList: make(map[string]*AccountMap),
 			},
+		},
+		AccountMapCacheList: &AccountMapList{
+			MapList: make(map[string]*AccountMap),
 		},
 	}
 }
