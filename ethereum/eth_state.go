@@ -265,11 +265,11 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			pubKey := validators[i].PubKey
 			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 			address := strings.ToLower(tmPubKey.Address().String())
-			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			ws.state.AddBalance(strategy.AccountMapCacheList.MapList[address].Beneficiary, bonusAverage)
 
 			fmt.Println(("validator " + strconv.Itoa(i+1)) +
-				" Beneficiary address: " + strategy.CurrRoundValData.
-				AccountMapList.MapList[address].Beneficiary.String() +
+				" Beneficiary address: " + strategy.
+				AccountMapCacheList.MapList[address].Beneficiary.String() +
 				" get money: " + bonusAverage.String() +
 				" power: 1" +
 				" validator address: " + address)

@@ -161,8 +161,10 @@ func (s *Strategy) Receiver() common.Address {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
 	} else if s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress] != nil {
 		return s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
-	} else {
+	} else if s.CurrRoundValData.AccMapInitial.MapList[s.CurrRoundValData.ProposerAddress] != nil {
 		return s.CurrRoundValData.AccMapInitial.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
+	}else{
+		return s.AccountMapCacheList.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
 	}
 }
 

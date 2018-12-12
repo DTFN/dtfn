@@ -278,9 +278,21 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, key)
 		}
 	}
+
+	for key,_:= range app.strategy.AccountMapCacheList.MapList{
+		delete(app.strategy.AccountMapCacheList.MapList,key)
+	}
+
 	app.InitPersistData()
 	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 	app.strategy.CurrRoundValData.Receiver = app.Receiver().String()
+
+	if !app.strategy.FirstInitial {
+		app.logger.Info("delete all accountmap initial")
+		for key, _ := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+			delete(app.strategy.CurrRoundValData.AccMapInitial.MapList, key)
+		}
+	}
 
 	if (header.Height)%200 == 0 {
 		app.logger.Info("DeepCopy")
@@ -288,7 +300,8 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 		app.strategy.CurrRoundValData.CurrCandidateValidators = nil
 		app.strategy.CurrRoundValData.PosTable = nil
-		for key, _ := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+		for key, value := range app.strategy.CurrRoundValData.AccountMapList.MapList {
+			app.strategy.AccountMapCacheList.MapList[key] = value
 			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, key)
 		}
 		accountMaplist := emtTypes.AccountMapList{}
