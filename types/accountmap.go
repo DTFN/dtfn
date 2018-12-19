@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"io/ioutil"
@@ -75,7 +76,7 @@ func AccountMapFromFile(AccountMapFile string) (*AccountMapList, error) {
 	}
 	amlist, err := AccountMapFromJSON(jsonBlob)
 	if err != nil {
-		return nil, cmn.ErrorWrap(err, cmn.Fmt("Error reading GenesisDoc at %v", AccountMapFile))
+		return nil, cmn.ErrorWrap(err, fmt.Sprintf("Error reading GenesisDoc at %v", AccountMapFile))
 	}
 	return amlist, nil
 }
