@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"io/ioutil"
 	"math/big"
@@ -21,7 +22,7 @@ func GetInitialEthAccountFromFile(EthAccountsPath string) (*EthAccounts, error) 
 	}
 	ethAccounts, err := EthAccountsFromJSON(jsonBlob)
 	if err != nil {
-		return nil, cmn.ErrorWrap(err, cmn.Fmt("Error reading GenesisDoc at %v", EthAccountsPath))
+		return nil, cmn.ErrorWrap(err, fmt.Sprintf("Error reading GenesisDoc at %v", EthAccountsPath))
 	}
 	return ethAccounts, nil
 }
