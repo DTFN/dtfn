@@ -266,13 +266,13 @@ func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter
 func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
 	for i := 0; i < len(tHandler.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-		pubKey := tHandler.strategy.CurrRoundValData.InitialValidators[i].PubKey
+		pubKey := tHandler.strategy.InitialValidators[i].PubKey
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			AddressString: tmAddressStr,
-			PubKey:        tHandler.strategy.CurrRoundValData.InitialValidators[i].PubKey,
+			PubKey:        tHandler.strategy.InitialValidators[i].PubKey,
 		})
 	}
 

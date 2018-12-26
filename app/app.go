@@ -133,14 +133,14 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 
 	app.logger.Debug("InitChain") // nolint: errcheck
 	app.SetValidators(req.Validators)
-	app.strategy.CurrRoundValData.InitialValidators = req.Validators
+	app.strategy.InitialValidators = req.Validators
 
 	ethState, _ := app.getCurrentState()
 
-	for j := 0; j < len(app.strategy.CurrRoundValData.InitialValidators); j++ {
+	for j := 0; j < len(app.strategy.InitialValidators); j++ {
 		app.GetLogger().Info("CurrRoundValData.InitialValidators sige", "blacklist",
-			len(app.strategy.CurrRoundValData.InitialValidators))
-		pubKey := app.strategy.CurrRoundValData.InitialValidators[j].PubKey
+			len(app.strategy.InitialValidators))
+		pubKey := app.strategy.InitialValidators[j].PubKey
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		address := strings.ToLower(tmPubKey.Address().String())
 		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
@@ -150,15 +150,15 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer,
 			app.strategy.CurrRoundValData.AccountMapList.MapList[address].SignerBalance,
 			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary,
-			app.strategy.CurrRoundValData.InitialValidators[j].PubKey)
+			app.strategy.InitialValidators[j].PubKey)
 		if upsertFlag {
 			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
 				strategy.CurrRoundValData.CurrCandidateValidators, app.
-				strategy.CurrRoundValData.InitialValidators[j])
+				strategy.InitialValidators[j])
 
 			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
 				strategy.NextRoundValData.NextRoundCandidateValidators, app.
-				strategy.CurrRoundValData.InitialValidators[j])
+				strategy.InitialValidators[j])
 
 			blacklist.Lock(ethState, app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
 			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
@@ -166,8 +166,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		} else {
 			//This is used to remove the validators who dont have enough balance
 			//but he is in the accountmap.
-			app.strategy.FirstInitial = true
-			pubKey := app.strategy.CurrRoundValData.InitialValidators[j].PubKey
+			pubKey := app.strategy.InitialValidators[j].PubKey
 			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 			tmAddress := strings.ToLower(tmPubKey.Address().String())
 			app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
@@ -272,23 +271,12 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	}
 
-	if !app.strategy.FirstInitial {
-		app.logger.Info("delete all current maplist")
-		for key, _ := range app.strategy.CurrRoundValData.AccountMapList.MapList {
-			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, key)
-		}
-	}
+	app.strategy.CurrRoundValData.AccountMapList.MapList = map[string]*emtTypes.AccountMap{}
 
 	app.InitPersistData()
 	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
 	app.strategy.CurrRoundValData.Receiver = app.Receiver().String()
 
-	if !app.strategy.FirstInitial {
-		app.logger.Info("delete all accountmap initial")
-		for key, _ := range app.strategy.CurrRoundValData.AccountMapList.MapList {
-			delete(app.strategy.CurrRoundValData.AccMapInitial.MapList, key)
-		}
-	}
 
 	if (header.Height)%200 == 0 {
 		app.logger.Info("DeepCopy")
@@ -297,20 +285,10 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		app.strategy.CurrRoundValData.CurrCandidateValidators = nil
 		app.strategy.CurrRoundValData.PosTable = nil
 
-		for key,_:= range app.strategy.AccountMapCacheList.MapList{
-			delete(app.strategy.AccountMapCacheList.MapList,key)
-		}
-
-		for key, value := range app.strategy.CurrRoundValData.AccountMapList.MapList {
-			app.strategy.AccountMapCacheList.MapList[key] = value
-			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, key)
-		}
 		accountMaplist := emtTypes.AccountMapList{}
 
 		json.Unmarshal(accByte, &accountMaplist)
-		for key, value := range accountMaplist.MapList {
-			app.strategy.CurrRoundValData.AccountMapList.MapList[key] = value
-		}
+		app.strategy.CurrRoundValData.AccountMapList=&accountMaplist
 
 		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
 			app.strategy.CurrRoundValData.CurrCandidateValidators = append(
@@ -324,14 +302,6 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 		app.strategy.CurrRoundValData.PosTable = &postable
 		app.strategy.CurrRoundValData.PosTable.PosNodeSortList = emtTypes.NewValSortlist()
-	}
-
-	if !app.strategy.FirstInitial {
-		// before next bonus ,clear accountMapListTemp
-		for key, _ := range app.strategy.CurrRoundValData.AccMapInitial.MapList {
-			delete(app.strategy.CurrRoundValData.AccMapInitial.MapList, key)
-		}
-	} else {
 	}
 
 	db, e := app.getCurrentState()

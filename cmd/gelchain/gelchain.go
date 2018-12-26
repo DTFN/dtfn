@@ -84,34 +84,30 @@ func ethermintCmd(ctx *cli.Context) error {
 	genDocFile := tmConfig.GenesisFile()
 	genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
 	if err != nil {
-		fmt.Println(err)
+		panic("Sorry but you don't have initial account file")
 	}
 	validators := genDoc.Validators
 	var tmAddress []string
 	amlist := &types.AccountMapList{
 		MapList: make(map[string]*types.AccountMap),
 	}
-	if err != nil {
-		panic("Sorry but you don't have initial account file")
-	} else {
-		fmt.Println(len(ethAccounts.EthAccounts))
-		log.Info("get Initial accounts")
-		for i := 0; i < len(validators); i++ {
-			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
-			blsKey := validators[i].BlsPubKey
-			blsKeyJsonStr, _ := json.Marshal(blsKey)
-			accountBalance := big.NewInt(1)
-			accountBalance.Div(totalBalanceInital, big.NewInt(100))
-			if i == len(ethAccounts.EthAccounts) {
-				break
-			}
-			amlist.MapList[tmAddress[i]] = &types.AccountMap{
-				common.HexToAddress(ethAccounts.EthAccounts[i]),
-				ethAccounts.EthBalances[i],
-				big.NewInt(0),
-				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
-				string(blsKeyJsonStr),
-			}
+	fmt.Println(len(ethAccounts.EthAccounts))
+	log.Info("get Initial accounts")
+	for i := 0; i < len(validators); i++ {
+		tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
+		blsKey := validators[i].BlsPubKey
+		blsKeyJsonStr, _ := json.Marshal(blsKey)
+		accountBalance := big.NewInt(1)
+		accountBalance.Div(totalBalanceInital, big.NewInt(100))
+		if i == len(ethAccounts.EthAccounts) {
+			break
+		}
+		amlist.MapList[tmAddress[i]] = &types.AccountMap{
+			common.HexToAddress(ethAccounts.EthAccounts[i]),
+			ethAccounts.EthBalances[i],
+			big.NewInt(0),
+			common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
+			string(blsKeyJsonStr),
 		}
 	}
 

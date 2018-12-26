@@ -32,8 +32,8 @@ type Strategy struct {
 	//needn't to be persisted
 	currentValidators []abciTypes.ValidatorUpdate
 
-	//need to be persisted
-	FirstInitial bool
+	// Initial validators , only use for once
+	InitialValidators []abciTypes.ValidatorUpdate
 
 	//needn't to be persisted
 	BlsSelectStrategy bool
@@ -46,9 +46,6 @@ type Strategy struct {
 
 	// add for hard fork
 	HFExpectedData HardForkExpectedData
-
-	//This variable is used to remember the backup accountmap every height%200 ==0
-	AccountMapCacheList *AccountMapList
 }
 
 type NextRoundValData struct {
@@ -101,9 +98,6 @@ type CurrentRoundValData struct {
 	// current candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
 	CurrCandidateValidators []abciTypes.ValidatorUpdate `json:"currCandidateValidators"`
 
-	// Initial validators , only use for once
-	InitialValidators []abciTypes.ValidatorUpdate `json:"initialValidators"`
-
 	// validators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
 	// will be select by postable.
 	// CurrentValidators is the true validators except commmittee validator when height != 1
@@ -149,9 +143,6 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 				MapList: make(map[string]*AccountMap),
 			},
 		},
-		AccountMapCacheList: &AccountMapList{
-			MapList: make(map[string]*AccountMap),
-		},
 	}
 }
 
@@ -161,11 +152,9 @@ func (s *Strategy) Receiver() common.Address {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
 	} else if s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress] != nil {
 		return s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
-	} else if s.CurrRoundValData.AccMapInitial.MapList[s.CurrRoundValData.ProposerAddress] != nil {
-		return s.CurrRoundValData.AccMapInitial.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
-	}else{
-		return s.AccountMapCacheList.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
 	}
+	log.Error("Proposer Address %v not found in accountMap", s.CurrRoundValData.ProposerAddress)
+	return common.HexToAddress("0000000000000000000000000000000000000002")
 }
 
 // SetValidators updates the current validators

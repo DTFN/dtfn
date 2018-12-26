@@ -229,35 +229,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	// for 1% every year increment
 	minerBonus.Div(strategy.CurrRoundValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
-	if strategy.FirstInitial {
-		strategy.FirstInitial = false
-		for i := 0; i < len(strategy.CurrRoundValData.InitialValidators); i++ {
-			bonusAverage := big.NewInt(1)
-			bonusAverage.Div(minerBonus, big.NewInt(int64(len(strategy.CurrRoundValData.InitialValidators))))
-
-			pubKey := strategy.CurrRoundValData.InitialValidators[i].PubKey
-			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
-			address := strings.ToLower(tmPubKey.Address().String())
-			if strategy.CurrRoundValData.AccMapInitial.MapList[address] != nil {
-				fmt.Println(("validator " + strconv.Itoa(i+1)) +
-					" Beneficiary address: " + strategy.CurrRoundValData.
-					AccMapInitial.MapList[address].Beneficiary.String() +
-					" get money: " + bonusAverage.String() +
-					" power: 1" +
-					" validator address: " + address)
-				ws.state.AddBalance(strategy.CurrRoundValData.AccMapInitial.MapList[address].Beneficiary, bonusAverage)
-			} else {
-				fmt.Println(("validator " + strconv.Itoa(i+1)) +
-					" Beneficiary address: " + strategy.CurrRoundValData.
-					AccountMapList.MapList[address].Beneficiary.String() +
-					" get money: " + bonusAverage.String() +
-					" power: 1" +
-					" validator address: " + address)
-
-				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
-			}
-		}
-	} else if len(strategy.CurrRoundValData.CurrentValidatorWeight) == 0 {
+	if len(strategy.CurrRoundValData.CurrentValidatorWeight) == 0 {
 		for i := 0; i < len(validators); i++ {
 			bonusAverage := big.NewInt(1)
 			bonusAverage.Div(minerBonus, big.NewInt(int64(len(validators))))
@@ -265,11 +237,14 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			pubKey := validators[i].PubKey
 			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 			address := strings.ToLower(tmPubKey.Address().String())
-			ws.state.AddBalance(strategy.AccountMapCacheList.MapList[address].Beneficiary, bonusAverage)
+			if strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
+				panic(fmt.Sprintf("address %v not exist in accountMap", address))
+			} else {
+				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			}
 
 			fmt.Println(("validator " + strconv.Itoa(i+1)) +
-				" Beneficiary address: " + strategy.
-				AccountMapCacheList.MapList[address].Beneficiary.String() +
+				" Beneficiary address: " + strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary.String() +
 				" get money: " + bonusAverage.String() +
 				" power: 1" +
 				" validator address: " + address)
@@ -288,7 +263,11 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			pubKey := validators[i].PubKey
 			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 			address := strings.ToLower(tmPubKey.Address().String())
-			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			if strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
+				panic(fmt.Sprintf("address %v not exist in accountMap", address))
+			} else {
+				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
+			}
 
 			fmt.Println(("validator " + strconv.Itoa(i+1)) +
 				" Beneficiary address: " + strategy.CurrRoundValData.

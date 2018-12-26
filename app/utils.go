@@ -279,7 +279,7 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 }
 
 func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEndBlock {
-	if len(app.strategy.CurrRoundValData.InitialValidators) == 0 {
+	if len(app.strategy.InitialValidators) == 0 {
 		// There is no nextCandidateValidators for initial height
 		return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
 	} else {
@@ -466,11 +466,10 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		pubkey, _ := tmTypes.PB2TM.PubKey(app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey)
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 
-		blsPower := big.NewInt(1)
-		blsPower.Div(app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].SignerBalance,
-			app.strategy.CurrRoundValData.PosTable.Threshold)
-
 		if tmAddressMap[tmAddress] {
+			blsPower := big.NewInt(1)
+			blsPower.Div(app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].SignerBalance,
+				app.strategy.CurrRoundValData.PosTable.Threshold)
 			app.strategy.CurrRoundValData.CurrentValidators = append(app.
 				strategy.CurrRoundValData.CurrentValidators, abciTypes.ValidatorUpdate{
 				PubKey: app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
