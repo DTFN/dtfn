@@ -308,7 +308,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		} else {
 			//upgrade failed or before upgrade run the old logic
 			log.Info("mock gas bug")
-			ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"), minerBonus)
+			//ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"), minerBonus)
 		}
 	} else {
 		// upgrade based the statistic data
