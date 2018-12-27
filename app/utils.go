@@ -488,15 +488,17 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 	}
 
+	lastUpdateValidators:=ethmintTypes.LastUpdateValidators{}
 	if len(lastValsBytes) == 0 {
 		// no predata existed
 		app.logger.Info("no pre lastValsBytes")
 	} else {
 		app.logger.Info("lastValsBytes Not nil")
-		err := json.Unmarshal(currBytes, &app.strategy.CurrHeightValData.UpdateValidators)
+		err := json.Unmarshal(currBytes, &lastUpdateValidators)
 		if err != nil {
 			panic("initial updateValidators error")
 		} else {
+			app.strategy.CurrHeightValData.UpdateValidators=lastUpdateValidators.UpdateValidators
 			initFlag = true
 		}
 	}
