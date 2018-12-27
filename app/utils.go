@@ -271,7 +271,8 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 
 		//select validators from posTable
 		for j := 0; len(validatorsSlice) != maxValidators; j++ {
-			pubKey := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey
+			_, posItem := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(int(height) + j - 1)
+			pubKey := posItem.PubKey
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 			validator := abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
