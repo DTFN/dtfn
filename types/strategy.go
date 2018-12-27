@@ -203,15 +203,14 @@ func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
 	}
 }
 
-// GetUpdatedValidators returns the current validators
+// GetUpdatedValidators returns the current validators,  old code
 func (strategy *Strategy) GetUpdatedValidators() []abciTypes.ValidatorUpdate {
 	return strategy.currentValidators
 }
 
-// GetUpdatedValidators returns the current validators
-func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMap) {
-	strategy.CurrHeightValData.AccountMap = accountMapList
+func (strategy *Strategy) SetInitialAccountMap(accountMapList *AccountMap) {
+	//strategy.CurrHeightValData.AccountMap = accountMapList
 	strategy.AccMapInitial = &AccountMap{
-		MapList: make(map[string]*AccountMapItem),
+		MapList: accountMapList.MapList,
 	}
 }

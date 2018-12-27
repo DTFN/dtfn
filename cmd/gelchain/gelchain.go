@@ -109,7 +109,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		}
 	}
 
-	ethApp.GetStrategy().SetAccountMapList(amlist)
+	ethApp.GetStrategy().SetInitialAccountMap(amlist)
 	log.Info(fmt.Sprintf("SetInitialAccountMap %v", amlist))
 
 	// Step 2: If we can invoke `tendermint node`, let's do so

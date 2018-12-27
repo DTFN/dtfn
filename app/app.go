@@ -141,8 +141,8 @@ func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) abciT
 // #stable - 0.4.0
 func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciTypes.ResponseInitChain {
 
-	app.logger.Info("InitChain", "req.Validators len", len(req.Validators)) // nolint: errcheck
-	app.SetValidators(req.Validators)                                       //old code
+	app.logger.Info("InitChain", "len(req.Validators)", len(req.Validators)) // nolint: errcheck
+	app.SetValidators(req.Validators)                                        //old code
 	ethState, _ := app.getCurrentState()
 	app.strategy.InitialValidators = []abciTypes.ValidatorUpdate{}
 
@@ -181,7 +181,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.GetLogger().Error(fmt.Sprintf("remove not enough balance validator %v", app.strategy.AccMapInitial.MapList[address]))
 		}
 	}
-	app.logger.Info("InitialValidators", "initial validator len", len(app.strategy.InitialValidators),
+	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", len(app.strategy.InitialValidators),
 		"validators", app.strategy.InitialValidators)
 	app.SetPersistenceData(0)
 
