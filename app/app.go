@@ -302,8 +302,6 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
 
-	app.SetPersistenceData(endBlock.Height)
-
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
@@ -319,6 +317,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		app.strategy.CurrHeightValData.CurrCandidateValidators = app.strategy.NextEpochValData.ExportCandidateValidators()
 		app.strategy.CurrHeightValData.PosTable = app.strategy.NextEpochValData.NextPosTable.Copy()
 	}
+	app.SetPersistenceData(app.strategy.CurrHeightValData.Height)
 
 	app.logger.Debug("Commit") // nolint: errcheck
 	state, err := app.getCurrentState()
