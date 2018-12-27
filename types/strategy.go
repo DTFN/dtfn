@@ -158,8 +158,8 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	return &Strategy{
 		CurrHeightValData: CurrentHeightValData{
 			PosTable:            NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			AccountMap:          &AccountMap{MapList: map[string]*AccountMapItem{}},
-			LastEpochAccountMap: &AccountMap{MapList: map[string]*AccountMapItem{}},
+			AccountMap:          &AccountMap{MapList: make(map[string]*AccountMapItem)},
+			LastEpochAccountMap: &AccountMap{MapList: make(map[string]*AccountMapItem)},
 			TotalBalance:        totalBalance,
 		},
 		HFExpectedData: hfExpectedData,
@@ -169,7 +169,7 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 			NextAccountMap: &AccountMap{
 				MapList: make(map[string]*AccountMapItem),
 			},
-			NextCandidateValidators: map[string]abciTypes.ValidatorUpdate{},
+			NextCandidateValidators: make(map[string]abciTypes.ValidatorUpdate),
 		},
 	}
 }

@@ -2,7 +2,6 @@ package ethereum
 
 import (
 	"fmt"
-	"github.com/green-element-chain/gelchain/version"
 	"math/big"
 	"strconv"
 	"strings"
@@ -257,7 +256,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	}
 
 	//This is no statistic data
-	if strategy.HFExpectedData.StatisticsVersion == 0 {
+	/*if strategy.HFExpectedData.StatisticsVersion == 0 {
 		// upgrade success and run the new logic after upgrade height
 		if strategy.HFExpectedData.BlockVersion-version.BeforeHardForkVersion == 1 &&
 			strategy.HFExpectedData.Height >= version.NextHardForkHeight {
@@ -265,7 +264,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		} else {
 			//upgrade failed or before upgrade run the old logic
 			log.Info("mock gas bug")
-			//ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"), minerBonus)
+			ws.state.AddBalance(common.HexToAddress("8423328b8016fbe31938a461b5647de696bdbf71"), minerBonus)
 		}
 	} else {
 		// upgrade based the statistic data
@@ -275,7 +274,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			strategy.HFExpectedData.BlockVersion = 1
 			log.Info("hard fork by statistic data")
 		}
-	}
+	}*/
 
 	ws.header.GasUsed = *ws.totalUsedGas
 }

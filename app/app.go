@@ -167,7 +167,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		if upsertFlag {
 			app.strategy.CurrHeightValData.CurrCandidateValidators = append(app.strategy.CurrHeightValData.CurrCandidateValidators,
 				validator)
-
+			app.strategy.CurrHeightValData.AccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
 			app.strategy.NextEpochValData.NextCandidateValidators[address] = validator
 			app.strategy.InitialValidators = append(app.strategy.InitialValidators, validator)
 

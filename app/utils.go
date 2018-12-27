@@ -511,7 +511,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 
 func (app *EthermintApplication) SetPersistenceData(height int64) {
 	app.logger.Info(fmt.Sprintf("set persist data in height %v", height))
-	wsState, _ := app.backend.Es().State()
+	wsState, _ := app.getCurrentState()
 
 	if app.strategy.NextEpochValData.ChangedFlagThisBlock || height%200 == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData)
