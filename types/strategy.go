@@ -29,7 +29,7 @@ type Strategy struct {
 
 	InitialValidators []abciTypes.ValidatorUpdate
 
-	currentValidators []abciTypes.ValidatorUpdate	//old code use. We don't use this
+	currentValidators []abciTypes.ValidatorUpdate //old code use. We don't use this
 	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
 	// and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
@@ -158,6 +158,7 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	return &Strategy{
 		CurrHeightValData: CurrentHeightValData{
 			PosTable:            NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			AccountMap:          &AccountMap{MapList: map[string]*AccountMapItem{}},
 			LastEpochAccountMap: &AccountMap{MapList: map[string]*AccountMapItem{}},
 			TotalBalance:        totalBalance,
 		},
@@ -168,6 +169,7 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 			NextAccountMap: &AccountMap{
 				MapList: make(map[string]*AccountMapItem),
 			},
+			NextCandidateValidators: map[string]abciTypes.ValidatorUpdate{},
 		},
 	}
 }
