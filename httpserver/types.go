@@ -21,7 +21,7 @@ type Validator struct {
 type PTableAll struct {
 	NextCandidateValidators []*Validator `json:"nextValidators"`
 
-	AccountMapList *types.AccountMapList `json:"accountMap"`
+	AccountMapList *types.AccountMap `json:"accountMap"`
 
 	PosItemMap map[common.Address]*types.PosItem `json:"posTableMap"`
 
@@ -29,7 +29,7 @@ type PTableAll struct {
 }
 
 type AccountMapData struct {
-	MapList map[string]*types.AccountMap `json:"accountmaplist"`
+	MapList map[string]*types.AccountMapItem `json:"map_list"`
 }
 
 type PosItemMapData struct {

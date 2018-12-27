@@ -85,7 +85,7 @@ func subBalance(stateDB *state.StateDB, addr common.Address, amount *big.Int) *b
 
 type IApp interface {
 	RemoveValidatorTx(signer common.Address) (bool, error)
-	GetAccountMap(tmAddress string) *types.AccountMap
+	GetAccountMap(tmAddress string) *types.AccountMapItem
 }
 
 func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs []abciTypes.ValidatorUpdate) {
@@ -103,9 +103,8 @@ func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abci
 		}
 		if addr != nil {
 			tmAddress := strings.ToLower(hex.EncodeToString(addr))
-			accountMap := app.GetAccountMap(tmAddress)
-			signer := accountMap.Signer
-			p.Punish(stateDB, signer)
+			accountMapItem := app.GetAccountMap(tmAddress)
+			p.Punish(stateDB, accountMapItem.Signer)
 			//To do
 			//app.RemoveValidatorTx(signer)
 		}

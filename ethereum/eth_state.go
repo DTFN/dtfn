@@ -24,8 +24,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/types"
 	"time"
+	"encoding/hex"
 )
 
 const errorCode = 1
@@ -219,65 +219,44 @@ func (ws *workState) State() *state.StateDB {
 // nolint: unparam
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
-	//todo:后续要获取到块的validators列表根据voting power按比例分配收益
-	var validators []abciTypes.ValidatorUpdate
-	for i := 0; i < len(strategy.CurrRoundValData.CurrentValidators); i++ {
-		validators = append(validators, strategy.CurrRoundValData.CurrentValidators[i])
-	}
-	minerBonus := big.NewInt(1)
-	divisor := big.NewInt(1)
-	// for 1% every year increment
-	minerBonus.Div(strategy.CurrRoundValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
-	if len(strategy.CurrRoundValData.CurrentValidatorWeight) == 0 {
-		for i := 0; i < len(validators); i++ {
-			bonusAverage := big.NewInt(1)
-			bonusAverage.Div(minerBonus, big.NewInt(int64(len(validators))))
+	minerBonus := strategy.CurrHeightValData.MinorBonus
 
-			pubKey := validators[i].PubKey
-			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
-			address := strings.ToLower(tmPubKey.Address().String())
-			if strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
-				panic(fmt.Sprintf("address %v not exist in accountMap", address))
-			} else {
-				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
-			}
-
-			fmt.Println(("validator " + strconv.Itoa(i+1)) +
-				" Beneficiary address: " + strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary.String() +
-				" get money: " + bonusAverage.String() +
-				" power: 1" +
-				" validator address: " + address)
-		}
-	} else {
-		weightSum := 0
-		for i := 0; i < len(strategy.CurrRoundValData.CurrentValidatorWeight); i++ {
-			weightSum = weightSum + int(strategy.CurrRoundValData.CurrentValidatorWeight[i])
-		}
-		for i := 0; i < len(validators); i++ {
-			bonusAverage := big.NewInt(1)
-			bonusSpecify := big.NewInt(1)
-			bonusSpecify.Mul(big.NewInt(strategy.CurrRoundValData.CurrentValidatorWeight[i]), bonusAverage.
-				Div(minerBonus, big.NewInt(int64(weightSum))))
-
-			pubKey := validators[i].PubKey
-			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
-			address := strings.ToLower(tmPubKey.Address().String())
-			if strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
-				panic(fmt.Sprintf("address %v not exist in accountMap", address))
-			} else {
-				ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusAverage)
-			}
-
-			fmt.Println(("validator " + strconv.Itoa(i+1)) +
-				" Beneficiary address: " + strategy.CurrRoundValData.
-				AccountMapList.MapList[address].Beneficiary.String() +
-				" get money: " + bonusSpecify.String() +
-				" power: " + strconv.Itoa(int(strategy.CurrRoundValData.CurrentValidatorWeight[i])) +
-				" validator address: " + address)
-			ws.state.AddBalance(strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary, bonusSpecify)
+	weightSum := 0
+	for _, voteInfo := range strategy.CurrHeightValData.LastVoteInfo {
+		if voteInfo.SignedLastBlock {
+			weightSum = weightSum + int(voteInfo.Validator.Power)
 		}
 	}
+	for i, voteInfo := range strategy.CurrHeightValData.LastVoteInfo {
+		if !voteInfo.SignedLastBlock {
+			continue
+		}
+		bonusAverage := big.NewInt(1)
+		bonusSpecify := big.NewInt(1)
+		bonusSpecify.Mul(big.NewInt(voteInfo.Validator.Power), bonusAverage.
+			Div(minerBonus, big.NewInt(int64(weightSum))))
+
+		address := strings.ToLower(hex.EncodeToString(voteInfo.Validator.Address))
+		var beneficiary common.Address
+		if accountItem, ok := strategy.CurrHeightValData.AccountMap.MapList[address]; ok {
+			beneficiary = accountItem.Beneficiary
+
+		} else {
+			if accountItem, ok := strategy.CurrHeightValData.LastEpochAccountMap.MapList[address]; !ok {
+				panic(fmt.Sprintf("address %v not exist in accountMap", address))
+			} else {
+				beneficiary = accountItem.Beneficiary
+			}
+		}
+		ws.state.AddBalance(beneficiary, bonusAverage)
+
+		fmt.Println(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
+			strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),
+			voteInfo.Validator.Power, address))
+		ws.state.AddBalance(strategy.CurrHeightValData.AccountMap.MapList[address].Beneficiary, bonusSpecify)
+	}
+
 	//This is no statistic data
 	if strategy.HFExpectedData.StatisticsVersion == 0 {
 		// upgrade success and run the new logic after upgrade height

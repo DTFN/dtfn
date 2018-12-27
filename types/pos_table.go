@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"encoding/json"
 )
 
 const PosTableMaxSize = 2000
@@ -23,21 +24,23 @@ type PosTable struct {
 	PosArray             []common.Address            `json:"posArray"`     // All posItem,it will contained the same item
 	PosArraySize         int                         `json:"posArraySize"` // real size of posArray
 	Threshold            *big.Int                    `json:"threshold"`    // threshold value of PosTable
-	ChangedFlagThisBlock bool                        `json:"changedFlagThisBlock"`
-	PosNodeSortList      *ValSortlist                `json:"-"`
-	// whether upsert or remove in this block
-	// but when we need to write into the ethstate ,we set it to false
 }
 
 func NewPosTable(threshold *big.Int) *PosTable {
 	pa := make([]common.Address, PosTableMaxSize)
 	return &PosTable{
-		PosItemMap:      make(map[common.Address]*PosItem),
-		PosArray:        pa,
-		PosArraySize:    0,
-		Threshold:       threshold,
-		PosNodeSortList: NewValSortlist(),
+		PosItemMap:   make(map[common.Address]*PosItem),
+		PosArray:     pa,
+		PosArraySize: 0,
+		Threshold:    threshold,
 	}
+}
+
+func (posTable *PosTable) Copy() *PosTable {
+	posByte, _ := json.Marshal(posTable)
+	newPosTable := &PosTable{}
+	json.Unmarshal(posByte, &newPosTable)
+	return newPosTable
 }
 
 func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int, beneficiary common.Address,
@@ -67,9 +70,9 @@ func (posTable *PosTable) UpsertPosItem(signer common.Address, balance *big.Int,
 		}
 	}
 	if balance.Cmp(posTable.Threshold) < 0 {
-		return false, fmt.Errorf("balance not enought")
+		return false, fmt.Errorf("balance not enough")
 	}
-	posItemPtr := newPosItem(signer, balance, beneficiary, pubkey)
+	posItemPtr := newPosItem(balance, pubkey)
 	posTable.PosItemMap[signer] = posItemPtr
 	posNumber, _ := strconv.Atoi(balanceCopy.Div(balance, posTable.Threshold).String())
 	for i := 0; i < posNumber; i++ {
@@ -135,20 +138,62 @@ func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, len int) PosItem {
 	return *posTable.PosItemMap[posTable.PosArray[value]]
 }
 
-type PosItem struct {
-	Signer      common.Address `json:"signer"`
-	Balance     *big.Int       `json:"balance"`
-	PubKey      abciTypes.PubKey  `json:"pubKey"`
-	Indexes     map[int]bool   `json:"indexes"`
-	Beneficiary common.Address `json:"beneficiary"`
+func (posTable *PosTable) TopKPosItem(k int) map[common.Address]*PosItem {
+	len := len(posTable.PosItemMap)
+	if len <= k {
+		return posTable.PosItemMap
+	}
+	posItems := make([]PosItemWithSigner, len)
+	i := 0
+	for s, pi := range posTable.PosItemMap {
+		posItems[i] = PosItemWithSigner{s, pi.Balance}
+		i++
+	}
+
+	topKMap := map[common.Address]*PosItem{}
+
+	sort.Sort(PosItemsByAddress(posItems))
+	topKPosItems := make([]PosItemWithSigner, k)
+	copy(topKPosItems, posItems[:k])
+	for _, pi := range topKPosItems {
+		topKMap[pi.Signer] = posTable.PosItemMap[pi.Signer]
+	}
+	return topKMap
 }
 
-func newPosItem(signer common.Address, balance *big.Int, beneficiary common.Address, pubKey abciTypes.PubKey) *PosItem {
+type PosItem struct {
+	Balance          *big.Int         `json:"balance"`
+	PubKey           abciTypes.PubKey `json:"pubKey"`
+	Indexes          map[int]bool     `json:"indexes"`
+	BeneficiaryBonus *big.Int         `json:"beneficiary_bonus"` //currently not used
+}
+
+func newPosItem(balance *big.Int, pubKey abciTypes.PubKey) *PosItem {
 	return &PosItem{
-		Signer:      signer,
-		Balance:     balance,
-		PubKey:      pubKey,
-		Indexes:     make(map[int]bool),
-		Beneficiary: beneficiary,
+		Balance: balance,
+		PubKey:  pubKey,
+		Indexes: make(map[int]bool),
 	}
+}
+
+type PosItemWithSigner struct {
+	Signer  common.Address
+	Balance *big.Int
+}
+
+// Sort PosItems by address
+type PosItemsByAddress []PosItemWithSigner
+
+func (ps PosItemsByAddress) Len() int {
+	return len(ps)
+}
+
+func (ps PosItemsByAddress) Less(i, j int) bool {
+	return ps[i].Balance.Cmp(ps[j].Balance) > 0
+}
+
+func (ps PosItemsByAddress) Swap(i, j int) {
+	it := ps[i]
+	ps[i] = ps[j]
+	ps[j] = it
 }

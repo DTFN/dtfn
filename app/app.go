@@ -95,12 +95,20 @@ const maxTransactionSize = 32768
 // #stable - 0.4.0
 
 func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.ResponseInfo {
-	blockchain := app.backend.Ethereum().BlockChain()
-	currentBlock := blockchain.CurrentBlock()
+	blockChain := app.backend.Ethereum().BlockChain()
+	currentBlock := blockChain.CurrentBlock()
 	height := currentBlock.Number()
 	hash := currentBlock.Header().Hash()
+	appVersion := uint64(1)
 
 	app.logger.Debug("Info", "height", height) // nolint: errcheck
+
+	app.InitPersistData()
+	minerBonus := big.NewInt(1)
+	divisor := big.NewInt(1)
+	// for 1% every year increment
+	minerBonus.Div(app.strategy.CurrHeightValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	app.strategy.CurrHeightValData.MinorBonus = minerBonus
 
 	// This check determines whether it is the first time gelchain gets started.
 	// If it is the first time, then we have to respond with an empty hash, since
@@ -110,6 +118,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 			Data:             "ABCIEthereum",
 			LastBlockHeight:  height.Int64(),
 			LastBlockAppHash: []byte{},
+			AppVersion:       appVersion,
 		}
 	}
 
@@ -117,6 +126,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 		Data:             "ABCIEthereum",
 		LastBlockHeight:  height.Int64(),
 		LastBlockAppHash: hash[:],
+		AppVersion:       appVersion,
 	}
 }
 
@@ -138,50 +148,43 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	ethState, _ := app.getCurrentState()
 
 	for j := 0; j < len(app.strategy.InitialValidators); j++ {
-		app.GetLogger().Info("CurrRoundValData.InitialValidators sige", "blacklist",
+		app.GetLogger().Info("CurrRoundValData.InitialValidators size", "blacklist",
 			len(app.strategy.InitialValidators))
 		pubKey := app.strategy.InitialValidators[j].PubKey
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		address := strings.ToLower(tmPubKey.Address().String())
-		if app.strategy.CurrRoundValData.AccountMapList.MapList[address] == nil {
+		if app.strategy.AccMapInitial.MapList[address] == nil {
+			app.logger.Error("initChain address %v not found in initialAccountMap, ignore", address)
 			continue
 		}
+		app.strategy.CurrHeightValData.AccountMap.MapList[address] = &emtTypes.AccountMapItem{
+			Signer:       app.strategy.AccMapInitial.MapList[address].Signer,
+			BlsKeyString: app.strategy.AccMapInitial.MapList[address].BlsKeyString,
+		}
+		SignerBalance := ethState.GetBalance(app.strategy.AccMapInitial.MapList[address].Signer)
 		upsertFlag, _ := app.UpsertPosItemInit(
-			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer,
-			app.strategy.CurrRoundValData.AccountMapList.MapList[address].SignerBalance,
-			app.strategy.CurrRoundValData.AccountMapList.MapList[address].Beneficiary,
+			app.strategy.AccMapInitial.MapList[address].Signer,
+			SignerBalance,
+			app.strategy.AccMapInitial.MapList[address].Beneficiary,
 			app.strategy.InitialValidators[j].PubKey)
 		if upsertFlag {
-			app.strategy.CurrRoundValData.CurrCandidateValidators = append(app.
-				strategy.CurrRoundValData.CurrCandidateValidators, app.
-				strategy.InitialValidators[j])
+			app.strategy.CurrHeightValData.CurrCandidateValidators = append(app.strategy.CurrHeightValData.CurrCandidateValidators,
+				app.strategy.InitialValidators[j])
 
-			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
-				strategy.NextRoundValData.NextRoundCandidateValidators, app.
-				strategy.InitialValidators[j])
+			app.strategy.NextEpochValData.NextCandidateValidators[address] = app.strategy.InitialValidators[j]
 
-			blacklist.Lock(ethState, app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
+			blacklist.Lock(ethState, app.strategy.AccMapInitial.MapList[address].Signer)
 			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
-				app.strategy.CurrRoundValData.AccountMapList.MapList[address].Signer)
+				app.strategy.AccMapInitial.MapList[address].Signer)
 		} else {
 			//This is used to remove the validators who dont have enough balance
 			//but he is in the accountmap.
-			pubKey := app.strategy.InitialValidators[j].PubKey
-			tmPubKey, _ := types.PB2TM.PubKey(pubKey)
-			tmAddress := strings.ToLower(tmPubKey.Address().String())
-			app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
-			delete(app.strategy.CurrRoundValData.AccountMapList.MapList, tmAddress)
-			app.GetLogger().Info("remove not enough balance validators")
+			delete(app.strategy.AccMapInitial.MapList, address)
+			app.GetLogger().Error(fmt.Sprintf("remove not enough balance validator %v", app.strategy.AccMapInitial.MapList[address]))
 		}
 	}
 
-	app.logger.Info("deep copy when initChain")
-	accByte, _ := json.Marshal(app.strategy.CurrRoundValData.AccountMapList)
-	json.Unmarshal(accByte, app.strategy.NextRoundValData.NextAccountMapList)
-	posByte, _ := json.Marshal(app.strategy.CurrRoundValData.PosTable)
-	json.Unmarshal(posByte, app.strategy.NextRoundValData.NextRoundPosTable)
-	app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
-	app.PersistenceData()
+	app.SetPersistenceData(0)
 
 	return abciTypes.ResponseInitChain{}
 }
@@ -259,62 +262,35 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 // #stable - 0.4.0
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
+	app.strategy.NextEpochValData.ChangedFlagThisBlock = false
 	header := beginBlock.GetHeader()
-	// update the eth header with the tendermint header!br0ken!!
+	// update the eth header with the tendermint header!breaking!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.HFExpectedData.Height = beginBlock.GetHeader().Height
 	app.strategy.HFExpectedData.BlockVersion = beginBlock.GetHeader().Version.App
-	app.logger.Info("block version","appversion",app.strategy.HFExpectedData.BlockVersion)
+	app.logger.Info("block version", "appversion", app.strategy.HFExpectedData.BlockVersion)
 
+	app.strategy.CurrHeightValData.Height = beginBlock.GetHeader().Height
 	//when we reach the upgrade height,we change the blockversion
-	if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight{
+	if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
 		app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	}
 
-	app.strategy.CurrRoundValData.AccountMapList.MapList = map[string]*emtTypes.AccountMap{}
-
-	app.InitPersistData()
-	app.strategy.CurrRoundValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
-	app.strategy.CurrRoundValData.Receiver = app.Receiver().String()
-
-
-	if (header.Height)%200 == 0 {
-		app.logger.Info("DeepCopy")
-		accByte, _ := json.Marshal(app.strategy.NextRoundValData.NextAccountMapList)
-
-		app.strategy.CurrRoundValData.CurrCandidateValidators = nil
-		app.strategy.CurrRoundValData.PosTable = nil
-
-		accountMaplist := emtTypes.AccountMapList{}
-
-		json.Unmarshal(accByte, &accountMaplist)
-		app.strategy.CurrRoundValData.AccountMapList=&accountMaplist
-
-		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-			app.strategy.CurrRoundValData.CurrCandidateValidators = append(
-				app.strategy.CurrRoundValData.CurrCandidateValidators,
-				app.strategy.NextRoundValData.NextRoundCandidateValidators[i])
-		}
-
-		posByte, _ := json.Marshal(app.strategy.NextRoundValData.NextRoundPosTable)
-		postable := emtTypes.PosTable{}
-		json.Unmarshal(posByte, &postable)
-
-		app.strategy.CurrRoundValData.PosTable = &postable
-		app.strategy.CurrRoundValData.PosTable.PosNodeSortList = emtTypes.NewValSortlist()
-	}
+	app.strategy.CurrHeightValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
+	app.strategy.CurrHeightValData.Receiver = app.Receiver().String()
+	app.strategy.CurrHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
 	db, e := app.getCurrentState()
 	if e == nil {
 		//app.logger.Info("do punish")
-		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrRoundValData.CurrentValidators)
+		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrHeightValData.UpdateValidators)
 	}
 
 	return abciTypes.ResponseBeginBlock{}
 }
 
-func (app *EthermintApplication) GetAccountMap(tmAddress string) *emtTypes.AccountMap {
-	return app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
+func (app *EthermintApplication) GetAccountMap(tmAddress string) *emtTypes.AccountMapItem {
+	return app.strategy.CurrHeightValData.AccountMap.MapList[tmAddress]
 }
 
 // EndBlock accumulates rewards for the validators and updates them
@@ -326,6 +302,8 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
 
+	app.SetPersistenceData(endBlock.Height)
+
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
@@ -334,7 +312,13 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
 	app.backend.AccumulateRewards(app.strategy)
-	app.PersistenceData()
+	if (app.strategy.CurrHeightValData.Height)%200 == 0 {
+		//DeepCopy
+		app.strategy.CurrHeightValData.LastEpochAccountMap = app.strategy.CurrHeightValData.AccountMap.Copy()
+		app.strategy.CurrHeightValData.AccountMap = app.strategy.NextEpochValData.NextAccountMap.Copy()
+		app.strategy.CurrHeightValData.CurrCandidateValidators = app.strategy.NextEpochValData.ExportCandidateValidators()
+		app.strategy.CurrHeightValData.PosTable = app.strategy.NextEpochValData.NextPosTable.Copy()
+	}
 
 	app.logger.Debug("Commit") // nolint: errcheck
 	state, err := app.getCurrentState()
@@ -481,7 +465,7 @@ func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balance *big.Int, beneficiary common.Address,
 	pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
-		bool, err := app.strategy.CurrRoundValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
+		bool, err := app.strategy.CurrHeightValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
 		return bool, err
 	}
 	return false, nil
@@ -489,7 +473,7 @@ func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balan
 
 func (app *EthermintApplication) RemovePosItemInit(account common.Address) (bool, error) {
 	if app.strategy != nil {
-		bool, err := app.strategy.CurrRoundValData.PosTable.RemovePosItem(account)
+		bool, err := app.strategy.CurrHeightValData.PosTable.RemovePosItem(account)
 		return bool, err
 	}
 	return false, nil

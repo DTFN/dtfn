@@ -7,6 +7,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	"reflect"
+	"sort"
 )
 
 // MinerRewardStrategy is a mining strategy
@@ -35,28 +36,51 @@ type Strategy struct {
 	// Initial validators , only use for once
 	InitialValidators []abciTypes.ValidatorUpdate
 
+	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
+	// and didnt existed in the accountMapList
+	// we should remember it for balance bonus and then clear it
+	AccMapInitial *AccountMap
+
 	//needn't to be persisted
 	BlsSelectStrategy bool
 
 	// reused,need persistence
-	CurrRoundValData CurrentRoundValData
+	CurrHeightValData CurrentHeightValData
 
 	//reused,need persistence
-	NextRoundValData NextRoundValData
+	NextEpochValData NextEpochValData
 
 	// add for hard fork
 	HFExpectedData HardForkExpectedData
 }
 
-type NextRoundValData struct {
+type NextEpochValData struct {
 	//we should deepcopy evert 200 height
 	//first deepcopy:copy at height 1 from CurrentRoundValData to NextRoundValData
 	//height/200 ==0:c from NextRoundValData to CurrentRoundValData   `json:"-"`
-	NextRoundPosTable *PosTable `json:"nextRoundPosTable"`
+	NextPosTable *PosTable `json:"pos_table"`
 
-	NextRoundCandidateValidators []abciTypes.ValidatorUpdate `json:"nextRoundCandidateValidators"`
+	NextCandidateValidators map[string]abciTypes.ValidatorUpdate `json:"next_candidate_validators"`
 
-	NextAccountMapList *AccountMapList `json:"nextAccountMapList"`
+	NextAccountMap *AccountMap `json:"account_map"`
+
+	ChangedFlagThisBlock bool
+	// whether upsert or remove in this block
+	// when we need to write into the ethState ,we set it to true
+}
+
+func (nextRoundValData *NextEpochValData) ExportCandidateValidators() []abciTypes.ValidatorUpdate {
+	var keys []string
+	for k := range nextRoundValData.NextCandidateValidators {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	validators := []abciTypes.ValidatorUpdate{}
+	for _, k := range keys {
+		validators = append(validators, nextRoundValData.NextCandidateValidators[k])
+	}
+	return validators
 }
 
 type Proposer struct {
@@ -81,38 +105,40 @@ type HardForkExpectedData struct {
 	BlockVersion uint64
 }
 
-type CurrentRoundValData struct {
-	AccountMapList *AccountMapList `json:"accountMapList"`
+type CurrentHeightValData struct {
+	Height int64
+
+	AccountMap *AccountMap `json:"account_map"`
 	//This map was used when some validator was removed and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it
 	//AccountMapListTemp *AccountMapList
 
-	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
-	// and didnt existed in the accountMapList
-	// we should remember it for balance bonus and then clear it
-	AccMapInitial *AccountMapList `json:"accMapInitial"`
+	LastEpochAccountMap *AccountMap `json:"last_epoch_account_map"`
 
 	// will be changed by addValidatorTx and removeValidatorTx.
-	PosTable *PosTable `json:"posTable"`
+	PosTable *PosTable `json:"pos_table"`
 
 	// current candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
-	CurrCandidateValidators []abciTypes.ValidatorUpdate `json:"currCandidateValidators"`
+	CurrCandidateValidators []abciTypes.ValidatorUpdate `json:"curr_candidate_validators"`
 
-	// validators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
-	// will be select by postable.
-	// CurrentValidators is the true validators except commmittee validator when height != 1
-	// if height =1 ,CurrentValidator = nil
-	CurrentValidators []abciTypes.ValidatorUpdate `json:"currentValidators"`
+	// UpdateValidators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
+	// will be select by posTable.
+	// CurrentValidators is the true validators except committee validator when height != 1
+	// if height =1 ,UpdateValidators = nil
+	UpdateValidators []abciTypes.ValidatorUpdate //saved in another address separately
 
 	// current validator weight represent the weight of random select.
 	// will used to accumulateReward for next height
-	CurrentValidatorWeight []int64 `json:"currentValidatorWeight"`
+	UpdateValidatorWeights []int64
 
 	TotalBalance *big.Int `json:"totalBalance"`
+	MinorBonus   *big.Int //award all validators per block.
 
-	ProposerAddress string `json:"proposerAddress"`
+	ProposerAddress string
 
-	Receiver string `json:"receiver"`
+	LastVoteInfo []abciTypes.VoteInfo
+
+	Receiver string
 
 	// note : if we get a addValidatorsTx at height 101,
 	// we will put it into the NextCandidateValidators and move into postable
@@ -125,22 +151,28 @@ type CurrentRoundValData struct {
 	// postable will used in the next height 102
 }
 
+type LastUpdateValidators struct {
+	//used for persist data
+	UpdateValidators []abciTypes.ValidatorUpdate `json:"update_validators"`
+}
+
 func NewStrategy(totalBalance *big.Int) *Strategy {
 	//If ThresholdUnit = 1000 ,it mean we set the lowest posTable threshold to 1/1000 of totalBalance.
 	thresholdUnit := big.NewInt(ThresholdUnit)
 	threshold := big.NewInt(1)
 	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true, StatisticsVersion: 0, BlockVersion: 0}
 	return &Strategy{
-		CurrRoundValData: CurrentRoundValData{
-			PosTable:     NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			TotalBalance: totalBalance,
+		CurrHeightValData: CurrentHeightValData{
+			PosTable:            NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			LastEpochAccountMap: &AccountMap{MapList: map[string]*AccountMapItem{}},
+			TotalBalance:        totalBalance,
 		},
 		HFExpectedData: hfExpectedData,
 
-		NextRoundValData: NextRoundValData{
-			NextRoundPosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			NextAccountMapList: &AccountMapList{
-				MapList: make(map[string]*AccountMap),
+		NextEpochValData: NextEpochValData{
+			NextPosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			NextAccountMap: &AccountMap{
+				MapList: make(map[string]*AccountMapItem),
 			},
 		},
 	}
@@ -148,12 +180,12 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
-	if s.CurrRoundValData.ProposerAddress == "" || len(s.CurrRoundValData.AccountMapList.MapList) == 0 {
+	if s.CurrHeightValData.ProposerAddress == "" || len(s.CurrHeightValData.AccountMap.MapList) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	} else if s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress] != nil {
-		return s.CurrRoundValData.AccountMapList.MapList[s.CurrRoundValData.ProposerAddress].Beneficiary
+	} else if s.CurrHeightValData.AccountMap.MapList[s.CurrHeightValData.ProposerAddress] != nil {
+		return s.CurrHeightValData.AccountMap.MapList[s.CurrHeightValData.ProposerAddress].Beneficiary
 	}
-	log.Error("Proposer Address %v not found in accountMap", s.CurrRoundValData.ProposerAddress)
+	log.Error("Proposer Address %v not found in accountMap", s.CurrHeightValData.ProposerAddress)
 	return common.HexToAddress("0000000000000000000000000000000000000002")
 }
 
@@ -183,9 +215,9 @@ func (strategy *Strategy) GetUpdatedValidators() []abciTypes.ValidatorUpdate {
 }
 
 // GetUpdatedValidators returns the current validators
-func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMapList) {
-	strategy.CurrRoundValData.AccountMapList = accountMapList
-	strategy.CurrRoundValData.AccMapInitial = &AccountMapList{
-		MapList: make(map[string]*AccountMap),
+func (strategy *Strategy) SetAccountMapList(accountMapList *AccountMap) {
+	strategy.CurrHeightValData.AccountMap = accountMapList
+	strategy.AccMapInitial = &AccountMap{
+		MapList: make(map[string]*AccountMapItem),
 	}
 }

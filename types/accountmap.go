@@ -6,43 +6,58 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"io/ioutil"
-	"math/big"
 	"sync"
 )
 
-// AccountMap is an initial accountMap between tendermitn address and go-ethereum-address.
-type AccountMap struct {
+// AccountMapItem connects tm address with eth address and blsPubKey
+type AccountMapItem struct {
 	Signer           common.Address `json:"signer"`
-	SignerBalance    *big.Int       `json:"signerBalance"`
-	BeneficiaryBonus *big.Int       `json:"beneficiaryBonus"`
 	Beneficiary      common.Address `json:"beneficiary"`
 	BlsKeyString     string         `json:"blsKeyString"`
 }
 
-// AccountMapList defines the initial list of AccountMap.
-type AccountMapList struct {
-	MapList map[string]*AccountMap `json:"accountmaplist"`
+func (accountMapItem *AccountMapItem) Copy() *AccountMapItem {
+	return &AccountMapItem{
+		accountMapItem.Signer,
+		accountMapItem.Beneficiary,
+		accountMapItem.BlsKeyString,
+	}
+}
+
+type AccountMap struct {
+	MapList map[string]*AccountMapItem `json:"map_list"`
 
 	FilePath string `json:"filePath"`
 	mtx      sync.Mutex
 }
 
+func (am *AccountMap) Copy() *AccountMap {
+	newMapList:= map[string]*AccountMapItem{}
+	for k,v:=range am.MapList{
+		newMapList[k]=v.Copy()
+	}
+	return &AccountMap{
+		MapList:newMapList,
+		FilePath:am.FilePath,
+	}
+}
+
 // GenFilePV generates a new validator with randomly generated private key
 // and sets the filePath, but does not call Save().
-func (am *AccountMapList) GenAccountMapList(filePath string) *AccountMapList {
+func (am *AccountMap) GenAccountMapList(filePath string) *AccountMap {
 	am.FilePath = filePath
 	am.Save()
 	return am
 }
 
 // Save persists the FilePV to disk.
-func (am *AccountMapList) Save() {
+func (am *AccountMap) Save() {
 	am.mtx.Lock()
 	defer am.mtx.Unlock()
 	am.save()
 }
 
-func (am *AccountMapList) save() {
+func (am *AccountMap) save() {
 	outFile := am.FilePath
 	if outFile == "" {
 		panic("Cannot save AccountMap: filePath not set")
@@ -58,8 +73,8 @@ func (am *AccountMapList) save() {
 }
 
 // AccountMapFromJSON unmarshalls JSON data into a AccountMapList.
-func AccountMapFromJSON(jsonBlob []byte) (*AccountMapList, error) {
-	amlist := AccountMapList{}
+func AccountMapFromJSON(jsonBlob []byte) (*AccountMap, error) {
+	amlist := AccountMap{}
 	err := json.Unmarshal(jsonBlob, &amlist)
 	if err != nil {
 		return nil, err
@@ -69,7 +84,7 @@ func AccountMapFromJSON(jsonBlob []byte) (*AccountMapList, error) {
 }
 
 // AccountMapFromJSON reads JSON data from a file and unmarshalls it into a AccountMapList.
-func AccountMapFromFile(AccountMapFile string) (*AccountMapList, error) {
+func AccountMapFromFile(AccountMapFile string) (*AccountMap, error) {
 	jsonBlob, err := ioutil.ReadFile(AccountMapFile)
 	if err != nil {
 		return nil, cmn.ErrorWrap(err, "Couldn't read AccountMap File")

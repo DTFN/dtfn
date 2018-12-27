@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"container/list"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -17,6 +16,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"fmt"
 )
 
 // format of query data
@@ -61,10 +61,10 @@ func (app *EthermintApplication) StartHttpServer() {
 }
 
 func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, currentHeight *big.Int, balance *big.Int,
-	beneficiary common.Address, pubkey crypto.PubKey, blsKeyString string) (bool, error) {
+	beneficiary common.Address, pubKey crypto.PubKey, blsKeyString string) (bool, error) {
 	app.GetLogger().Info("You are upsert ValidatorTxing")
 
-	if pubkey == nil || len(blsKeyString) == 0 {
+	if pubKey == nil || len(blsKeyString) == 0 {
 		app.GetLogger().Info("nil validator pubkey or bls pubkey")
 		return false, errors.New("nil validator pubkey or bls pubkey")
 	}
@@ -73,36 +73,38 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		// It is better to use NextCandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
-		abciPubKey := tmTypes.TM2PB.PubKey(pubkey)
+		abciPubKey := tmTypes.TM2PB.PubKey(pubKey)
 
-		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+		tmAddress := strings.ToLower(hex.EncodeToString(pubKey.Address()))
 		app.GetLogger().Info("blsKeyString: " + blsKeyString)
 		app.GetLogger().Info("tmAddress: " + tmAddress)
 
-		existFlag := false
-		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-			pubKey := app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
-			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-			if bytes.Equal(pubkey.Address(), tmPubKey.Address().Bytes()) {
-				origSigner := app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer
-				if origSigner.String() != signer.String() {
-					app.GetLogger().Info("validator was voted by another signer")
-					return false, errors.New("validator was voted by another signer")
-				}
-				existFlag = true
+		signerExisted := false
+		blsExisted := false
+
+		nextValidator, existFlag := app.strategy.NextEpochValData.NextCandidateValidators[tmAddress]
+
+		if existFlag {
+			origSigner := app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].Signer
+			if origSigner.String() != signer.String() {
+				app.GetLogger().Info("validator was voted by another signer")
+				return false, errors.New("validator was voted by another signer")
+			}
+			if app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].BlsKeyString != blsKeyString {
+				return false, errors.New("bls pubKey has been used by other people")
 			}
 		}
 		//做这件事之前必须确认这个signer，不是MapList中已经存在的。
 		//1.signer相同，可能来作恶;  2.signer相同，可能不作恶，因为有相同maplist;  3.signer不相同
-		signerExisted := false
-		for _, v := range app.strategy.NextRoundValData.NextAccountMapList.MapList {
+
+		for _, v := range app.strategy.NextEpochValData.NextAccountMap.MapList {
 			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
 				signerExisted = true
 				break
 			}
 		}
-		blsExisted := false
-		for _, v := range app.strategy.NextRoundValData.NextAccountMapList.MapList {
+
+		for _, v := range app.strategy.NextEpochValData.NextAccountMap.MapList {
 			if v.BlsKeyString == blsKeyString {
 				blsExisted = true
 				break
@@ -120,41 +122,37 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
-			upsertFlag, err := app.strategy.NextRoundValData.NextRoundPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			upsertFlag, err := app.strategy.NextEpochValData.NextPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
 				app.GetLogger().Info(err.Error())
 				return false, err
 			}
-			app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress] = &ethmintTypes.AccountMap{
-				Beneficiary:   beneficiary,
-				Signer:        signer,
-				SignerBalance: balance,
-				BlsKeyString:  blsKeyString,
+			app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress] = &ethmintTypes.AccountMapItem{
+				Beneficiary:  beneficiary,
+				Signer:       signer,
+				BlsKeyString: blsKeyString,
 			}
-			app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
-				strategy.NextRoundValData.NextRoundCandidateValidators,
+			app.strategy.NextEpochValData.NextCandidateValidators[tmAddress] =
 				abciTypes.ValidatorUpdate{
 					PubKey: abciPubKey,
 					Power:  1,
-				})
+				}
 			app.GetLogger().Info("add Validator Tx success")
-			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
+			app.strategy.NextEpochValData.ChangedFlagThisBlock = true
 			return true, nil
 		} else if existFlag && signerExisted && blsExisted {
-			if app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].BlsKeyString != blsKeyString || !bytes.
-				Equal(app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer.Bytes(), signer.Bytes()) {
-				return false, errors.New("bls or validator pubkey was signed by other people")
+			if !bytes.Equal(nextValidator.PubKey.Data, abciPubKey.Data) {
+				return false, errors.New("pubKey doesn't match with existing one")
 			}
 			//同singer，同MapList[tmAddress]，是来改动balance的
-			upsertFlag, err := app.strategy.NextRoundValData.NextRoundPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			upsertFlag, err := app.strategy.NextEpochValData.NextPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
 				app.GetLogger().Info(err.Error())
 				return false, err
 			}
-			app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Beneficiary = beneficiary
-			app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].SignerBalance = balance
+			app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].Beneficiary = beneficiary
 			app.GetLogger().Info("upsert Validator Tx success")
-			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
+			app.strategy.NextEpochValData.ChangedFlagThisBlock = true
 			return true, nil
 		} else {
 			//signer,validator key,bls key 不符合一致性条件 来捣乱的
@@ -171,16 +169,22 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 	if app.strategy != nil {
 		//找到tmAddress，另这个的signer与输入相等
 		var tmAddress string
-		for k, v := range app.strategy.NextRoundValData.NextAccountMapList.MapList {
+		existFlag := false
+		for k, v := range app.strategy.NextEpochValData.NextAccountMap.MapList {
 			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
 				tmAddress = k
+				existFlag = true
 				break
 			}
 		}
 
-		if len(app.strategy.NextRoundValData.NextRoundCandidateValidators) <= 4 {
-			app.GetLogger().Info("can not remove validator for error-tolerant")
-			return false, errors.New("can not remove validator for error-tolerant")
+		if !existFlag {
+			return false, errors.New(fmt.Sprintf("signer %v not exist in AccountMap", signer))
+		}
+
+		if len(app.strategy.NextEpochValData.NextCandidateValidators) <= 4 {
+			app.GetLogger().Info("can not remove validator for consensus safety")
+			return false, errors.New("can not remove validator for consensus safety")
 		}
 
 		// judge whether is a valid removeValidator Tx
@@ -188,64 +192,29 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
 		//tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
-		existFlag := false
-		markIndex := 0
-		tmBytes, err := hex.DecodeString(tmAddress)
-		if err != nil {
-			return false, err
-		}
-		for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-			pubKey := app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
-			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-			if bytes.Equal(tmBytes, tmPubKey.Address().Bytes()) {
-				existFlag = true
-				markIndex = i
-				break
-			}
-		}
-		if existFlag {
-			removeFlag, err := app.strategy.NextRoundValData.NextRoundPosTable.RemovePosItem(signer)
-			if err != nil || !removeFlag {
-				app.GetLogger().Info("posTable remove failed")
-				return false, errors.New("posTable remove failed")
-			}
-			//app.strategy.CurrRoundValData.AccMapInitial.MapList[tmAddress] = app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress]
+		_, ok := app.strategy.NextEpochValData.NextCandidateValidators[tmAddress]
 
-			var validatorPre, validatorNext []abciTypes.ValidatorUpdate
-
-			if len(app.strategy.NextRoundValData.NextRoundCandidateValidators) == 1 {
-				app.strategy.NextRoundValData.NextRoundCandidateValidators = nil
-			} else if markIndex == 0 {
-				app.strategy.NextRoundValData.NextRoundCandidateValidators = app.strategy.
-					NextRoundValData.NextRoundCandidateValidators[1:]
-			} else if markIndex == len(app.strategy.NextRoundValData.NextRoundCandidateValidators)-1 {
-				app.strategy.NextRoundValData.NextRoundCandidateValidators = app.strategy.NextRoundValData.
-					NextRoundCandidateValidators[0 : len(app.strategy.NextRoundValData.NextRoundCandidateValidators)-1]
-			} else {
-				validatorPre = app.strategy.NextRoundValData.NextRoundCandidateValidators[0:markIndex]
-				validatorNext = app.strategy.NextRoundValData.NextRoundCandidateValidators[markIndex+1:]
-				app.strategy.NextRoundValData.NextRoundCandidateValidators = validatorPre
-				for i := 0; i < len(validatorNext); i++ {
-					app.strategy.NextRoundValData.NextRoundCandidateValidators = append(app.
-						strategy.NextRoundValData.NextRoundCandidateValidators, validatorNext[i])
-				}
-			}
-			delete(app.strategy.NextRoundValData.NextAccountMapList.MapList, tmAddress)
-			//if validator is exist in the currentValidators,it must be removed
-			app.GetLogger().Info("remove validatorTx success")
-			app.strategy.NextRoundValData.NextRoundPosTable.ChangedFlagThisBlock = true
-			return true, nil
-		} else {
-			app.GetLogger().Info("signer address not existed")
+		if !ok {
+			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in NextCandidateValidators", signer))
 		}
-		// If is a valid removeValidator,change the data in the strategy
+		removeFlag, err := app.strategy.NextEpochValData.NextPosTable.RemovePosItem(signer)
+		if err != nil || !removeFlag {
+			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in posTable", signer))
+		}
+
+		delete(app.strategy.NextEpochValData.NextCandidateValidators, tmAddress)
+		delete(app.strategy.NextEpochValData.NextAccountMap.MapList, tmAddress)
+		//if validator is exist in the currentValidators,it must be removed
+		app.GetLogger().Info("remove validatorTx success")
+		app.strategy.NextEpochValData.ChangedFlagThisBlock = true
+		return true, nil
 	}
 	return false, errors.New("app strategy nil")
 }
 
 func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
 	if app.strategy != nil {
-		app.strategy.CurrRoundValData.PosTable.SetThreShold(threShold)
+		app.strategy.CurrHeightValData.PosTable.SetThreShold(threShold)
 	}
 }
 
@@ -286,13 +255,13 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		var validatorsSlice []abciTypes.ValidatorUpdate
 		validators := app.strategy.GetUpdatedValidators()
 
-		if len(app.strategy.CurrRoundValData.CurrCandidateValidators) == 0 {
+		if len(app.strategy.CurrHeightValData.CurrCandidateValidators) == 0 {
 			return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
 		}
 
 		maxValidators := 0
-		if len(app.strategy.CurrRoundValData.CurrCandidateValidators) < 7 {
-			maxValidators = len(app.strategy.CurrRoundValData.CurrCandidateValidators)
+		if len(app.strategy.CurrHeightValData.CurrCandidateValidators) < 7 {
+			maxValidators = len(app.strategy.CurrHeightValData.CurrCandidateValidators)
 		} else {
 			maxValidators = 7
 		}
@@ -302,7 +271,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 
 		//select validators from posTable
 		for j := 0; len(validatorsSlice) != maxValidators; j++ {
-			pubKey := app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey
+			pubKey := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(int(height) + j - 1).PubKey
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 			validator := abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
@@ -316,15 +285,15 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 
 				votedValidators[tmPubKey.Address().String()] = true
 				validatorsSlice = append(validatorsSlice, validator)
-				app.strategy.CurrRoundValData.CurrentValidators = append(app.
-					strategy.CurrRoundValData.CurrentValidators, validator)
+				app.strategy.CurrHeightValData.UpdateValidators = append(app.
+					strategy.CurrHeightValData.UpdateValidators, validator)
 			}
 		}
 
 		//record the currentValidator weight for accumulateReward
 		for i := 0; i < maxValidators; i++ {
-			app.strategy.CurrRoundValData.CurrentValidatorWeight = append(
-				app.strategy.CurrRoundValData.CurrentValidatorWeight,
+			app.strategy.CurrHeightValData.UpdateValidatorWeights = append(
+				app.strategy.CurrHeightValData.UpdateValidatorWeights,
 				validatorsSlice[i].Power-999)
 		}
 
@@ -354,20 +323,20 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	var valCopy []abciTypes.ValidatorUpdate
 
 	maxValidatorSlice := 0
-	if len(app.strategy.CurrRoundValData.CurrCandidateValidators) <= 4 {
+	if len(app.strategy.CurrHeightValData.CurrCandidateValidators) <= 4 {
 		return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
-	} else if len(app.strategy.CurrRoundValData.CurrCandidateValidators) < 7 {
-		maxValidatorSlice = len(app.strategy.CurrRoundValData.CurrCandidateValidators)
+	} else if len(app.strategy.CurrHeightValData.CurrCandidateValidators) < 7 {
+		maxValidatorSlice = len(app.strategy.CurrHeightValData.CurrCandidateValidators)
 	} else {
 		maxValidatorSlice = 7
 	}
 
-	for i := 0; i < len(app.strategy.CurrRoundValData.CurrentValidators); i++ {
-		valCopy = append(valCopy, app.strategy.CurrRoundValData.CurrentValidators[i])
+	for i := 0; i < len(app.strategy.CurrHeightValData.UpdateValidators); i++ {
+		valCopy = append(valCopy, app.strategy.CurrHeightValData.UpdateValidators[i])
 	}
 
-	app.strategy.CurrRoundValData.CurrentValidators = nil
-	app.strategy.CurrRoundValData.CurrentValidatorWeight = nil
+	app.strategy.CurrHeightValData.UpdateValidators = nil
+	app.strategy.CurrHeightValData.UpdateValidatorWeights = nil
 
 	// we use map to remember which validators voted has put into validatorSlice
 	votedValidators := make(map[string]bool)
@@ -379,7 +348,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		var validator abciTypes.ValidatorUpdate
 		if height == -1 {
 			//height=-1 表示 seed 存在，使用seed
-			pubKey := app.strategy.CurrRoundValData.PosTable.SelectItemBySeedValue(seed, i).PubKey
+			pubKey := app.strategy.CurrHeightValData.PosTable.SelectItemBySeedValue(seed, i).PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
@@ -388,7 +357,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		} else {
 			//seed 不存在，使用height
 			startIndex := int(height) * 100
-			pubKey := app.strategy.CurrRoundValData.PosTable.SelectItemByHeightValue(startIndex + i - 1).PubKey
+			pubKey := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(startIndex + i - 1).PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
@@ -404,15 +373,15 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 
 			votedValidators[tmPubKey.Address().String()] = true
 			validatorsSlice = append(validatorsSlice, validator)
-			app.strategy.CurrRoundValData.CurrentValidators = append(app.
-				strategy.CurrRoundValData.CurrentValidators, validator)
+			app.strategy.CurrHeightValData.UpdateValidators = append(app.
+				strategy.CurrHeightValData.UpdateValidators, validator)
 		}
 	}
 
 	//record the currentValidator weight for accumulateReward
 	for i := 0; i < maxValidatorSlice; i++ {
-		app.strategy.CurrRoundValData.CurrentValidatorWeight = append(
-			app.strategy.CurrRoundValData.CurrentValidatorWeight,
+		app.strategy.CurrHeightValData.UpdateValidatorWeights = append(
+			app.strategy.CurrHeightValData.UpdateValidatorWeights,
 			validatorsSlice[i].Power-999)
 	}
 
@@ -431,78 +400,50 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 }
 
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
-	var validatorsSlice []abciTypes.ValidatorUpdate
-	var currValidatorSlice []abciTypes.ValidatorUpdate
-	var blsPubkeySlice []string
-	app.strategy.CurrRoundValData.PosTable.PosNodeSortList = ethmintTypes.NewValSortlist()
+	blsPubkeySlice := []string{}
+	poolValidators := []abciTypes.ValidatorUpdate{}
+	updateValidators := []abciTypes.ValidatorUpdate{}
+	topKSignerMap := app.strategy.NextEpochValData.NextPosTable.TopKPosItem(100)
 
-	//currValidatorSlice should remember all the current validator for delete
-	for i := 0; i < len(app.strategy.CurrRoundValData.CurrentValidators); i++ {
-		currValidatorSlice = append(currValidatorSlice,
-			abciTypes.ValidatorUpdate{
-				PubKey: app.strategy.CurrRoundValData.CurrentValidators[i].PubKey,
-				Power:  int64(0),
-			})
-	}
+	for _, validator := range app.strategy.NextEpochValData.NextCandidateValidators {
 
-	app.strategy.CurrRoundValData.CurrentValidators = nil
-
-	for i := 0; i < len(app.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-		pubkey := app.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubkey)
-		tmAddress := strings.ToLower(tmPubKey.Address().String())
-		valListItem := &ethmintTypes.ValListItem{
-			Signer:    app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].Signer,
-			Balance:   app.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddress].SignerBalance,
-			TmAddress: tmAddress,
-		}
-		app.strategy.CurrRoundValData.PosTable.PosNodeSortList.UpsertVal(valListItem, false)
-	}
-
-	tmAddressMap := app.strategy.CurrRoundValData.PosTable.PosNodeSortList.GetTopValTmAddress()
-
-	for i := 0; i < len(app.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
-
-		pubkey, _ := tmTypes.PB2TM.PubKey(app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey)
+		pubkey, _ := tmTypes.PB2TM.PubKey(validator.PubKey)
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+		signer := app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].Signer
 
-		if tmAddressMap[tmAddress] {
-			blsPower := big.NewInt(1)
-			blsPower.Div(app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].SignerBalance,
-				app.strategy.CurrRoundValData.PosTable.Threshold)
-			app.strategy.CurrRoundValData.CurrentValidators = append(app.
-				strategy.CurrRoundValData.CurrentValidators, abciTypes.ValidatorUpdate{
-				PubKey: app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
-				Power:  blsPower.Int64(),
-			})
-
-			validatorsSlice = append(validatorsSlice,
-				abciTypes.ValidatorUpdate{
-					PubKey: app.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
-					Power:  blsPower.Int64(),
-				})
-			blsPubkeySlice = append(blsPubkeySlice, app.strategy.CurrRoundValData.AccountMapList.MapList[tmAddress].BlsKeyString)
+		if topKSignerMap[signer] != nil {
+			power := big.NewInt(1)
+			signBalance := app.strategy.NextEpochValData.NextPosTable.PosItemMap[signer].Balance
+			power.Div(signBalance,
+				app.strategy.NextEpochValData.NextPosTable.Threshold)
+			validator := abciTypes.ValidatorUpdate{
+				PubKey: app.strategy.NextEpochValData.NextCandidateValidators[tmAddress].PubKey,
+				Power:  power.Int64(),
+			}
+			poolValidators = append(poolValidators, validator)
+			updateValidators = append(updateValidators, validator)
+			blsPubkeySlice = append(blsPubkeySlice, app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].BlsKeyString)
 		}
 	}
 
-	for i := 0; i < len(currValidatorSlice); i++ {
-		pubkey, _ := tmTypes.PB2TM.PubKey(currValidatorSlice[i].PubKey)
+	for i, v := range app.strategy.CurrHeightValData.UpdateValidators {
+		pubkey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
+		signer := app.strategy.CurrHeightValData.AccountMap.MapList[tmAddress].Signer
 
-		if !tmAddressMap[tmAddress] {
-			validatorsSlice = append(validatorsSlice,
+		if topKSignerMap[signer] == nil {
+			updateValidators = append(updateValidators,
 				abciTypes.ValidatorUpdate{
-					PubKey: currValidatorSlice[i].PubKey,
+					PubKey: app.strategy.CurrHeightValData.UpdateValidators[i].PubKey,
 					Power:  int64(0),
 				})
 		}
 	}
 
-	app.strategy.CurrRoundValData.CurrentValidatorWeight = nil
-	app.strategy.CurrRoundValData.PosTable.PosNodeSortList.ValList = list.New()
-	app.strategy.CurrRoundValData.PosTable.PosNodeSortList.Len = 0
+	app.strategy.CurrHeightValData.UpdateValidators = poolValidators
+	app.strategy.CurrHeightValData.UpdateValidatorWeights = nil
 
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: updateValidators, BlsKeyString: blsPubkeySlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
 
 func (app *EthermintApplication) InitPersistData() bool {
@@ -512,20 +453,23 @@ func (app *EthermintApplication) InitPersistData() bool {
 
 	var initFlag bool
 
-	app.logger.Info("Read NextRoundValData")
+	app.logger.Info("Read NextEpochValData")
 	nextBytes := wsState.GetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"))
 
 	app.logger.Info("Read currentRoundValData")
 	currBytes := wsState.GetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"))
 
+	app.logger.Info("Read LastUpdateValidators")
+	lastValsBytes := wsState.GetCode(common.HexToAddress("0x9999999999999999999999999999999999999999"))
+
 	if len(nextBytes) == 0 {
 		// no predata existed
-		app.logger.Info("no pre data")
+		app.logger.Info("no pre NextEpochValData")
 	} else {
-		app.logger.Info("NextRoundValData Not nil")
-		err := json.Unmarshal(nextBytes, &app.strategy.NextRoundValData)
+		app.logger.Info("NextEpochValData Not nil")
+		err := json.Unmarshal(nextBytes, &app.strategy.NextEpochValData)
 		if err != nil {
-			panic("initial NextRoundValData error")
+			panic("initial NextEpochValData error")
 		} else {
 			initFlag = true
 		}
@@ -533,12 +477,25 @@ func (app *EthermintApplication) InitPersistData() bool {
 
 	if len(currBytes) == 0 {
 		// no predata existed
-		app.logger.Info("no pre data")
+		app.logger.Info("no pre CurrentHeightValData")
 	} else {
-		app.logger.Info("Current RoundValData Not nil")
-		err := json.Unmarshal(currBytes, &app.strategy.CurrRoundValData)
+		app.logger.Info("CurrentHeightValData Not nil")
+		err := json.Unmarshal(currBytes, &app.strategy.CurrHeightValData)
 		if err != nil {
-			panic("initial currentRoundValData error")
+			panic("initial CurrentHeightValData error")
+		} else {
+			initFlag = true
+		}
+	}
+
+	if len(lastValsBytes) == 0 {
+		// no predata existed
+		app.logger.Info("no pre lastValsBytes")
+	} else {
+		app.logger.Info("lastValsBytes Not nil")
+		err := json.Unmarshal(currBytes, &app.strategy.CurrHeightValData.UpdateValidators)
+		if err != nil {
+			panic("initial updateValidators error")
 		} else {
 			initFlag = true
 		}
@@ -547,13 +504,22 @@ func (app *EthermintApplication) InitPersistData() bool {
 	return initFlag
 }
 
-func (app *EthermintApplication) PersistenceData() {
+func (app *EthermintApplication) SetPersistenceData(height int64) {
 	app.logger.Info("persist data")
 	wsState, _ := app.backend.Es().State()
 
-	nextBytes, _ := json.Marshal(app.strategy.NextRoundValData)
-	wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)
+	if app.strategy.NextEpochValData.ChangedFlagThisBlock || height%200 == 0 {
+		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData)
+		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)
+	}
 
-	currBytes, _ := json.Marshal(app.strategy.CurrRoundValData)
-	wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"), currBytes)
+	if height%200 == 0 {
+		currBytes, _ := json.Marshal(app.strategy.CurrHeightValData)
+		wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"), currBytes)
+	}
+
+	//persist every height
+	lastUpdateValidators := ethmintTypes.LastUpdateValidators{app.strategy.CurrHeightValData.UpdateValidators}
+	valBytes, _ := json.Marshal(lastUpdateValidators)
+	wsState.SetCode(common.HexToAddress("0x9999999999999999999999999999999999999999"), valBytes)
 }

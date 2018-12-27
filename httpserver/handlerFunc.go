@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sort"
 )
 
 type THandler struct {
@@ -65,19 +66,19 @@ func (tHandler *THandler) Hello(w http.ResponseWriter, req *http.Request) {
 // This function will return the used data structure
 func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
 	var nextValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey)
+	for i := 0; i < len(tHandler.strategy.CurrHeightValData.CurrCandidateValidators); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey)
 		nextValidators = append(nextValidators, &Validator{
-			//Address:       tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Address,
-			PubKey:        tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
-			Power:         tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Power,
+			//Address:       tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].Address,
+			PubKey:        tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey,
+			Power:         tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].Power,
 			AddressString: hex.EncodeToString(tmPubKey.Address()),
 		})
 	}
 
 	PosReceipt := &PTableAll{
-		PosItemMap:              tHandler.strategy.CurrRoundValData.PosTable.PosItemMap,
-		AccountMapList:          tHandler.strategy.CurrRoundValData.AccountMapList,
+		PosItemMap:              tHandler.strategy.CurrHeightValData.PosTable.PosItemMap,
+		AccountMapList:          tHandler.strategy.CurrHeightValData.AccountMap,
 		NextCandidateValidators: nextValidators,
 	}
 	jsonStr, err := json.Marshal(PosReceipt)
@@ -91,19 +92,19 @@ func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
 // This function will return the used data structure
 func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 	var nextValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey)
+	for i := 0; i < len(tHandler.strategy.CurrHeightValData.CurrCandidateValidators); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey)
 		nextValidators = append(nextValidators, &Validator{
-			//Address:       tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Address,
-			PubKey:        tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
-			Power:         tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].Power,
+			//Address:       tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].Address,
+			PubKey:        tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey,
+			Power:         tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].Power,
 			AddressString: hex.EncodeToString(tmPubKey.Address()),
 		})
 	}
 
 	PosReceipt := &PTableAll{
-		PosItemMap:              tHandler.strategy.CurrRoundValData.PosTable.PosItemMap,
-		AccountMapList:          tHandler.strategy.CurrRoundValData.AccountMapList,
+		PosItemMap:              tHandler.strategy.CurrHeightValData.PosTable.PosItemMap,
+		AccountMapList:          tHandler.strategy.CurrHeightValData.AccountMap,
 		NextCandidateValidators: nextValidators,
 	}
 	jsonStr, err := json.Marshal(PosReceipt)
@@ -117,9 +118,9 @@ func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
 // This function will return the used data structure
 func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Request) {
 	PosTable := &PosItemMapData{
-		PosItemMap:   tHandler.strategy.CurrRoundValData.PosTable.PosItemMap,
-		Threshold:    tHandler.strategy.CurrRoundValData.PosTable.Threshold,
-		PosArraySize: tHandler.strategy.CurrRoundValData.PosTable.PosArraySize,
+		PosItemMap:   tHandler.strategy.CurrHeightValData.PosTable.PosItemMap,
+		Threshold:    tHandler.strategy.CurrHeightValData.PosTable.Threshold,
+		PosArraySize: tHandler.strategy.CurrHeightValData.PosTable.PosArraySize,
 	}
 	jsonStr, err := json.Marshal(PosTable)
 	if err != nil {
@@ -132,9 +133,9 @@ func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Reque
 // This function will return the used data structure
 func (tHandler *THandler) GetNextPosTableData(w http.ResponseWriter, req *http.Request) {
 	PosTable := &PosItemMapData{
-		PosItemMap:   tHandler.strategy.NextRoundValData.NextRoundPosTable.PosItemMap,
-		Threshold:    tHandler.strategy.NextRoundValData.NextRoundPosTable.Threshold,
-		PosArraySize: tHandler.strategy.NextRoundValData.NextRoundPosTable.PosArraySize,
+		PosItemMap:   tHandler.strategy.NextEpochValData.NextPosTable.PosItemMap,
+		Threshold:    tHandler.strategy.NextEpochValData.NextPosTable.Threshold,
+		PosArraySize: tHandler.strategy.NextEpochValData.NextPosTable.PosArraySize,
 	}
 	jsonStr, err := json.Marshal(PosTable)
 	if err != nil {
@@ -147,7 +148,7 @@ func (tHandler *THandler) GetNextPosTableData(w http.ResponseWriter, req *http.R
 // This function will return the used data structure
 func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Request) {
 	AccountMap := &AccountMapData{
-		MapList: tHandler.strategy.CurrRoundValData.AccountMapList.MapList,
+		MapList: tHandler.strategy.CurrHeightValData.AccountMap.MapList,
 	}
 	jsonStr, err := json.Marshal(AccountMap)
 	if err != nil {
@@ -160,7 +161,7 @@ func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Req
 // This function will return the used data structure
 func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http.Request) {
 	AccountMap := &AccountMapData{
-		MapList: tHandler.strategy.NextRoundValData.NextAccountMapList.MapList,
+		MapList: tHandler.strategy.NextEpochValData.NextAccountMap.MapList,
 	}
 	jsonStr, err := json.Marshal(AccountMap)
 	if err != nil {
@@ -173,17 +174,17 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 // This function will return the used data structure
 func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.CurrRoundValData.CurrentValidators); i++ {
-		pubKey := tHandler.strategy.CurrRoundValData.CurrentValidators[i].PubKey
+	for i := 0; i < len(tHandler.strategy.CurrHeightValData.UpdateValidators); i++ {
+		pubKey := tHandler.strategy.CurrHeightValData.UpdateValidators[i].PubKey
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			AddressString: tmAddressStr,
-			PubKey:        tHandler.strategy.CurrRoundValData.CurrentValidators[i].PubKey,
-			Power:         tHandler.strategy.CurrRoundValData.CurrentValidatorWeight[i],
-			Signer:        tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].Signer,
-			Beneficiary:   tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].Beneficiary,
+			PubKey:        tHandler.strategy.CurrHeightValData.UpdateValidators[i].PubKey,
+			Power:         tHandler.strategy.CurrHeightValData.UpdateValidatorWeights[i],
+			Signer:        tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Signer,
+			Beneficiary:   tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Beneficiary,
 		})
 	}
 
@@ -197,11 +198,11 @@ func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http
 
 // This function will return the used data structure
 func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.Request) {
-	proposer := tHandler.strategy.CurrRoundValData.ProposerAddress
+	proposer := tHandler.strategy.CurrHeightValData.ProposerAddress
 	PreBlockProposer := &PreBlockProposer{
 		PreBlockProposer: proposer,
-		Beneficiary:      tHandler.strategy.CurrRoundValData.AccountMapList.MapList[proposer].Beneficiary,
-		Signer:           tHandler.strategy.CurrRoundValData.AccountMapList.MapList[proposer].Signer,
+		Beneficiary:      tHandler.strategy.CurrHeightValData.AccountMap.MapList[proposer].Beneficiary,
+		Signer:           tHandler.strategy.CurrHeightValData.AccountMap.MapList[proposer].Signer,
 	}
 	jsonStr, err := json.Marshal(PreBlockProposer)
 	if err != nil {
@@ -213,19 +214,21 @@ func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.R
 
 func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.CurrRoundValData.CurrCandidateValidators); i++ {
-		pubKey := tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey
+	for i := 0; i < len(tHandler.strategy.CurrHeightValData.CurrCandidateValidators); i++ {
+		pubKey := tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
+		signer:=tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Signer
+		balance:=tHandler.strategy.CurrHeightValData.PosTable.PosItemMap[signer].Balance
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: tmAddressStr,
-			PubKey:        tHandler.strategy.CurrRoundValData.CurrCandidateValidators[i].PubKey,
-			SignerBalance: tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].SignerBalance,
-			Signer:        tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].Signer,
-			Beneficiary:   tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].Beneficiary,
-			BlsKeyString:  tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].BlsKeyString,
+			PubKey:        tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey,
+			SignerBalance: balance,
+			Signer:        signer,
+			Beneficiary:   tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Beneficiary,
+			BlsKeyString:  tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].BlsKeyString,
 		})
 	}
 
@@ -239,19 +242,24 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 
 func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
-		pubKey := tHandler.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
+	var keys []string
+	for k := range tHandler.strategy.NextEpochValData.NextCandidateValidators {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, tmAddressStr := range keys {
+		signer:=tHandler.strategy.NextEpochValData.NextAccountMap.MapList[tmAddressStr].Signer
+		balance:=tHandler.strategy.NextEpochValData.NextPosTable.PosItemMap[signer].Balance
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: tmAddressStr,
-			PubKey:        tHandler.strategy.NextRoundValData.NextRoundCandidateValidators[i].PubKey,
-			SignerBalance: tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].SignerBalance,
-			Signer:        tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].Signer,
-			Beneficiary:   tHandler.strategy.NextRoundValData.NextAccountMapList.MapList[tmAddressStr].Beneficiary,
-			BlsKeyString:  tHandler.strategy.CurrRoundValData.AccountMapList.MapList[tmAddressStr].BlsKeyString,
+			PubKey:        tHandler.strategy.NextEpochValData.NextCandidateValidators[tmAddressStr].PubKey,
+			SignerBalance: balance,
+			Signer:        signer,
+			Beneficiary:   tHandler.strategy.NextEpochValData.NextAccountMap.MapList[tmAddressStr].Beneficiary,
+			BlsKeyString:  tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].BlsKeyString,
 		})
 	}
 
@@ -265,7 +273,7 @@ func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter
 
 func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.NextRoundValData.NextRoundCandidateValidators); i++ {
+	for i := 0; i < len(tHandler.strategy.InitialValidators); i++ {
 		pubKey := tHandler.strategy.InitialValidators[i].PubKey
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
@@ -287,10 +295,10 @@ func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.R
 func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request) {
 	minerBonus := big.NewInt(1)
 	divisor := big.NewInt(1)
-	minerBonus.Div(tHandler.strategy.CurrRoundValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	minerBonus.Div(tHandler.strategy.CurrHeightValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
 	encourage := &Encourage{
-		TotalBalance:          tHandler.strategy.CurrRoundValData.TotalBalance,
+		TotalBalance:          tHandler.strategy.CurrHeightValData.TotalBalance,
 		EncourageAverageBlock: minerBonus,
 	}
 

@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/green-element-chain/gelchain/utils"
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/tendermint/tendermint/abci/server"
@@ -34,6 +32,8 @@ import (
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/p2p"
+	"github.com/green-element-chain/gelchain/utils"
+	"math/big"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -88,8 +88,8 @@ func ethermintCmd(ctx *cli.Context) error {
 	}
 	validators := genDoc.Validators
 	var tmAddress []string
-	amlist := &types.AccountMapList{
-		MapList: make(map[string]*types.AccountMap),
+	amlist := &types.AccountMap{
+		MapList: make(map[string]*types.AccountMapItem),
 	}
 	fmt.Println(len(ethAccounts.EthAccounts))
 	log.Info("get Initial accounts")
@@ -97,15 +97,13 @@ func ethermintCmd(ctx *cli.Context) error {
 		tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
 		blsKey := validators[i].BlsPubKey
 		blsKeyJsonStr, _ := json.Marshal(blsKey)
-		accountBalance := big.NewInt(1)
-		accountBalance.Div(totalBalanceInital, big.NewInt(100))
+/*		accountBalance := big.NewInt(1)
+		accountBalance.Div(totalBalanceInital, big.NewInt(100))*/
 		if i == len(ethAccounts.EthAccounts) {
 			break
 		}
-		amlist.MapList[tmAddress[i]] = &types.AccountMap{
+		amlist.MapList[tmAddress[i]] = &types.AccountMapItem{
 			common.HexToAddress(ethAccounts.EthAccounts[i]),
-			ethAccounts.EthBalances[i],
-			big.NewInt(0),
 			common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
 			string(blsKeyJsonStr),
 		}
