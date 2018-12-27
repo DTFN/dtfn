@@ -27,15 +27,9 @@ type Strategy struct {
 	MinerRewardStrategy
 	ValidatorsStrategy
 
-	//if height = 1 ,currentValidator come from genesis.json
-	//if height != 1, currentValidator == Validators.CurrentValidators + committeeValidators
-	//only need once,dont need persistence
-	//needn't to be persisted
-	currentValidators []abciTypes.ValidatorUpdate
-
-	// Initial validators , only use for once
 	InitialValidators []abciTypes.ValidatorUpdate
 
+	currentValidators []abciTypes.ValidatorUpdate	//old code use. We don't use this
 	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
 	// and didnt existed in the accountMapList
 	// we should remember it for balance bonus and then clear it

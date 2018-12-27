@@ -229,7 +229,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		}
 	}
 	for i, voteInfo := range strategy.CurrHeightValData.LastVoteInfo {
-		if !voteInfo.SignedLastBlock {
+		if !voteInfo.SignedLastBlock || voteInfo.Validator.Power <= 0 {
 			continue
 		}
 		bonusAverage := big.NewInt(1)
@@ -254,7 +254,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		fmt.Println(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
 			strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),
 			voteInfo.Validator.Power, address))
-		ws.state.AddBalance(strategy.CurrHeightValData.AccountMap.MapList[address].Beneficiary, bonusSpecify)
 	}
 
 	//This is no statistic data

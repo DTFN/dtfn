@@ -3,14 +3,14 @@ package types
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/spaolacci/murmur3"
 	"math/big"
-	"math/rand"
 	"sort"
 	"strconv"
 	"sync"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"encoding/json"
+	"github.com/spaolacci/murmur3"
+	"math/rand"
 )
 
 const PosTableMaxSize = 2000
@@ -19,11 +19,11 @@ const PosTableMaxSize = 2000
 const ThresholdUnit = 1000
 
 type PosTable struct {
-	mtx                  sync.RWMutex
-	PosItemMap           map[common.Address]*PosItem `json:"posItemMap"`   //This isnt called by foreign struct except rpc
-	PosArray             []common.Address            `json:"posArray"`     // All posItem,it will contained the same item
-	PosArraySize         int                         `json:"posArraySize"` // real size of posArray
-	Threshold            *big.Int                    `json:"threshold"`    // threshold value of PosTable
+	mtx          sync.RWMutex
+	PosItemMap   map[common.Address]*PosItem `json:"posItemMap"`   //This isnt called by foreign struct except rpc
+	PosArray     []common.Address            `json:"posArray"`     // All posItem,it will contained the same item
+	PosArraySize int                         `json:"posArraySize"` // real size of posArray
+	Threshold    *big.Int                    `json:"threshold"`    // threshold value of PosTable
 }
 
 func NewPosTable(threshold *big.Int) *PosTable {
@@ -125,17 +125,19 @@ func (posTable *PosTable) SetThreShold(threShold *big.Int) {
 	posTable.Threshold = threShold
 }
 
-func (posTable *PosTable) SelectItemByHeightValue(random int) PosItem {
+func (posTable *PosTable) SelectItemByHeightValue(random int) (common.Address, PosItem) {
 	r := rand.New(rand.NewSource(int64(random)))
 	value := r.Intn(posTable.PosArraySize)
-	return *posTable.PosItemMap[posTable.PosArray[value]]
+	signer := posTable.PosArray[value]
+	return signer, *posTable.PosItemMap[signer]
 }
 
-func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, len int) PosItem {
+func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, len int) (common.Address, PosItem) {
 	res64 := murmur3.Sum32(vrf)
 	r := rand.New(rand.NewSource(int64(res64) + int64(len)))
 	value := r.Intn(posTable.PosArraySize)
-	return *posTable.PosItemMap[posTable.PosArray[value]]
+	signer := posTable.PosArray[value]
+	return signer, *posTable.PosItemMap[signer]
 }
 
 func (posTable *PosTable) TopKPosItem(k int) map[common.Address]*PosItem {

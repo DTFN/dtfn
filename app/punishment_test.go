@@ -33,7 +33,7 @@ func TestBurnFixed5k(t *testing.T) {
 	Before(1000000000)
 	amountStrategy := &FixedAmountStrategy{fixedAmount: big.NewInt(5000)}
 	subBalanceStrategy := &BurnStrategy{}
-	NewPunishment(amountStrategy, subBalanceStrategy, stateDB).Punish(byzantine)
+	NewPunishment(amountStrategy, subBalanceStrategy).Punish(byzantine)
 	assert.Equal(t, big.NewInt(1000000000 - 5000).Int64(), stateDB.GetBalance(byzantine).Int64())
 }
 
@@ -41,7 +41,7 @@ func TestBurnFixed150m(t *testing.T) {
 	Before(1000000000)
 	amountStrategy := &FixedAmountStrategy{fixedAmount: big.NewInt(1500000000)}
 	subBalanceStrategy := &BurnStrategy{}
-	NewPunishment(amountStrategy, subBalanceStrategy, stateDB).Punish(byzantine)
+	NewPunishment(amountStrategy, subBalanceStrategy).Punish(byzantine)
 	assert.Equal(t, big.NewInt(0).Int64(), stateDB.GetBalance(byzantine).Int64())
 }
 
@@ -49,7 +49,7 @@ func TestBurnFixedNeg5k(t *testing.T) {
 	Before(1000000000)
 	amountStrategy := &FixedAmountStrategy{fixedAmount: big.NewInt(-5000)}
 	subBalanceStrategy := &BurnStrategy{}
-	NewPunishment(amountStrategy, subBalanceStrategy, stateDB).Punish(byzantine)
+	NewPunishment(amountStrategy, subBalanceStrategy).Punish(byzantine)
 	assert.Equal(t, big.NewInt(1000000000).Int64(), stateDB.GetBalance(byzantine).Int64())
 }
 

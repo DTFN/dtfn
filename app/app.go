@@ -141,20 +141,17 @@ func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) abciT
 // #stable - 0.4.0
 func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciTypes.ResponseInitChain {
 
-	app.logger.Debug("InitChain") // nolint: errcheck
-	app.SetValidators(req.Validators)
-	app.strategy.InitialValidators = req.Validators
-
+	app.logger.Info("InitChain", "req.Validators len", len(req.Validators)) // nolint: errcheck
+	app.SetValidators(req.Validators)                                       //old code
 	ethState, _ := app.getCurrentState()
+	app.strategy.InitialValidators = []abciTypes.ValidatorUpdate{}
 
-	for j := 0; j < len(app.strategy.InitialValidators); j++ {
-		app.GetLogger().Info("CurrRoundValData.InitialValidators size", "blacklist",
-			len(app.strategy.InitialValidators))
-		pubKey := app.strategy.InitialValidators[j].PubKey
+	for _, validator := range req.Validators {
+		pubKey := validator.PubKey
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		address := strings.ToLower(tmPubKey.Address().String())
 		if app.strategy.AccMapInitial.MapList[address] == nil {
-			app.logger.Error("initChain address %v not found in initialAccountMap, ignore", address)
+			app.logger.Error(fmt.Sprintf("initChain address %v not found in initialAccountMap, ignore. Please check configuration!", address))
 			continue
 		}
 		app.strategy.CurrHeightValData.AccountMap.MapList[address] = &emtTypes.AccountMapItem{
@@ -166,12 +163,13 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.AccMapInitial.MapList[address].Signer,
 			SignerBalance,
 			app.strategy.AccMapInitial.MapList[address].Beneficiary,
-			app.strategy.InitialValidators[j].PubKey)
+			validator.PubKey)
 		if upsertFlag {
 			app.strategy.CurrHeightValData.CurrCandidateValidators = append(app.strategy.CurrHeightValData.CurrCandidateValidators,
-				app.strategy.InitialValidators[j])
+				validator)
 
-			app.strategy.NextEpochValData.NextCandidateValidators[address] = app.strategy.InitialValidators[j]
+			app.strategy.NextEpochValData.NextCandidateValidators[address] = validator
+			app.strategy.InitialValidators = append(app.strategy.InitialValidators, validator)
 
 			blacklist.Lock(ethState, app.strategy.AccMapInitial.MapList[address].Signer)
 			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
@@ -183,7 +181,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.GetLogger().Error(fmt.Sprintf("remove not enough balance validator %v", app.strategy.AccMapInitial.MapList[address]))
 		}
 	}
-
+	app.logger.Info("InitialValidators", "initial validator len", len(app.strategy.InitialValidators),
+		"validators", app.strategy.InitialValidators)
 	app.SetPersistenceData(0)
 
 	return abciTypes.ResponseInitChain{}

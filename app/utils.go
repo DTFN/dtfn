@@ -82,7 +82,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		signerExisted := false
 		blsExisted := false
 
-		nextValidator, existFlag := app.strategy.NextEpochValData.NextCandidateValidators[tmAddress]
+		existValidator, existFlag := app.strategy.NextEpochValData.NextCandidateValidators[tmAddress]
 
 		if existFlag {
 			origSigner := app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].Signer
@@ -141,13 +141,13 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			app.strategy.NextEpochValData.ChangedFlagThisBlock = true
 			return true, nil
 		} else if existFlag && signerExisted && blsExisted {
-			if !bytes.Equal(nextValidator.PubKey.Data, abciPubKey.Data) {
-				return false, errors.New("pubKey doesn't match with existing one")
+			if !bytes.Equal(existValidator.PubKey.Data, abciPubKey.Data) {
+				return false, errors.New(fmt.Sprintf("pubKey %v doesn't match with existing one %v", existValidator.PubKey, abciPubKey))
 			}
 			//同singer，同MapList[tmAddress]，是来改动balance的
 			upsertFlag, err := app.strategy.NextEpochValData.NextPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
-				app.GetLogger().Info(err.Error())
+				app.GetLogger().Error(err.Error())
 				return false, err
 			}
 			app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].Beneficiary = beneficiary
@@ -212,7 +212,7 @@ func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool,
 	return false, errors.New("app strategy nil")
 }
 
-func (app *EthermintApplication) SetThreShold(threShold *big.Int) {
+func (app *EthermintApplication) SetThreshold(threShold *big.Int) {
 	if app.strategy != nil {
 		app.strategy.CurrHeightValData.PosTable.SetThreShold(threShold)
 	}
@@ -348,7 +348,8 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		var validator abciTypes.ValidatorUpdate
 		if height == -1 {
 			//height=-1 表示 seed 存在，使用seed
-			pubKey := app.strategy.CurrHeightValData.PosTable.SelectItemBySeedValue(seed, i).PubKey
+			_, posItem := app.strategy.CurrHeightValData.PosTable.SelectItemBySeedValue(seed, i)
+			pubKey := posItem.PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
@@ -357,7 +358,8 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		} else {
 			//seed 不存在，使用height
 			startIndex := int(height) * 100
-			pubKey := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(startIndex + i - 1).PubKey
+			_, posItem := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(startIndex + i - 1)
+			pubKey := posItem.PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
@@ -488,7 +490,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 	}
 
-	lastUpdateValidators:=ethmintTypes.LastUpdateValidators{}
+	lastUpdateValidators := ethmintTypes.LastUpdateValidators{}
 	if len(lastValsBytes) == 0 {
 		// no predata existed
 		app.logger.Info("no pre lastValsBytes")
@@ -498,7 +500,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 		if err != nil {
 			panic("initial updateValidators error")
 		} else {
-			app.strategy.CurrHeightValData.UpdateValidators=lastUpdateValidators.UpdateValidators
+			app.strategy.CurrHeightValData.UpdateValidators = lastUpdateValidators.UpdateValidators
 			initFlag = true
 		}
 	}
@@ -507,7 +509,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 }
 
 func (app *EthermintApplication) SetPersistenceData(height int64) {
-	app.logger.Info("persist data")
+	app.logger.Info(fmt.Sprintf("set persist data in height %v", height))
 	wsState, _ := app.backend.Es().State()
 
 	if app.strategy.NextEpochValData.ChangedFlagThisBlock || height%200 == 0 {
