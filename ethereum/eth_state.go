@@ -270,7 +270,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		var beneficiary common.Address
 		if accountItem, ok := strategy.CurrHeightValData.AccountMap.MapList[address]; ok {
 			beneficiary = accountItem.Beneficiary
-
 		} else {
 			if accountItem, ok := strategy.CurrHeightValData.LastEpochAccountMap.MapList[address]; !ok {
 				panic(fmt.Sprintf("address %v not exist in accountMap", address))
