@@ -125,8 +125,8 @@ func (posTable *PosTable) SetThreShold(threShold *big.Int) {
 	posTable.Threshold = threShold
 }
 
-func (posTable *PosTable) SelectItemByHeightValue(random int) (common.Address, PosItem) {
-	r := rand.New(rand.NewSource(int64(random)))
+func (posTable *PosTable) SelectItemByHeightValue(random int64) (common.Address, PosItem) {
+	r := rand.New(rand.NewSource(random))
 	value := r.Intn(posTable.PosArraySize)
 	signer := posTable.PosArray[value]
 	return signer, *posTable.PosItemMap[signer]

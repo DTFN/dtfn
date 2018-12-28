@@ -222,9 +222,7 @@ func (app *EthermintApplication) SetThreshold(threShold *big.Int) {
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
-		if int(height) == 1 {
-			return app.enterInitial(height)
-		} else if int(height)%200 != 0 {
+		if int(height)%200 != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)
@@ -244,66 +242,6 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 	if app.strategy != nil {
 		app.strategy.CollectTx(tx)
-	}
-}
-
-func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEndBlock {
-	if len(app.strategy.InitialValidators) == 0 {
-		// There is no nextCandidateValidators for initial height
-		return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
-	} else {
-		var validatorsSlice []abciTypes.ValidatorUpdate
-		validators := app.strategy.GetUpdatedValidators() //all initial validators
-
-		if len(app.strategy.CurrHeightValData.CurrCandidateValidators) == 0 {
-			return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
-		}
-
-		maxValidators := 0
-		if len(app.strategy.CurrHeightValData.CurrCandidateValidators) < 7 {
-			maxValidators = len(app.strategy.CurrHeightValData.CurrCandidateValidators)
-		} else {
-			maxValidators = 7
-		}
-
-		votedValidators := make(map[string]bool)
-		votedValidatorsIndex := make(map[string]int)
-
-		//select validators from posTable
-		for j := 0; len(validatorsSlice) != maxValidators; j++ {
-			_, posItem := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(int(height) + j - 1)
-			pubKey := posItem.PubKey
-			tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-			validator := abciTypes.ValidatorUpdate{
-				PubKey: pubKey,
-				Power:  1000,
-			}
-			if votedValidators[tmPubKey.Address().String()] {
-				validatorsSlice[votedValidatorsIndex[tmPubKey.Address().String()]].Power++
-			} else {
-				//Remember tmPubKey.Address 's index in the currentValidators Array
-				votedValidatorsIndex[tmPubKey.Address().String()] = len(validatorsSlice)
-
-				votedValidators[tmPubKey.Address().String()] = true
-				validatorsSlice = append(validatorsSlice, validator)
-				app.strategy.CurrHeightValData.UpdateValidators = append(app.
-					strategy.CurrHeightValData.UpdateValidators, validator)
-			}
-		}
-
-		//append the validators which will be deleted
-		for i := 0; i < len(validators); i++ {
-			tmPubKey, _ := tmTypes.PB2TM.PubKey(validators[i].PubKey)
-			if !votedValidators[tmPubKey.Address().String()] {
-				validatorsSlice = append(validatorsSlice,
-					abciTypes.ValidatorUpdate{
-						//Address : app.strategy.PosTable.SelectItemByRandomValue(int(height)).Address,
-						Power:  int64(0),
-						PubKey: validators[i].PubKey,
-					})
-			}
-		}
-		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 	}
 }
 
@@ -339,8 +277,8 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			}
 		} else {
 			//seed 不存在，使用height
-			startIndex := int(height) * 100
-			_, posItem := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(startIndex + i - 1)
+			startIndex := height
+			_, posItem := app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
 			pubKey := posItem.PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
 			validator = abciTypes.ValidatorUpdate{

@@ -110,7 +110,7 @@ func TestSelectItemByHeightValue(t *testing.T) {
 	//table.PosArray[1] = newPosItem(common.HexToAddress("0xa62142888aba8370742be823c1782d17a0389da1"), big.NewInt(1500), common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d"), pubk)
 	table.PosArraySize = 2
 	for height := 200; height <= 210; height++ {
-		signer, testItem := table.SelectItemByHeightValue(height)
+		signer, testItem := table.SelectItemByHeightValue(int64(height))
 		// 根据SelectItemByRandomValue逻辑，我们已经设定PosArray的具体长度为2,内部元素为table.PosArray[0]与[1]
 		// 所以随机选取时,肯定在table.PosArray[0]与[1]中选,那么Balance的值不是500就是1500
 		if signer == common.HexToAddress("0xe41bf6b389b9007a3436ea1de3257583241ebe3d") {
