@@ -25,6 +25,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"time"
 	"encoding/hex"
+	"math"
 )
 
 const errorCode = 1
@@ -112,7 +113,7 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	err = es.resetWorkState(receiver)
+	err = es.resetWorkState(receiver) //built for nextHeight, the coinbase in the header will later be overwritten in the next height
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -156,6 +157,15 @@ func (es *EthState) UpdateHeaderWithTimeInfo(
 	defer es.mtx.Unlock()
 
 	es.work.updateHeaderWithTimeInfo(config, parentTime, numTx)
+}
+
+func (es *EthState) UpdateHeaderCoinbase(
+	coinbase common.Address) {
+
+	es.mtx.Lock()
+	defer es.mtx.Unlock()
+
+	es.work.updateHeaderCoinbase(coinbase)
 }
 
 func (es *EthState) GasLimit() uint64 {
@@ -218,25 +228,45 @@ func (ws *workState) State() *state.StateDB {
 // nolint: unparam
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
-
+	log.Info(fmt.Sprintf("accumulateRewards LastVoteInfo %v", strategy.CurrHeightValData.LastVoteInfo))
 	minerBonus := strategy.CurrHeightValData.MinorBonus
 
-	weightSum := 0
+	weightSum := int64(0)
+	smallestPower := int64(math.MaxInt64)
 	for _, voteInfo := range strategy.CurrHeightValData.LastVoteInfo {
 		if voteInfo.SignedLastBlock {
-			weightSum = weightSum + int(voteInfo.Validator.Power)
+			if voteInfo.Validator.Power < smallestPower {
+				smallestPower = voteInfo.Validator.Power
+			}
 		}
 	}
-	for i, voteInfo := range strategy.CurrHeightValData.LastVoteInfo {
-		if !voteInfo.SignedLastBlock || voteInfo.Validator.Power <= 0 {
+
+	shift := int64(0)
+	if smallestPower < 0 { //shift all power to positive
+		shift = -smallestPower
+	}
+	shiftPowers := []int64{}
+	for _, voteInfo := range strategy.CurrHeightValData.LastVoteInfo {
+		if voteInfo.SignedLastBlock {
+			adjustPower := voteInfo.Validator.Power + shift
+			shiftPowers = append(shiftPowers, adjustPower)
+			weightSum = weightSum + adjustPower
+		} else {
+			shiftPowers = append(shiftPowers, 0)
+		}
+	}
+
+	for i, power := range shiftPowers {
+		if power == 0 {
 			continue
 		}
 		bonusAverage := big.NewInt(1)
 		bonusSpecify := big.NewInt(1)
-		bonusSpecify.Mul(big.NewInt(voteInfo.Validator.Power), bonusAverage.
+		bonusSpecify.Mul(big.NewInt(power), bonusAverage.
 			Div(minerBonus, big.NewInt(int64(weightSum))))
 
-		address := strings.ToLower(hex.EncodeToString(voteInfo.Validator.Address))
+		address := strings.ToLower(hex.EncodeToString(
+			strategy.CurrHeightValData.LastVoteInfo[i].Validator.Address))
 		var beneficiary common.Address
 		if accountItem, ok := strategy.CurrHeightValData.AccountMap.MapList[address]; ok {
 			beneficiary = accountItem.Beneficiary
@@ -250,9 +280,9 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		}
 		ws.state.AddBalance(beneficiary, bonusAverage)
 
-		fmt.Println(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
+		log.Info(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
 			strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),
-			voteInfo.Validator.Power, address))
+			power, address))
 	}
 
 	//This is no statistic data
@@ -352,6 +382,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	if err != nil {
 		return common.Hash{}, err
 	}
+
 	ws.header.Root = hashArray
 
 	for _, log := range ws.allLogs {
@@ -368,6 +399,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	// block).
 	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
 	blockHash := block.Hash()
+	log.Info(fmt.Sprintf("eth_state commit. ws.header %v block.header %v blockHash %X",
+		ws.header, block.Header(), blockHash))
 
 	proctime := time.Since(ws.bstart)
 	blockchain.AddGcproc(proctime)
@@ -400,6 +433,10 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 			return common.Hash{}, err
 		}*/
 	return blockHash, err
+}
+
+func (ws *workState) updateHeaderCoinbase(coinbase common.Address) {
+	ws.header.Coinbase = coinbase
 }
 
 func (ws *workState) updateHeaderWithTimeInfo(

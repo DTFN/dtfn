@@ -121,18 +121,12 @@ type CurrentHeightValData struct {
 	// if height =1 ,UpdateValidators = nil
 	UpdateValidators []abciTypes.ValidatorUpdate //saved in another address separately
 
-	// current validator weight represent the weight of random select.
-	// will used to accumulateReward for next height
-	UpdateValidatorWeights []int64
-
 	TotalBalance *big.Int `json:"totalBalance"`
 	MinorBonus   *big.Int //award all validators per block.
 
 	ProposerAddress string
 
 	LastVoteInfo []abciTypes.VoteInfo
-
-	Receiver string
 
 	// note : if we get a addValidatorsTx at height 101,
 	// we will put it into the NextCandidateValidators and move into postable
@@ -158,8 +152,8 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	return &Strategy{
 		CurrHeightValData: CurrentHeightValData{
 			PosTable:            NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			AccountMap:          &AccountMap{MapList: make(map[string]*AccountMapItem)},
-			LastEpochAccountMap: &AccountMap{MapList: make(map[string]*AccountMapItem)},
+			AccountMap:          &AccountMap{MapList: map[string]*AccountMapItem{}},
+			LastEpochAccountMap: &AccountMap{MapList: map[string]*AccountMapItem{}},
 			TotalBalance:        totalBalance,
 		},
 		HFExpectedData: hfExpectedData,
@@ -169,7 +163,7 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 			NextAccountMap: &AccountMap{
 				MapList: make(map[string]*AccountMapItem),
 			},
-			NextCandidateValidators: make(map[string]abciTypes.ValidatorUpdate),
+			NextCandidateValidators: map[string]abciTypes.ValidatorUpdate{},
 		},
 	}
 }

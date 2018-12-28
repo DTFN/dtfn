@@ -154,10 +154,6 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.logger.Error(fmt.Sprintf("initChain address %v not found in initialAccountMap, ignore. Please check configuration!", address))
 			continue
 		}
-		app.strategy.CurrHeightValData.AccountMap.MapList[address] = &emtTypes.AccountMapItem{
-			Signer:       app.strategy.AccMapInitial.MapList[address].Signer,
-			BlsKeyString: app.strategy.AccMapInitial.MapList[address].BlsKeyString,
-		}
 		SignerBalance := ethState.GetBalance(app.strategy.AccMapInitial.MapList[address].Signer)
 		upsertFlag, _ := app.UpsertPosItemInit(
 			app.strategy.AccMapInitial.MapList[address].Signer,
@@ -168,6 +164,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.CurrHeightValData.CurrCandidateValidators = append(app.strategy.CurrHeightValData.CurrCandidateValidators,
 				validator)
 			app.strategy.CurrHeightValData.AccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
+			app.strategy.NextEpochValData.NextAccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
 			app.strategy.NextEpochValData.NextCandidateValidators[address] = validator
 			app.strategy.InitialValidators = append(app.strategy.InitialValidators, validator)
 
@@ -183,7 +180,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	}
 	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", len(app.strategy.InitialValidators),
 		"validators", app.strategy.InitialValidators)
-	app.SetPersistenceData(0)
+	app.SetPersistenceData()
 
 	return abciTypes.ResponseInitChain{}
 }
@@ -276,7 +273,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	}
 
 	app.strategy.CurrHeightValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
-	app.strategy.CurrHeightValData.Receiver = app.Receiver().String()
+	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
 	app.strategy.CurrHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
 	db, e := app.getCurrentState()
@@ -316,14 +313,18 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		app.strategy.CurrHeightValData.CurrCandidateValidators = app.strategy.NextEpochValData.ExportCandidateValidators()
 		app.strategy.CurrHeightValData.PosTable = app.strategy.NextEpochValData.NextPosTable.Copy()
 	}
-	app.SetPersistenceData(app.strategy.CurrHeightValData.Height)
+	app.SetPersistenceData()
 
-	app.logger.Debug("Commit") // nolint: errcheck
 	state, err := app.getCurrentState()
 	if err != nil {
 		app.logger.Error("Error getting latest state", "err", err) // nolint: errcheck
 		return abciTypes.ResponseCommit{}
 	}
+	/*app.logger.Debug(fmt.Sprintf("Commit trie.root=%X",state.Trie().Hash()))
+	app.logger.Debug(fmt.Sprintf("current=%v next=%v",app.strategy.CurrHeightValData,
+		app.strategy.NextEpochValData))
+	state.Finalise(true)
+	app.logger.Debug(fmt.Sprintf("After finalise Commit trie.root=%X",state.Trie().Hash()))*/
 	app.checkTxState = state.Copy() //commit里会做recheck，需要先重置checkState,通过recheck也正好将checkState恢复到正确的状态
 	blockHash, err := app.backend.Commit(app.Receiver())
 	if err != nil {
@@ -464,6 +465,10 @@ func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balan
 	pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
 		bool, err := app.strategy.CurrHeightValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
+		if !bool||err!=nil{
+			return bool, err
+		}
+		bool, err = app.strategy.NextEpochValData.NextPosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
 		return bool, err
 	}
 	return false, nil

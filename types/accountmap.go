@@ -13,7 +13,7 @@ import (
 type AccountMapItem struct {
 	Signer           common.Address `json:"signer"`
 	Beneficiary      common.Address `json:"beneficiary"`
-	BlsKeyString     string         `json:"blsKey_string"`
+	BlsKeyString     string         `json:"blsKeyString"`
 }
 
 func (accountMapItem *AccountMapItem) Copy() *AccountMapItem {
@@ -27,7 +27,7 @@ func (accountMapItem *AccountMapItem) Copy() *AccountMapItem {
 type AccountMap struct {
 	MapList map[string]*AccountMapItem `json:"map_list"`
 
-	FilePath string `json:"file_path"`
+	FilePath string `json:"filePath"`
 	mtx      sync.Mutex
 }
 

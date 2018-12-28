@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"encoding/json"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -132,30 +131,7 @@ func (b *Backend) InitEthState(receiver common.Address) error {
 }
 
 func (b *Backend) InitReceiver() string{
-	blockchain := b.es.ethereum.BlockChain()
-	state, err := blockchain.State()
-	if err != nil{
-		return "0000000000000000000000000000000000000002"
-	}
-	currentBytes := state.GetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"))
-
-	proposer := emtTypes.Proposer{}
-
-	if len(currentBytes) == 0 {
-		// no predata existed
-		return "0000000000000000000000000000000000000002"
-	} else {
-		err := json.Unmarshal(currentBytes, &proposer)
-		if err != nil {
-			panic("initial proposerAddress error")
-		} else {
-		}
-	}
-	if len(proposer.Receiver) == 0 {
-		return "0000000000000000000000000000000000000002"
-	}
-
-	return proposer.Receiver
+	return "0000000000000000000000000000000000000002"	//will be overwritten by CurrentHeightValData.ProposerAddress
 }
 
 

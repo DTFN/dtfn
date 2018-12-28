@@ -253,7 +253,7 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 		return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
 	} else {
 		var validatorsSlice []abciTypes.ValidatorUpdate
-		validators := app.strategy.GetUpdatedValidators()
+		validators := app.strategy.GetUpdatedValidators() //all initial validators
 
 		if len(app.strategy.CurrHeightValData.CurrCandidateValidators) == 0 {
 			return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
@@ -291,13 +291,6 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 			}
 		}
 
-		//record the currentValidator weight for accumulateReward
-		for i := 0; i < maxValidators; i++ {
-			app.strategy.CurrHeightValData.UpdateValidatorWeights = append(
-				app.strategy.CurrHeightValData.UpdateValidatorWeights,
-				validatorsSlice[i].Power-999)
-		}
-
 		//append the validators which will be deleted
 		for i := 0; i < len(validators); i++ {
 			tmPubKey, _ := tmTypes.PB2TM.PubKey(validators[i].PubKey)
@@ -315,36 +308,24 @@ func (app *EthermintApplication) enterInitial(height int64) abciTypes.ResponseEn
 }
 
 func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64) abciTypes.ResponseEndBlock {
-
-	if app.strategy.BlsSelectStrategy {
+	/*if app.strategy.BlsSelectStrategy {
 	} else {
+	}*/
+	validatorsSlice := []abciTypes.ValidatorUpdate{}
+
+	selectCount := 7 //currently fixed
+	poolLen := len(app.strategy.CurrHeightValData.CurrCandidateValidators)
+	if poolLen < 7 {
+		app.GetLogger().Info(fmt.Sprintf("validator pool len < 7, current len %v", poolLen))
 	}
 
-	var validatorsSlice []abciTypes.ValidatorUpdate
-	var valCopy []abciTypes.ValidatorUpdate
+	app.strategy.CurrHeightValData.UpdateValidators = []abciTypes.ValidatorUpdate{}
 
-	maxValidatorSlice := 0
-	if len(app.strategy.CurrHeightValData.CurrCandidateValidators) <= 4 {
-		return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
-	} else if len(app.strategy.CurrHeightValData.CurrCandidateValidators) < 7 {
-		maxValidatorSlice = len(app.strategy.CurrHeightValData.CurrCandidateValidators)
-	} else {
-		maxValidatorSlice = 7
-	}
-
-	for i := 0; i < len(app.strategy.CurrHeightValData.UpdateValidators); i++ {
-		valCopy = append(valCopy, app.strategy.CurrHeightValData.UpdateValidators[i])
-	}
-
-	app.strategy.CurrHeightValData.UpdateValidators = nil
-	app.strategy.CurrHeightValData.UpdateValidatorWeights = nil
-
-	// we use map to remember which validators voted has put into validatorSlice
-	votedValidators := make(map[string]bool)
-	votedValidatorsIndex := make(map[string]int)
+	// we use map to remember which validators selected has put into validatorSlice
+	selectedValidators := make(map[string]int)
 
 	//select validators from posTable
-	for i := 0; len(validatorsSlice) != maxValidatorSlice; i++ {
+	for i := 0; i < selectCount; i++ {
 		var tmPubKey crypto.PubKey
 		var validator abciTypes.ValidatorUpdate
 		if height == -1 {
@@ -368,36 +349,33 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			}
 		}
 
-		if votedValidators[tmPubKey.Address().String()] {
-			validatorsSlice[votedValidatorsIndex[tmPubKey.Address().String()]].Power++
+		if index, ok := selectedValidators[tmPubKey.Address().String()]; ok {
+			validatorsSlice[index].Power++
 		} else {
 			//Remember tmPubKey.Address 's index in the currentValidators Array
-			votedValidatorsIndex[tmPubKey.Address().String()] = len(validatorsSlice)
-
-			votedValidators[tmPubKey.Address().String()] = true
+			selectedValidators[tmPubKey.Address().String()] = i
 			validatorsSlice = append(validatorsSlice, validator)
 			app.strategy.CurrHeightValData.UpdateValidators = append(app.
 				strategy.CurrHeightValData.UpdateValidators, validator)
 		}
 	}
-
-	//record the currentValidator weight for accumulateReward
-	for i := 0; i < maxValidatorSlice; i++ {
-		app.strategy.CurrHeightValData.UpdateValidatorWeights = append(
-			app.strategy.CurrHeightValData.UpdateValidatorWeights,
-			validatorsSlice[i].Power-999)
-	}
-
+	updateLen := len(validatorsSlice)
+	lastUpdateValidators := app.strategy.CurrHeightValData.UpdateValidators
 	//append the validators which will be deleted
-	for i := 0; i < len(valCopy); i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(valCopy[i].PubKey)
-		if !votedValidators[tmPubKey.Address().String()] {
+	for i := 0; i < len(lastUpdateValidators); i++ {
+		tmPubKey, _ := tmTypes.PB2TM.PubKey(lastUpdateValidators[i].PubKey)
+		_, selected := selectedValidators[tmPubKey.Address().String()]
+		if lastUpdateValidators[i].Power != 0 && !selected {
 			validatorsSlice = append(validatorsSlice,
 				abciTypes.ValidatorUpdate{
-					PubKey: valCopy[i].PubKey,
+					PubKey: lastUpdateValidators[i].PubKey,
 					Power:  int64(0),
 				})
 		}
+	}
+	copyLen := copy(app.strategy.CurrHeightValData.UpdateValidators, validatorsSlice[:updateLen])
+	if copyLen != updateLen {
+		panic("enterSelectValidators copy error")
 	}
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
@@ -429,22 +407,21 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		}
 	}
 
-	for i, v := range app.strategy.CurrHeightValData.UpdateValidators {
+	for _, v := range app.strategy.CurrHeightValData.UpdateValidators {
 		pubkey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
 		signer := app.strategy.CurrHeightValData.AccountMap.MapList[tmAddress].Signer
 
-		if topKSignerMap[signer] == nil {
+		if topKSignerMap[signer] == nil && v.Power != 0 {
 			updateValidators = append(updateValidators,
 				abciTypes.ValidatorUpdate{
-					PubKey: app.strategy.CurrHeightValData.UpdateValidators[i].PubKey,
+					PubKey: v.PubKey,
 					Power:  int64(0),
 				})
 		}
 	}
 
 	app.strategy.CurrHeightValData.UpdateValidators = poolValidators
-	app.strategy.CurrHeightValData.UpdateValidatorWeights = nil
 
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: updateValidators, BlsKeyString: blsPubkeySlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
@@ -491,13 +468,13 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 	}
 
-	lastUpdateValidators := ethmintTypes.LastUpdateValidators{}
+	var lastUpdateValidators ethmintTypes.LastUpdateValidators
 	if len(lastValsBytes) == 0 {
 		// no predata existed
 		app.logger.Info("no pre lastValsBytes")
 	} else {
 		app.logger.Info("lastValsBytes Not nil")
-		err := json.Unmarshal(currBytes, &lastUpdateValidators)
+		err := json.Unmarshal(lastValsBytes, &lastUpdateValidators)
 		if err != nil {
 			panic("initial updateValidators error")
 		} else {
@@ -509,10 +486,11 @@ func (app *EthermintApplication) InitPersistData() bool {
 	return initFlag
 }
 
-func (app *EthermintApplication) SetPersistenceData(height int64) {
-	app.logger.Info(fmt.Sprintf("set persist data in height %v", height))
-	wsState, _ := app.getCurrentState()
+func (app *EthermintApplication) SetPersistenceData() {
 
+	wsState, _ := app.getCurrentState()
+	height := app.strategy.CurrHeightValData.Height
+	app.logger.Info(fmt.Sprintf("set persist data in height %v", height))
 	if app.strategy.NextEpochValData.ChangedFlagThisBlock || height%200 == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData)
 		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)

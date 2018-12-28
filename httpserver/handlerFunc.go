@@ -182,7 +182,7 @@ func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http
 			//Address:       tmAddress,
 			AddressString: tmAddressStr,
 			PubKey:        tHandler.strategy.CurrHeightValData.UpdateValidators[i].PubKey,
-			Power:         tHandler.strategy.CurrHeightValData.UpdateValidatorWeights[i],
+			Power:         tHandler.strategy.CurrHeightValData.UpdateValidators[i].Power,
 			Signer:        tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Signer,
 			Beneficiary:   tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Beneficiary,
 		})
