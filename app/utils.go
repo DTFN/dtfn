@@ -348,7 +348,17 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	for _, v := range app.strategy.CurrHeightValData.UpdateValidators {
 		pubkey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
 		tmAddress := strings.ToLower(hex.EncodeToString(pubkey.Address()))
-		signer := app.strategy.CurrHeightValData.AccountMap.MapList[tmAddress].Signer
+		var signer common.Address
+		if accountItem, ok := app.strategy.CurrHeightValData.AccountMap.MapList[tmAddress]; ok {
+			signer = accountItem.Signer
+
+		} else {
+			if accountItem, ok := app.strategy.CurrHeightValData.LastEpochAccountMap.MapList[tmAddress]; !ok {
+				panic(fmt.Sprintf("blsValidators. address %v not exist in accountMap", tmAddress))
+			} else {
+				signer = accountItem.Signer
+			}
+		}
 
 		if topKSignerMap[signer] == nil && v.Power != 0 {
 			updateValidators = append(updateValidators,
