@@ -265,7 +265,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		bonusSpecify.Mul(big.NewInt(power), bonusAverage.
 			Div(minerBonus, big.NewInt(int64(weightSum))))
 
-		address := strings.ToLower(hex.EncodeToString(
+		address := strings.ToUpper(hex.EncodeToString(
 			strategy.CurrHeightValData.LastVoteInfo[i].Validator.Address))
 		var beneficiary common.Address
 		if accountItem, ok := strategy.CurrHeightValData.AccountMap.MapList[address]; ok {

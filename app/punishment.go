@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"strings"
 	"encoding/hex"
-	tmTypes "github.com/tendermint/tendermint/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/green-element-chain/gelchain/types"
 )
@@ -88,21 +87,21 @@ type IApp interface {
 	GetAccountMap(tmAddress string) *types.AccountMapItem
 }
 
-func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs []abciTypes.ValidatorUpdate) {
+func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs []types.Validator) {
 	for _, e := range evidences {
 		var addr []byte
 
 		for _, v := range vs {
-			pubKey:=v.PubKey
-			tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)
-			tmAddress := strings.ToLower(tmPubKey.Address().String())
+/*			pubKey:=v.PubKey
+			tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)*/
+			tmAddress := v.Address
 			if strings.EqualFold(string(e.Validator.Address), tmAddress) {
 				addr=e.Validator.Address
 				break
 			}
 		}
 		if addr != nil {
-			tmAddress := strings.ToLower(hex.EncodeToString(addr))
+			tmAddress := strings.ToUpper(hex.EncodeToString(addr))
 			accountMapItem := app.GetAccountMap(tmAddress)
 			p.Punish(stateDB, accountMapItem.Signer)
 			//To do

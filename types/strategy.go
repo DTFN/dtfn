@@ -119,7 +119,7 @@ type CurrentHeightValData struct {
 	// will be select by posTable.
 	// CurrentValidators is the true validators except committee validator when height != 1
 	// if height =1 ,UpdateValidators = nil
-	UpdateValidators []abciTypes.ValidatorUpdate //saved in another address separately
+	UpdateValidators []Validator //saved in another address separately
 
 	TotalBalance *big.Int `json:"totalBalance"`
 	MinorBonus   *big.Int //award all validators per block.
@@ -139,9 +139,15 @@ type CurrentHeightValData struct {
 	// postable will used in the next height 102
 }
 
+type Validator struct {
+	abciTypes.ValidatorUpdate
+	Signer common.Address
+	Address string
+}
+
 type LastUpdateValidators struct {
 	//used for persist data
-	UpdateValidators []abciTypes.ValidatorUpdate `json:"update_validators"`
+	UpdateValidators []Validator `json:"update_validators"`
 }
 
 func NewStrategy(totalBalance *big.Int) *Strategy {

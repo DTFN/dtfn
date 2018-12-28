@@ -149,7 +149,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	for _, validator := range req.Validators {
 		pubKey := validator.PubKey
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
-		address := strings.ToLower(tmPubKey.Address().String())
+		address := tmPubKey.Address().String()
 		if app.strategy.AccMapInitial.MapList[address] == nil {
 			app.logger.Error(fmt.Sprintf("initChain address %v not found in initialAccountMap, ignore. Please check configuration!", address))
 			continue
@@ -272,7 +272,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	}
 
-	app.strategy.CurrHeightValData.ProposerAddress = hex.EncodeToString(beginBlock.Header.ProposerAddress)
+	app.strategy.CurrHeightValData.ProposerAddress = strings.ToUpper(hex.EncodeToString(beginBlock.Header.ProposerAddress))
 	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
 	app.strategy.CurrHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 

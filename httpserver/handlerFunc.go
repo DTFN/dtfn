@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
-	"strings"
 	"sort"
 )
 
@@ -175,9 +174,9 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
 	for i := 0; i < len(tHandler.strategy.CurrHeightValData.UpdateValidators); i++ {
-		pubKey := tHandler.strategy.CurrHeightValData.UpdateValidators[i].PubKey
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
+		//pubKey := tHandler.strategy.CurrHeightValData.UpdateValidators[i].PubKey
+		//tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
+		tmAddressStr := tHandler.strategy.CurrHeightValData.UpdateValidators[i].Address
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			AddressString: tmAddressStr,
@@ -217,7 +216,7 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 	for i := 0; i < len(tHandler.strategy.CurrHeightValData.CurrCandidateValidators); i++ {
 		pubKey := tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
+		tmAddressStr := tmPubKey.Address().String()
 		signer:=tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Signer
 		balance:=tHandler.strategy.CurrHeightValData.PosTable.PosItemMap[signer].Balance
 		preValidators = append(preValidators, &Validator{
@@ -276,7 +275,7 @@ func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.R
 	for i := 0; i < len(tHandler.strategy.InitialValidators); i++ {
 		pubKey := tHandler.strategy.InitialValidators[i].PubKey
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-		tmAddressStr := strings.ToLower(tmPubKey.Address().String())
+		tmAddressStr := tmPubKey.Address().String()
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			AddressString: tmAddressStr,

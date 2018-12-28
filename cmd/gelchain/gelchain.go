@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -87,14 +86,13 @@ func ethermintCmd(ctx *cli.Context) error {
 		panic("Sorry but you don't have initial account file")
 	}
 	validators := genDoc.Validators
-	var tmAddress []string
 	amlist := &types.AccountMap{
 		MapList: make(map[string]*types.AccountMapItem),
 	}
 	log.Info(fmt.Sprintf("get Initial accountMap len %v. genDoc.Validators len %v",
 		len(ethAccounts.EthAccounts), len(validators)))
 	for i := 0; i < len(validators); i++ {
-		tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
+		tmAddress := validators[i].PubKey.Address().String()
 		blsKey := validators[i].BlsPubKey
 		blsKeyJsonStr, _ := json.Marshal(blsKey)
 		/*		accountBalance := big.NewInt(1)
@@ -102,7 +100,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		if i == len(ethAccounts.EthAccounts) {
 			break
 		}
-		amlist.MapList[tmAddress[i]] = &types.AccountMapItem{
+		amlist.MapList[tmAddress] = &types.AccountMapItem{
 			common.HexToAddress(ethAccounts.EthAccounts[i]),
 			common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
 			string(blsKeyJsonStr),

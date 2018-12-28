@@ -112,8 +112,7 @@ func TestDoPunish(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	app := NewMockIApp(ctrl)
 
-	app.EXPECT().GetAccountMap(strings.ToLower(
-		hex.EncodeToString(tmPubkey.Address()))).Return(
+	app.EXPECT().GetAccountMap(tmPubkey.Address().String()).Return(
 		&gelTypes.AccountMap{Signer: common.HexToAddress("0x231dD21555C6D905ce4f2AafDBa0C01aF89Db0a0")})
 
 	app.EXPECT().RemoveValidatorTx(byzantine).Return(true, nil)
