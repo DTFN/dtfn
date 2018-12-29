@@ -302,6 +302,15 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
 
+	height := endBlock.Height
+	if height%emtTypes.EpochBlocks == 0 && height != 0 { //height==0 is when initChain calls this func
+		app.TryRemoveValidatorTxs()
+		//DeepCopy
+		app.strategy.CurrHeightValData.AccountMap = app.strategy.NextEpochValData.AccountMap.Copy()
+		app.strategy.CurrHeightValData.CurrCandidateValidators = app.strategy.NextEpochValData.ExportCandidateValidators()
+		app.strategy.CurrHeightValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
+	}
+
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
