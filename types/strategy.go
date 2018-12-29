@@ -157,7 +157,6 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 		CurrHeightValData: CurrentHeightValData{
 			PosTable:            NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
 			AccountMap:          &AccountMap{MapList: map[string]*AccountMapItem{}},
-			LastEpochAccountMap: &AccountMap{MapList: map[string]*AccountMapItem{}},
 			TotalBalance:        totalBalance,
 		},
 		HFExpectedData: hfExpectedData,
