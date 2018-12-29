@@ -155,10 +155,10 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			continue
 		}
 		signer:=app.strategy.AccMapInitial.MapList[address].Signer
-		SignerBalance := ethState.GetBalance(signer)
+		signerBalance := ethState.GetBalance(signer)
 		upsertFlag, _ := app.UpsertPosItemInit(
 			signer,
-			SignerBalance,
+			signerBalance,
 			app.strategy.AccMapInitial.MapList[address].Beneficiary,
 			validator.PubKey)
 		if upsertFlag {
@@ -168,15 +168,13 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.NextEpochValData.NextAccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
 			app.strategy.NextEpochValData.NextCandidateValidators[address] = validator
 			app.strategy.InitialValidators = append(app.strategy.InitialValidators, validator)
-			app.strategy.CurrHeightValData.UpdateValidators = append(app.strategy.CurrHeightValData.UpdateValidators, emtTypes.Validator{
+			app.strategy.CurrHeightValData.CurrentValidators[address] = emtTypes.Validator{
 				validator,
 				signer,
-				address,
-			})	//In height 1, we will start delete validators
+			}	//In height 1, we will start delete validators
 
-			blacklist.Lock(ethState, app.strategy.AccMapInitial.MapList[address].Signer)
-			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
-				app.strategy.AccMapInitial.MapList[address].Signer)
+			blacklist.Lock(ethState, signer)
+			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist", signer)
 		} else {
 			//This is used to remove the validators who dont have enough balance
 			//but he is in the accountmap.
@@ -285,7 +283,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	db, e := app.getCurrentState()
 	if e == nil {
 		//app.logger.Info("do punish")
-		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrHeightValData.UpdateValidators)
+		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrHeightValData.CurrentValidators)
 	}
 
 	return abciTypes.ResponseBeginBlock{}

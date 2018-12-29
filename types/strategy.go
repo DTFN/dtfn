@@ -117,7 +117,7 @@ type CurrentHeightValData struct {
 	// will be select by posTable.
 	// CurrentValidators is the true validators except committee validator when height != 1
 	// if height =1 ,UpdateValidators = nil
-	UpdateValidators []Validator //saved in another address separately
+	CurrentValidators map[string]Validator //saved in another address separately
 
 	TotalBalance *big.Int `json:"totalBalance"`
 	MinorBonus   *big.Int //award all validators per block.
@@ -140,12 +140,11 @@ type CurrentHeightValData struct {
 type Validator struct {
 	abciTypes.ValidatorUpdate
 	Signer common.Address
-	Address string
 }
 
-type LastUpdateValidators struct {
+type CurrentValidators struct {
 	//used for persist data
-	UpdateValidators []Validator `json:"update_validators"`
+	Validators map[string]Validator `json:"validators"`
 }
 
 func NewStrategy(totalBalance *big.Int) *Strategy {
@@ -155,9 +154,10 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true, StatisticsVersion: 0, BlockVersion: 0}
 	return &Strategy{
 		CurrHeightValData: CurrentHeightValData{
-			PosTable:            NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			AccountMap:          &AccountMap{MapList: map[string]*AccountMapItem{}},
-			TotalBalance:        totalBalance,
+			PosTable:          NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			AccountMap:        &AccountMap{MapList: map[string]*AccountMapItem{}},
+			CurrentValidators: make(map[string]Validator),
+			TotalBalance:      totalBalance,
 		},
 		HFExpectedData: hfExpectedData,
 

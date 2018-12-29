@@ -173,16 +173,15 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 // This function will return the used data structure
 func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.CurrHeightValData.UpdateValidators); i++ {
+	for tmAddressStr, v := range tHandler.strategy.CurrHeightValData.CurrentValidators {
 		//pubKey := tHandler.strategy.CurrHeightValData.UpdateValidators[i].PubKey
 		//tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-		tmAddressStr := tHandler.strategy.CurrHeightValData.UpdateValidators[i].Address
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			AddressString: tmAddressStr,
-			PubKey:        tHandler.strategy.CurrHeightValData.UpdateValidators[i].PubKey,
-			Power:         tHandler.strategy.CurrHeightValData.UpdateValidators[i].Power,
-			Signer:        tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Signer,
+			PubKey:        v.PubKey,
+			Power:         v.Power,
+			Signer:        v.Signer,
 			Beneficiary:   tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Beneficiary,
 		})
 	}
@@ -217,8 +216,8 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 		pubKey := tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey
 		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 		tmAddressStr := tmPubKey.Address().String()
-		signer:=tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Signer
-		balance:=tHandler.strategy.CurrHeightValData.PosTable.PosItemMap[signer].Balance
+		signer := tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Signer
+		balance := tHandler.strategy.CurrHeightValData.PosTable.PosItemMap[signer].Balance
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
@@ -248,8 +247,8 @@ func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter
 	sort.Strings(keys)
 
 	for _, tmAddressStr := range keys {
-		signer:=tHandler.strategy.NextEpochValData.NextAccountMap.MapList[tmAddressStr].Signer
-		balance:=tHandler.strategy.NextEpochValData.NextPosTable.PosItemMap[signer].Balance
+		signer := tHandler.strategy.NextEpochValData.NextAccountMap.MapList[tmAddressStr].Signer
+		balance := tHandler.strategy.NextEpochValData.NextPosTable.PosItemMap[signer].Balance
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
@@ -310,7 +309,7 @@ func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request)
 }
 
 func (tHandler *THandler) GetTxPoolEventSize(w http.ResponseWriter, req *http.Request) {
-	jsonStr, err := json.Marshal("unread txpool event size: "+strconv.Itoa(tHandler.
+	jsonStr, err := json.Marshal("unread txpool event size: " + strconv.Itoa(tHandler.
 		backend.Ethereum().TxPool().GetTxpoolChainHeadSize()))
 	if err != nil {
 		w.Write([]byte("error occured when marshal into json"))

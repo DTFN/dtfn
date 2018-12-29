@@ -247,7 +247,6 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	/*if app.strategy.BlsSelectStrategy {
 	} else {
 	}*/
-	updateValidators := []ethmintTypes.Validator{}
 	validatorsSlice := []abciTypes.ValidatorUpdate{}
 
 	selectCount := 7 //currently fixed
@@ -255,8 +254,6 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	if poolLen < 7 {
 		app.GetLogger().Info(fmt.Sprintf("validator pool len < 7, current len %v", poolLen))
 	}
-
-	app.strategy.CurrHeightValData.UpdateValidators = []ethmintTypes.Validator{}
 
 	// we use map to remember which validators selected has put into validatorSlice
 	selectedValidators := make(map[string]int)
@@ -280,43 +277,42 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
 		tmAddress := tmPubKey.Address().String()
 		if index, ok := selectedValidators[tmAddress]; ok {
-			updateValidators[index].Power++
 			validatorsSlice[index].Power++
 		} else {
 			validatorUpdate := abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
 				Power:  1000,
 			}
-			validatorsSlice = append(validatorsSlice, validatorUpdate)
 			validator = ethmintTypes.Validator{
 				validatorUpdate,
 				signer,
-				tmAddress,
 			}
 			//Remember tmPubKey.Address 's index in the currentValidators Array
-			selectedValidators[tmAddress] = len(updateValidators)
-			updateValidators = append(updateValidators, validator)
+			selectedValidators[tmAddress] = len(validatorsSlice)
+			validatorsSlice = append(validatorsSlice, validatorUpdate)
+			app.strategy.CurrHeightValData.CurrentValidators[tmAddress] = validator
 		}
 	}
-	lastUpdateValidators := app.strategy.CurrHeightValData.UpdateValidators
 	//append the validators which will be deleted
-	for _, v := range lastUpdateValidators {
+	for address, v := range app.strategy.CurrHeightValData.CurrentValidators {
 		//tmPubKey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
-		_, selected := selectedValidators[v.Address]
-		if v.Power != 0 && !selected {
+		index, selected := selectedValidators[address]
+		if selected {
+			v.Power = validatorsSlice[index].Power	//no use
+		} else {
 			validatorsSlice = append(validatorsSlice, abciTypes.ValidatorUpdate{
 				PubKey: v.PubKey,
 				Power:  0,
 			})
+			delete(app.strategy.CurrHeightValData.CurrentValidators, address)
 		}
 	}
-	app.strategy.CurrHeightValData.UpdateValidators = updateValidators
+
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
 
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
 	blsPubkeySlice := []string{}
-	updateValidators := []ethmintTypes.Validator{}
 	validatorsSlice := []abciTypes.ValidatorUpdate{}
 	topKSignerMap := app.strategy.NextEpochValData.NextPosTable.TopKPosItem(100)
 
@@ -336,14 +332,14 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 				PubKey: app.strategy.NextEpochValData.NextCandidateValidators[tmAddress].PubKey,
 				Power:  power.Int64(),
 			}
-			emtValidator := ethmintTypes.Validator{validator, signer, tmAddress}
-			updateValidators = append(updateValidators, emtValidator)
+			emtValidator := ethmintTypes.Validator{validator, signer}
+			app.strategy.CurrHeightValData.CurrentValidators[tmAddress] = emtValidator
 			validatorsSlice = append(validatorsSlice, validator)
 			blsPubkeySlice = append(blsPubkeySlice, app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].BlsKeyString)
 		}
 	}
 
-	for _, v := range app.strategy.CurrHeightValData.UpdateValidators {
+	for _, v := range app.strategy.CurrHeightValData.CurrentValidators {
 		//pubkey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
 		signer := v.Signer
 
@@ -356,8 +352,6 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 				})
 		}
 	}
-
-	app.strategy.CurrHeightValData.UpdateValidators = updateValidators
 
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
@@ -375,7 +369,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Read currentRoundValData")
 	currBytes := wsState.GetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"))
 
-	app.logger.Info("Read LastUpdateValidators")
+	app.logger.Info("Read LastCurrentValidators")
 	lastValsBytes := wsState.GetCode(common.HexToAddress("0x9999999999999999999999999999999999999999"))
 
 	if len(nextBytes) == 0 {
@@ -404,17 +398,17 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 	}
 
-	var lastUpdateValidators ethmintTypes.LastUpdateValidators
+	var currentValidators ethmintTypes.CurrentValidators
 	if len(lastValsBytes) == 0 {
 		// no predata existed
 		app.logger.Info("no pre lastValsBytes")
 	} else {
 		app.logger.Info("lastValsBytes Not nil")
-		err := json.Unmarshal(lastValsBytes, &lastUpdateValidators)
+		err := json.Unmarshal(lastValsBytes, &currentValidators)
 		if err != nil {
-			panic("initial updateValidators error")
+			panic("initial CurrentValidators error")
 		} else {
-			app.strategy.CurrHeightValData.UpdateValidators = lastUpdateValidators.UpdateValidators
+			app.strategy.CurrHeightValData.CurrentValidators = currentValidators.Validators
 			initFlag = true
 		}
 	}
@@ -438,7 +432,7 @@ func (app *EthermintApplication) SetPersistenceData() {
 	}
 
 	//persist every height
-	lastUpdateValidators := ethmintTypes.LastUpdateValidators{app.strategy.CurrHeightValData.UpdateValidators}
-	valBytes, _ := json.Marshal(lastUpdateValidators)
+	lastCurrentValidators := ethmintTypes.CurrentValidators{app.strategy.CurrHeightValData.CurrentValidators}
+	valBytes, _ := json.Marshal(lastCurrentValidators)
 	wsState.SetCode(common.HexToAddress("0x9999999999999999999999999999999999999999"), valBytes)
 }

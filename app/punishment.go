@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"github.com/ethereum/go-ethereum/core/state"
 	"strings"
-	"encoding/hex"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/green-element-chain/gelchain/types"
 )
@@ -87,23 +86,24 @@ type IApp interface {
 	GetAccountMap(tmAddress string) *types.AccountMapItem
 }
 
-func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs []types.Validator) {
+func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs map[string]types.Validator) {
 	for _, e := range evidences {
-		var addr []byte
+		var validator types.Validator
+		found:=false
 
-		for _, v := range vs {
+		for tmAddress, v := range vs {
 /*			pubKey:=v.PubKey
 			tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)*/
-			tmAddress := v.Address
 			if strings.EqualFold(string(e.Validator.Address), tmAddress) {
-				addr=e.Validator.Address
+				validator=v
+				found=true
 				break
 			}
 		}
-		if addr != nil {
-			tmAddress := strings.ToUpper(hex.EncodeToString(addr))
-			accountMapItem := app.GetAccountMap(tmAddress)
-			p.Punish(stateDB, accountMapItem.Signer)
+		if found {
+/*			tmAddress := strings.ToUpper(hex.EncodeToString(addr))
+			accountMapItem := app.GetAccountMap(tmAddress)*/
+			p.Punish(stateDB, validator.Signer)
 			//To do
 			//app.RemoveValidatorTx(signer)
 		}
