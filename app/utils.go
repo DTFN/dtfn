@@ -68,7 +68,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 	}
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
-		// It is better to use CandidateValidators but not CandidateValidators
+		// It is better to use NextCandidateValidator but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
 		abciPubKey := tmTypes.TM2PB.PubKey(pubKey)
@@ -166,8 +166,8 @@ func (app *EthermintApplication) PendingRemoveValidatorTx(signer common.Address)
 	app.GetLogger().Info(fmt.Sprintf("PendingRemoveValidatorTx. signer=%X", signer))
 	if app.strategy != nil {
 		if len(app.strategy.NextEpochValData.CandidateValidators)-len(app.strategy.NextEpochValData.UnBondAccountMap) <= 4 { //ensure safety
-			app.GetLogger().Info("can not remove validator for consensus safety")
-			return false, errors.New("can not remove validator for consensus safety")
+			app.GetLogger().Info("cannot remove validator for consensus safety")
+			return false, errors.New("cannot remove validator for consensus safety")
 		}
 
 		height, existFlag := app.strategy.NextEpochValData.UnBondAccountMap[signer]
@@ -198,10 +198,6 @@ func (app *EthermintApplication) PendingRemoveValidatorTx(signer common.Address)
 
 		if !ok {
 			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in CandidateValidators", signer))
-		}
-		removeFlag, err := app.strategy.NextEpochValData.PosTable.RemovePosItem(signer)
-		if err != nil || !removeFlag {
-			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in posTable", signer))
 		}
 
 		app.strategy.NextEpochValData.UnBondAccountMap[signer] = app.strategy.CurrHeightValData.Height
@@ -384,10 +380,10 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		tmAddress := pubkey.Address().String()
 		signer := app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].Signer
 
-		_, ok := topKSignerMap[signer]
-		if !ok {
+		posItem, ok := topKSignerMap[signer]
+		if ok {
 			power := big.NewInt(1)
-			signBalance := app.strategy.NextEpochValData.PosTable.PosItemMap[signer].Balance
+			signBalance := posItem.Balance
 			power.Div(signBalance,
 				app.strategy.NextEpochValData.PosTable.Threshold)
 			validator := abciTypes.ValidatorUpdate{
@@ -406,7 +402,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		signer := v.Signer
 
 		_, ok := topKSignerMap[signer]
-		if !ok && v.Power != 0 {
+		if !ok {
 			validatorsSlice = append(validatorsSlice,
 				abciTypes.ValidatorUpdate{
 					PubKey: v.PubKey,
@@ -482,7 +478,7 @@ func (app *EthermintApplication) SetPersistenceData() {
 
 	wsState, _ := app.getCurrentState()
 	height := app.strategy.CurrHeightValData.Height
-	if height%ethmintTypes.EpochBlocks == 0 {
+	if height%ethmintTypes.EpochBlocks == 0 && height != 0 { //height==0 is when initChain calls this func
 		app.TryRemoveValidatorTxs()
 		//DeepCopy
 		app.strategy.CurrHeightValData.AccountMap = app.strategy.NextEpochValData.AccountMap.Copy()
