@@ -386,7 +386,6 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	topKSignerMap := app.strategy.NextEpochValData.PosTable.TopKPosItem(100)
 
 	for _, validator := range app.strategy.NextEpochValData.CandidateValidators {
-
 		pubkey, _ := tmTypes.PB2TM.PubKey(validator.PubKey)
 		tmAddress := pubkey.Address().String()
 		signer := app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].Signer
@@ -397,13 +396,13 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 			signBalance := posItem.Balance
 			power.Div(signBalance,
 				app.strategy.NextEpochValData.PosTable.Threshold)
-			validator := abciTypes.ValidatorUpdate{
-				PubKey: app.strategy.NextEpochValData.CandidateValidators[tmAddress].PubKey,
+			updateValidator := abciTypes.ValidatorUpdate{
+				PubKey: validator.PubKey,
 				Power:  power.Int64(),
 			}
-			emtValidator := ethmintTypes.Validator{validator, signer}
+			emtValidator := ethmintTypes.Validator{updateValidator, signer}
 			app.strategy.CurrHeightValData.CurrentValidators[tmAddress] = emtValidator
-			validatorsSlice = append(validatorsSlice, validator)
+			validatorsSlice = append(validatorsSlice, updateValidator)
 			blsPubkeySlice = append(blsPubkeySlice, app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].BlsKeyString)
 		}
 	}
