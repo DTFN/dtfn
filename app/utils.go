@@ -283,22 +283,20 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			updateValidators[index].Power++
 			validatorsSlice[index].Power++
 		} else {
-			validatorsSlice = append(validatorsSlice, abciTypes.ValidatorUpdate{
+			validatorUpdate:=abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
 				Power:  1000,
-			})
-			validator = ethmintTypes.Validator{}
-			validator.Signer = signer
-			validator.Address = tmAddress
-			validator.PubKey = pubKey
-			validator.Power = 1000
-			//Remember tmPubKey.Address 's index in the currentValidators Array
-			selectedValidators[tmPubKey.Address().String()] = len(updateValidators)
+			}
+			validatorsSlice = append(validatorsSlice, validatorUpdate)
+			validator = ethmintTypes.Validator{
+				validatorUpdate,
+				signer,
+				tmAddress,
+			}
 			updateValidators = append(updateValidators, validator)
-			app.strategy.CurrHeightValData.UpdateValidators = append(app.
-				strategy.CurrHeightValData.UpdateValidators, validator)
+			//Remember tmPubKey.Address 's index in the currentValidators Array
+			selectedValidators[tmAddress] = len(updateValidators)
 		}
-
 	}
 	lastUpdateValidators := app.strategy.CurrHeightValData.UpdateValidators
 	//append the validators which will be deleted
