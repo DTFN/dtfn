@@ -31,12 +31,14 @@ func TestUpsertandRemovePosTable(t *testing.T) {
 	Indexes1 := map[int]bool{}
 	Indexes2 := map[int]bool{}
 	PosItem1 := PosItem{
+		false,
 		big.NewInt(0),
 		PubKey1,
 		Indexes1,
 		big.NewInt(0),
 	}
 	PosItem2 := PosItem{
+		false,
 		big.NewInt(0),
 		PubKey2,
 		Indexes2,
@@ -143,12 +145,14 @@ func TestSelectItemBySeedValue(t *testing.T) {
 	Indexes1 := map[int]bool{}
 	Indexes2 := map[int]bool{}
 	PosItem1 := PosItem{
+		false,
 		big.NewInt(0),
 		PubKey1,
 		Indexes1,
 		big.NewInt(0),
 	}
 	PosItem2 := PosItem{
+		false,
 		big.NewInt(0),
 		PubKey2,
 		Indexes2,

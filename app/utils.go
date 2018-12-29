@@ -63,10 +63,16 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 	app.GetLogger().Info("You are upsert ValidatorTxing")
 
 	if pubKey == nil || len(blsKeyString) == 0 {
-		app.GetLogger().Info("nil validator pubkey or bls pubkey")
-		return false, errors.New("nil validator pubkey or bls pubkey")
+		app.GetLogger().Info("nil validator pubKey or bls pubKey")
+		return false, errors.New("nil validator pubKey or bls pubKey")
 	}
 	if app.strategy != nil {
+		height, existFlag := app.strategy.NextEpochValData.UnBondAccountMap[signer]
+		if existFlag {
+			app.GetLogger().Info(fmt.Sprintf("cannot UpsertValidatorTx for signer %v already in unbondMap. You need to wait %v blocks to re-execute",
+				signer, (height/ethmintTypes.EpochBlocks+ethmintTypes.UnbondedEpochs)*ethmintTypes.EpochBlocks-app.strategy.CurrHeightValData.Height))
+		}
+
 		// judge whether is a valid addValidator Tx
 		// It is better to use NextCandidateValidator but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
@@ -200,6 +206,11 @@ func (app *EthermintApplication) PendingRemoveValidatorTx(signer common.Address)
 			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in CandidateValidators", signer))
 		}
 
+		posItem, ok := app.strategy.NextEpochValData.PosTable.PosItemMap[signer]
+		if !ok {
+			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in PosTable", signer))
+		}
+		posItem.Unbonded = true
 		app.strategy.NextEpochValData.UnBondAccountMap[signer] = app.strategy.CurrHeightValData.Height
 		//if validator is exist in the currentValidators,it must be removed
 		app.GetLogger().Info(fmt.Sprintf("pending remove validatorTx for %X success", signer))
@@ -381,7 +392,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		signer := app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].Signer
 
 		posItem, ok := topKSignerMap[signer]
-		if ok {
+		if ok && posItem.Unbonded == false {
 			power := big.NewInt(1)
 			signBalance := posItem.Balance
 			power.Div(signBalance,

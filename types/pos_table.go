@@ -127,17 +127,27 @@ func (posTable *PosTable) SetThreShold(threShold *big.Int) {
 
 func (posTable *PosTable) SelectItemByHeightValue(random int64) (common.Address, PosItem) {
 	r := rand.New(rand.NewSource(random))
-	value := r.Intn(posTable.PosArraySize)
-	signer := posTable.PosArray[value]
-	return signer, *posTable.PosItemMap[signer]
+	for{
+		index := r.Intn(posTable.PosArraySize)
+		signer := posTable.PosArray[index]
+		posItem := posTable.PosItemMap[signer]
+		if posItem.Unbonded == false {
+			return signer, *posItem
+		}
+	}
 }
 
 func (posTable *PosTable) SelectItemBySeedValue(vrf []byte, len int) (common.Address, PosItem) {
 	res64 := murmur3.Sum32(vrf)
 	r := rand.New(rand.NewSource(int64(res64) + int64(len)))
-	value := r.Intn(posTable.PosArraySize)
-	signer := posTable.PosArray[value]
-	return signer, *posTable.PosItemMap[signer]
+	for {
+		index := r.Intn(posTable.PosArraySize)
+		signer := posTable.PosArray[index]
+		posItem := posTable.PosItemMap[signer]
+		if posItem.Unbonded == false {
+			return signer, *posItem
+		}
+	}
 }
 
 func (posTable *PosTable) TopKPosItem(k int) map[common.Address]*PosItem {
@@ -147,8 +157,8 @@ func (posTable *PosTable) TopKPosItem(k int) map[common.Address]*PosItem {
 	}
 	posItems := make([]PosItemWithSigner, len)
 	i := 0
-	for s, pi := range posTable.PosItemMap {
-		posItems[i] = PosItemWithSigner{s, pi.Balance}
+	for signer, pi := range posTable.PosItemMap {
+		posItems[i] = PosItemWithSigner{pi.Unbonded, signer, pi.Balance}
 		i++
 	}
 
@@ -164,6 +174,7 @@ func (posTable *PosTable) TopKPosItem(k int) map[common.Address]*PosItem {
 }
 
 type PosItem struct {
+	Unbonded         bool             `json:"unbonded"`
 	Balance          *big.Int         `json:"balance"`
 	PubKey           abciTypes.PubKey `json:"pubKey"`
 	Indexes          map[int]bool     `json:"indexes"`
@@ -179,8 +190,9 @@ func newPosItem(balance *big.Int, pubKey abciTypes.PubKey) *PosItem {
 }
 
 type PosItemWithSigner struct {
-	Signer  common.Address
-	Balance *big.Int
+	UnBonded bool
+	Signer   common.Address
+	Balance  *big.Int
 }
 
 // Sort PosItems by address
@@ -191,7 +203,7 @@ func (ps PosItemsByAddress) Len() int {
 }
 
 func (ps PosItemsByAddress) Less(i, j int) bool {
-	return ps[i].Balance.Cmp(ps[j].Balance) > 0
+	return ps[i].Balance.Cmp(ps[j].Balance) > 0 && ps[i].UnBonded == false
 }
 
 func (ps PosItemsByAddress) Swap(i, j int) {
