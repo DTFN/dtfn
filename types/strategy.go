@@ -64,7 +64,7 @@ type NextEpochValData struct {
 	//key is signer address, value is the epoch when unbond tx is received
 	//need to maintain for punishment
 	//after a given epochs(const unbondedEpochs), the unbonded accounts will be deleted in both UnBondAccountMap and AccountMap
-	UnBondAccountMap map[common.Address]int64	`json:"unbond_account_map"`
+	UnBondAccountMap map[common.Address]int64 `json:"unbond_account_map"`
 
 	ChangedFlagThisBlock bool
 	// whether upsert or remove in this block
@@ -174,7 +174,8 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 			AccountMap: &AccountMap{
 				MapList: make(map[string]*AccountMapItem),
 			},
-			CandidateValidators: map[string]abciTypes.ValidatorUpdate{},
+			CandidateValidators: make(map[string]abciTypes.ValidatorUpdate),
+			UnBondAccountMap:    make(map[common.Address]int64),
 		},
 	}
 }
