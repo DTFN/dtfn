@@ -154,9 +154,10 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.logger.Error(fmt.Sprintf("initChain address %v not found in initialAccountMap, ignore. Please check configuration!", address))
 			continue
 		}
-		SignerBalance := ethState.GetBalance(app.strategy.AccMapInitial.MapList[address].Signer)
+		signer:=app.strategy.AccMapInitial.MapList[address].Signer
+		SignerBalance := ethState.GetBalance(signer)
 		upsertFlag, _ := app.UpsertPosItemInit(
-			app.strategy.AccMapInitial.MapList[address].Signer,
+			signer,
 			SignerBalance,
 			app.strategy.AccMapInitial.MapList[address].Beneficiary,
 			validator.PubKey)
@@ -167,6 +168,11 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.NextEpochValData.NextAccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
 			app.strategy.NextEpochValData.NextCandidateValidators[address] = validator
 			app.strategy.InitialValidators = append(app.strategy.InitialValidators, validator)
+			app.strategy.CurrHeightValData.UpdateValidators = append(app.strategy.CurrHeightValData.UpdateValidators, emtTypes.Validator{
+				validator,
+				signer,
+				address,
+			})	//In height 1, we will start delete validators
 
 			blacklist.Lock(ethState, app.strategy.AccMapInitial.MapList[address].Signer)
 			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist",
