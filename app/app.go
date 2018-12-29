@@ -165,8 +165,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.strategy.CurrHeightValData.CurrCandidateValidators = append(app.strategy.CurrHeightValData.CurrCandidateValidators,
 				validator)
 			app.strategy.CurrHeightValData.AccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
-			app.strategy.NextEpochValData.NextAccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
-			app.strategy.NextEpochValData.NextCandidateValidators[address] = validator
+			app.strategy.NextEpochValData.AccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
+			app.strategy.NextEpochValData.CandidateValidators[address] = validator
 			app.strategy.InitialValidators = append(app.strategy.InitialValidators, validator)
 			app.strategy.CurrHeightValData.CurrentValidators[address] = emtTypes.Validator{
 				validator,
@@ -244,7 +244,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 				wrap.Receipt.Logs = append(wrap.Receipt.Logs, log)
 			}
 		} else if wrap.Type == "remove" {
-			b, e := app.RemoveValidatorTx(wrap.Signer)
+			b, e := app.PendingRemoveValidatorTx(wrap.Signer)
 			if e == nil && b {
 				blacklist.Unlock(db, wrap.Signer, wrap.Height)
 			}
@@ -283,7 +283,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	db, e := app.getCurrentState()
 	if e == nil {
 		//app.logger.Info("do punish")
-		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrHeightValData.CurrentValidators)
+		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrHeightValData.AccountMap)
 	}
 
 	return abciTypes.ResponseBeginBlock{}
@@ -310,13 +310,6 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
 	app.backend.AccumulateRewards(app.strategy)
-	height := app.strategy.CurrHeightValData.Height
-	if height%200 == 1 && height > 1 {
-		//DeepCopy
-		app.strategy.CurrHeightValData.AccountMap = app.strategy.NextEpochValData.NextAccountMap.Copy()
-		app.strategy.CurrHeightValData.CurrCandidateValidators = app.strategy.NextEpochValData.ExportCandidateValidators()
-		app.strategy.CurrHeightValData.PosTable = app.strategy.NextEpochValData.NextPosTable.Copy()
-	}
 	app.SetPersistenceData()
 
 	state, err := app.getCurrentState()
@@ -472,7 +465,7 @@ func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balan
 		if !bool || err != nil {
 			return bool, err
 		}
-		bool, err = app.strategy.NextEpochValData.NextPosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
+		bool, err = app.strategy.NextEpochValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
 		return bool, err
 	}
 	return false, nil

@@ -7,6 +7,8 @@ import (
 	"strings"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/green-element-chain/gelchain/types"
+	"github.com/ethereum/go-ethereum/log"
+	"fmt"
 )
 
 type Punishment struct {
@@ -86,26 +88,28 @@ type IApp interface {
 	GetAccountMap(tmAddress string) *types.AccountMapItem
 }
 
-func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, vs map[string]types.Validator) {
+func (p *Punishment) DoPunish(app IApp, stateDB *state.StateDB, evidences []abciTypes.Evidence, accountMap *types.AccountMap) {
 	for _, e := range evidences {
-		var validator types.Validator
-		found:=false
+		var signer common.Address
+		found := false
 
-		for tmAddress, v := range vs {
-/*			pubKey:=v.PubKey
-			tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)*/
+		for tmAddress, item := range accountMap.MapList {
+			/*				pubKey:=item.PubKey
+							tmPubKey,_:=tmTypes.PB2TM.PubKey(pubKey)*/
 			if strings.EqualFold(string(e.Validator.Address), tmAddress) {
-				validator=v
-				found=true
+				signer = item.Signer
+				found = true
 				break
 			}
 		}
 		if found {
-/*			tmAddress := strings.ToUpper(hex.EncodeToString(addr))
-			accountMapItem := app.GetAccountMap(tmAddress)*/
-			p.Punish(stateDB, validator.Signer)
+			/*			tmAddress := strings.ToUpper(hex.EncodeToString(addr))
+						accountMapItem := app.GetAccountMap(tmAddress)*/
+			p.Punish(stateDB, signer)
 			//To do
 			//app.RemoveValidatorTx(signer)
+		} else {
+			log.Error(fmt.Sprintf("Fail to punish address %X. Evidence %v is too long ago?", e.Validator.Address, e))
 		}
 	}
 }

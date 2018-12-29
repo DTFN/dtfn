@@ -68,7 +68,7 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 	}
 	if app.strategy != nil {
 		// judge whether is a valid addValidator Tx
-		// It is better to use NextCandidateValidators but not CandidateValidators
+		// It is better to use CandidateValidators but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
 		abciPubKey := tmTypes.TM2PB.PubKey(pubKey)
@@ -80,29 +80,29 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 		signerExisted := false
 		blsExisted := false
 
-		existValidator, existFlag := app.strategy.NextEpochValData.NextCandidateValidators[tmAddress]
+		existValidator, existFlag := app.strategy.NextEpochValData.CandidateValidators[tmAddress]
 
 		if existFlag {
-			origSigner := app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].Signer
+			origSigner := app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].Signer
 			if origSigner.String() != signer.String() {
 				app.GetLogger().Info("validator was voted by another signer")
 				return false, errors.New("validator was voted by another signer")
 			}
-			if app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].BlsKeyString != blsKeyString {
+			if app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].BlsKeyString != blsKeyString {
 				return false, errors.New("bls pubKey has been used by other people")
 			}
 		}
 		//做这件事之前必须确认这个signer，不是MapList中已经存在的。
 		//1.signer相同，可能来作恶;  2.signer相同，可能不作恶，因为有相同maplist;  3.signer不相同
 
-		for _, v := range app.strategy.NextEpochValData.NextAccountMap.MapList {
+		for _, v := range app.strategy.NextEpochValData.AccountMap.MapList {
 			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
 				signerExisted = true
 				break
 			}
 		}
 
-		for _, v := range app.strategy.NextEpochValData.NextAccountMap.MapList {
+		for _, v := range app.strategy.NextEpochValData.AccountMap.MapList {
 			if v.BlsKeyString == blsKeyString {
 				blsExisted = true
 				break
@@ -120,17 +120,17 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 			// signer不相同 signer should not be locked
 			// If is a valid addValidatorTx,change the data in the strategy
 			// Should change the maplist and postable and nextCandidateValidator
-			upsertFlag, err := app.strategy.NextEpochValData.NextPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			upsertFlag, err := app.strategy.NextEpochValData.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
 				app.GetLogger().Info(err.Error())
 				return false, err
 			}
-			app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress] = &ethmintTypes.AccountMapItem{
+			app.strategy.NextEpochValData.AccountMap.MapList[tmAddress] = &ethmintTypes.AccountMapItem{
 				Beneficiary:  beneficiary,
 				Signer:       signer,
 				BlsKeyString: blsKeyString,
 			}
-			app.strategy.NextEpochValData.NextCandidateValidators[tmAddress] =
+			app.strategy.NextEpochValData.CandidateValidators[tmAddress] =
 				abciTypes.ValidatorUpdate{
 					PubKey: abciPubKey,
 					Power:  1,
@@ -143,12 +143,12 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 				return false, errors.New(fmt.Sprintf("pubKey %v doesn't match with existing one %v", existValidator.PubKey, abciPubKey))
 			}
 			//同singer，同MapList[tmAddress]，是来改动balance的
-			upsertFlag, err := app.strategy.NextEpochValData.NextPosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
+			upsertFlag, err := app.strategy.NextEpochValData.PosTable.UpsertPosItem(signer, balance, beneficiary, abciPubKey)
 			if err != nil || !upsertFlag {
 				app.GetLogger().Error(err.Error())
 				return false, err
 			}
-			app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].Beneficiary = beneficiary
+			app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].Beneficiary = beneficiary
 			app.GetLogger().Info("upsert Validator Tx success")
 			app.strategy.NextEpochValData.ChangedFlagThisBlock = true
 			return true, nil
@@ -162,52 +162,114 @@ func (app *EthermintApplication) UpsertValidatorTx(signer common.Address, curren
 	return false, errors.New("upsertFailed for unknown reason")
 }
 
-func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool, error) {
-	app.GetLogger().Info("You are removeValidatorTx")
+func (app *EthermintApplication) PendingRemoveValidatorTx(signer common.Address) (bool, error) {
+	app.GetLogger().Info(fmt.Sprintf("PendingRemoveValidatorTx. signer=%X", signer))
 	if app.strategy != nil {
-		//找到tmAddress，另这个的signer与输入相等
+		if len(app.strategy.NextEpochValData.CandidateValidators)-len(app.strategy.NextEpochValData.UnBondAccountMap) <= 4 { //ensure safety
+			app.GetLogger().Info("can not remove validator for consensus safety")
+			return false, errors.New("can not remove validator for consensus safety")
+		}
+
+		height, existFlag := app.strategy.NextEpochValData.UnBondAccountMap[signer]
+		if existFlag {
+			app.GetLogger().Info(fmt.Sprintf("cannot remove validator for signer %v already in unbondMap. You need to wait %v blocks to re-execute",
+				signer, (height/ethmintTypes.EpochBlocks+ethmintTypes.UnbondedEpochs)*ethmintTypes.EpochBlocks-app.strategy.CurrHeightValData.Height))
+		}
+
 		var tmAddress string
-		existFlag := false
-		for k, v := range app.strategy.NextEpochValData.NextAccountMap.MapList {
+		for k, v := range app.strategy.NextEpochValData.AccountMap.MapList {
 			if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
 				tmAddress = k
 				existFlag = true
 				break
 			}
 		}
-
 		if !existFlag {
 			return false, errors.New(fmt.Sprintf("signer %v not exist in AccountMap", signer))
 		}
 
-		if len(app.strategy.NextEpochValData.NextCandidateValidators) <= 4 {
-			app.GetLogger().Info("can not remove validator for consensus safety")
-			return false, errors.New("can not remove validator for consensus safety")
-		}
-
 		// judge whether is a valid removeValidator Tx
-		// It is better to use NextCandidateValidators but not CandidateValidators
+		// It is better to use NextCandidateValidator but not CandidateValidators
 		// because candidateValidator will changed only at (height%200==0)
 		// but NextCandidateValidator will changed every height
+
 		//tmAddress := pubkey.Address().String
-		_, ok := app.strategy.NextEpochValData.NextCandidateValidators[tmAddress]
+		_, ok := app.strategy.NextEpochValData.CandidateValidators[tmAddress]
 
 		if !ok {
-			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in NextCandidateValidators", signer))
+			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in CandidateValidators", signer))
 		}
-		removeFlag, err := app.strategy.NextEpochValData.NextPosTable.RemovePosItem(signer)
+		removeFlag, err := app.strategy.NextEpochValData.PosTable.RemovePosItem(signer)
 		if err != nil || !removeFlag {
 			panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in posTable", signer))
 		}
 
-		delete(app.strategy.NextEpochValData.NextCandidateValidators, tmAddress)
-		delete(app.strategy.NextEpochValData.NextAccountMap.MapList, tmAddress)
+		app.strategy.NextEpochValData.UnBondAccountMap[signer] = app.strategy.CurrHeightValData.Height
 		//if validator is exist in the currentValidators,it must be removed
-		app.GetLogger().Info("remove validatorTx success")
+		app.GetLogger().Info(fmt.Sprintf("pending remove validatorTx for %X success", signer))
 		app.strategy.NextEpochValData.ChangedFlagThisBlock = true
 		return true, nil
 	}
 	return false, errors.New("app strategy nil")
+}
+
+func (app *EthermintApplication) TryRemoveValidatorTxs() (bool, error) {
+	if app.strategy != nil {
+		if len(app.strategy.NextEpochValData.CandidateValidators)-len(app.strategy.NextEpochValData.UnBondAccountMap) <= 4 { //ensure safety
+			panic("cannot remove validator for consensus safety")
+		}
+
+		count := 0
+		for signer, height := range app.strategy.NextEpochValData.UnBondAccountMap {
+			if (height/ethmintTypes.EpochBlocks+ethmintTypes.UnbondedEpochs)*ethmintTypes.EpochBlocks <= app.strategy.CurrHeightValData.Height {
+				result, err := app.RemoveValidatorTx(signer)
+				if result && err == nil {
+					count++
+				}
+			}
+		}
+		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
+		return true, nil
+	}
+	return false, errors.New("app strategy nil")
+}
+
+func (app *EthermintApplication) RemoveValidatorTx(signer common.Address) (bool, error) {
+	app.GetLogger().Info(fmt.Sprintf("removeValidatorTx. signer=%X", signer))
+	var tmAddress string
+	existFlag := false
+	for k, v := range app.strategy.NextEpochValData.AccountMap.MapList {
+		if bytes.Equal(v.Signer.Bytes(), signer.Bytes()) {
+			tmAddress = k
+			existFlag = true
+			break
+		}
+	}
+	if !existFlag {
+		panic(fmt.Sprintf("signer %v not exist in AccountMap", signer))
+	}
+	delete(app.strategy.NextEpochValData.AccountMap.MapList, tmAddress)
+
+	_, ok := app.strategy.NextEpochValData.CandidateValidators[tmAddress]
+	if !ok {
+		panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in CandidateValidators", signer))
+	}
+	delete(app.strategy.NextEpochValData.CandidateValidators, tmAddress)
+
+	removeFlag, err := app.strategy.NextEpochValData.PosTable.RemovePosItem(signer)
+	if err != nil || !removeFlag {
+		panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in posTable", signer))
+	}
+
+	_, ok = app.strategy.NextEpochValData.UnBondAccountMap[signer]
+	if !ok {
+		panic(fmt.Sprintf("Signer %v can be found in AccountMap but not found in UnBondAccountMap", signer))
+	}
+	delete(app.strategy.NextEpochValData.UnBondAccountMap, signer)
+	//if validator is exist in the currentValidators,it must be removed
+	app.GetLogger().Info(fmt.Sprintf("remove validatorTx for %X success", signer))
+	app.strategy.NextEpochValData.ChangedFlagThisBlock = true
+	return true, nil
 }
 
 func (app *EthermintApplication) SetThreshold(threShold *big.Int) {
@@ -220,7 +282,7 @@ func (app *EthermintApplication) SetThreshold(threShold *big.Int) {
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
-		if int(height)%200 != 0 {
+		if int(height)%ethmintTypes.EpochBlocks != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)
@@ -298,7 +360,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		//tmPubKey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
 		index, selected := selectedValidators[address]
 		if selected {
-			v.Power = validatorsSlice[index].Power	//no use
+			v.Power = validatorsSlice[index].Power //no use
 		} else {
 			validatorsSlice = append(validatorsSlice, abciTypes.ValidatorUpdate{
 				PubKey: v.PubKey,
@@ -314,28 +376,28 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
 	blsPubkeySlice := []string{}
 	validatorsSlice := []abciTypes.ValidatorUpdate{}
-	topKSignerMap := app.strategy.NextEpochValData.NextPosTable.TopKPosItem(100)
+	topKSignerMap := app.strategy.NextEpochValData.PosTable.TopKPosItem(100)
 
-	for _, validator := range app.strategy.NextEpochValData.NextCandidateValidators {
+	for _, validator := range app.strategy.NextEpochValData.CandidateValidators {
 
 		pubkey, _ := tmTypes.PB2TM.PubKey(validator.PubKey)
 		tmAddress := pubkey.Address().String()
-		signer := app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].Signer
+		signer := app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].Signer
 
 		_, ok := topKSignerMap[signer]
 		if !ok {
 			power := big.NewInt(1)
-			signBalance := app.strategy.NextEpochValData.NextPosTable.PosItemMap[signer].Balance
+			signBalance := app.strategy.NextEpochValData.PosTable.PosItemMap[signer].Balance
 			power.Div(signBalance,
-				app.strategy.NextEpochValData.NextPosTable.Threshold)
+				app.strategy.NextEpochValData.PosTable.Threshold)
 			validator := abciTypes.ValidatorUpdate{
-				PubKey: app.strategy.NextEpochValData.NextCandidateValidators[tmAddress].PubKey,
+				PubKey: app.strategy.NextEpochValData.CandidateValidators[tmAddress].PubKey,
 				Power:  power.Int64(),
 			}
 			emtValidator := ethmintTypes.Validator{validator, signer}
 			app.strategy.CurrHeightValData.CurrentValidators[tmAddress] = emtValidator
 			validatorsSlice = append(validatorsSlice, validator)
-			blsPubkeySlice = append(blsPubkeySlice, app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].BlsKeyString)
+			blsPubkeySlice = append(blsPubkeySlice, app.strategy.NextEpochValData.AccountMap.MapList[tmAddress].BlsKeyString)
 		}
 	}
 
@@ -420,13 +482,20 @@ func (app *EthermintApplication) SetPersistenceData() {
 
 	wsState, _ := app.getCurrentState()
 	height := app.strategy.CurrHeightValData.Height
+	if height%ethmintTypes.EpochBlocks == 0 {
+		app.TryRemoveValidatorTxs()
+		//DeepCopy
+		app.strategy.CurrHeightValData.AccountMap = app.strategy.NextEpochValData.AccountMap.Copy()
+		app.strategy.CurrHeightValData.CurrCandidateValidators = app.strategy.NextEpochValData.ExportCandidateValidators()
+		app.strategy.CurrHeightValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
+	}
 	app.logger.Info(fmt.Sprintf("set persist data in height %v", height))
-	if app.strategy.NextEpochValData.ChangedFlagThisBlock || height%200 == 1 && height > 1 {
+	if app.strategy.NextEpochValData.ChangedFlagThisBlock || height%ethmintTypes.EpochBlocks == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData)
 		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)
 	}
 
-	if height%200 == 1 || height == 0 {
+	if height%ethmintTypes.EpochBlocks == 0 {
 		currBytes, _ := json.Marshal(app.strategy.CurrHeightValData)
 		wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"), currBytes)
 	}

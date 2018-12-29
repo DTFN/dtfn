@@ -41,8 +41,8 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetAllCandidateValidators"] = tHandler.GetAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetEncourage"] = tHandler.GetEncourage
 
-	tHandler.HandlersMap["/GetNextPosTable"] = tHandler.GetNextPosTableData
-	tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
+	tHandler.HandlersMap["/GetPosTable"] = tHandler.GetPosTableData
+	tHandler.HandlersMap["/GetAccountMap"] = tHandler.GetAccountMapData
 	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetInitialValidator"] = tHandler.GetInitialValidator
 	tHandler.HandlersMap["/GetHeadEventSize"] = tHandler.GetTxPoolEventSize
@@ -132,9 +132,9 @@ func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Reque
 // This function will return the used data structure
 func (tHandler *THandler) GetNextPosTableData(w http.ResponseWriter, req *http.Request) {
 	PosTable := &PosItemMapData{
-		PosItemMap:   tHandler.strategy.NextEpochValData.NextPosTable.PosItemMap,
-		Threshold:    tHandler.strategy.NextEpochValData.NextPosTable.Threshold,
-		PosArraySize: tHandler.strategy.NextEpochValData.NextPosTable.PosArraySize,
+		PosItemMap:   tHandler.strategy.NextEpochValData.PosTable.PosItemMap,
+		Threshold:    tHandler.strategy.NextEpochValData.PosTable.Threshold,
+		PosArraySize: tHandler.strategy.NextEpochValData.PosTable.PosArraySize,
 	}
 	jsonStr, err := json.Marshal(PosTable)
 	if err != nil {
@@ -160,7 +160,7 @@ func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Req
 // This function will return the used data structure
 func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http.Request) {
 	AccountMap := &AccountMapData{
-		MapList: tHandler.strategy.NextEpochValData.NextAccountMap.MapList,
+		MapList: tHandler.strategy.NextEpochValData.AccountMap.MapList,
 	}
 	jsonStr, err := json.Marshal(AccountMap)
 	if err != nil {
@@ -241,22 +241,22 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
 	var keys []string
-	for k := range tHandler.strategy.NextEpochValData.NextCandidateValidators {
+	for k := range tHandler.strategy.NextEpochValData.CandidateValidators {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	for _, tmAddressStr := range keys {
-		signer := tHandler.strategy.NextEpochValData.NextAccountMap.MapList[tmAddressStr].Signer
-		balance := tHandler.strategy.NextEpochValData.NextPosTable.PosItemMap[signer].Balance
+		signer := tHandler.strategy.NextEpochValData.AccountMap.MapList[tmAddressStr].Signer
+		balance := tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer].Balance
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: tmAddressStr,
-			PubKey:        tHandler.strategy.NextEpochValData.NextCandidateValidators[tmAddressStr].PubKey,
+			PubKey:        tHandler.strategy.NextEpochValData.CandidateValidators[tmAddressStr].PubKey,
 			SignerBalance: balance,
 			Signer:        signer,
-			Beneficiary:   tHandler.strategy.NextEpochValData.NextAccountMap.MapList[tmAddressStr].Beneficiary,
+			Beneficiary:   tHandler.strategy.NextEpochValData.AccountMap.MapList[tmAddressStr].Beneficiary,
 			BlsKeyString:  tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].BlsKeyString,
 		})
 	}

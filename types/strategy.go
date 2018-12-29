@@ -10,6 +10,9 @@ import (
 	"sort"
 )
 
+const UnbondedEpochs = 3
+const EpochBlocks = 200
+
 // MinerRewardStrategy is a mining strategy
 type MinerRewardStrategy interface {
 	Receiver() common.Address
@@ -52,11 +55,16 @@ type NextEpochValData struct {
 	//we should deepcopy evert 200 height
 	//first deepcopy:copy at height 1 from CurrentRoundValData to NextRoundValData
 	//height/200 ==0:c from NextRoundValData to CurrentRoundValData   `json:"-"`
-	NextPosTable *PosTable `json:"pos_table"`
+	PosTable *PosTable `json:"pos_table"`
 
-	NextCandidateValidators map[string]abciTypes.ValidatorUpdate `json:"next_candidate_validators"`
+	CandidateValidators map[string]abciTypes.ValidatorUpdate `json:"candidate_validators"`
 
-	NextAccountMap *AccountMap `json:"account_map"`
+	AccountMap *AccountMap `json:"account_map"`
+
+	//key is signer address, value is the epoch when unbond tx is received
+	//need to maintain for punishment
+	//after a given epochs(const unbondedEpochs), the unbonded accounts will be deleted in both UnBondAccountMap and AccountMap
+	UnBondAccountMap map[common.Address]int64	`json:"unbond_account_map"`
 
 	ChangedFlagThisBlock bool
 	// whether upsert or remove in this block
@@ -65,14 +73,14 @@ type NextEpochValData struct {
 
 func (nextRoundValData *NextEpochValData) ExportCandidateValidators() []abciTypes.ValidatorUpdate {
 	var keys []string
-	for k := range nextRoundValData.NextCandidateValidators {
+	for k := range nextRoundValData.CandidateValidators {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	validators := []abciTypes.ValidatorUpdate{}
 	for _, k := range keys {
-		validators = append(validators, nextRoundValData.NextCandidateValidators[k])
+		validators = append(validators, nextRoundValData.CandidateValidators[k])
 	}
 	return validators
 }
@@ -127,14 +135,14 @@ type CurrentHeightValData struct {
 	LastVoteInfo []abciTypes.VoteInfo
 
 	// note : if we get a addValidatorsTx at height 101,
-	// we will put it into the NextCandidateValidators and move into postable
-	// NextCandidateValidator will used in the next height200
-	// postable will used in the next height 102
+	// we will put it into the CandidateValidators and move into posTable
+	// NextCandidateValidator will used in the next epoch
+	// posTable will used in the next height 102
 
 	//note : if we get a removeValidatorsTx at height 101
-	// we will remove it from the NextCandidateValidators and remove from postable
+	// we will remove it from the CandidateValidators and remove from posTable
 	// NextCandidateValidator will used in the next height200
-	// postable will used in the next height 102
+	// posTable will used in the next height 102
 }
 
 type Validator struct {
@@ -162,11 +170,11 @@ func NewStrategy(totalBalance *big.Int) *Strategy {
 		HFExpectedData: hfExpectedData,
 
 		NextEpochValData: NextEpochValData{
-			NextPosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			NextAccountMap: &AccountMap{
+			PosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			AccountMap: &AccountMap{
 				MapList: make(map[string]*AccountMapItem),
 			},
-			NextCandidateValidators: map[string]abciTypes.ValidatorUpdate{},
+			CandidateValidators: map[string]abciTypes.ValidatorUpdate{},
 		},
 	}
 }
