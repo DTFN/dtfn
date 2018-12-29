@@ -398,8 +398,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	// block).
 	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
 	blockHash := block.Hash()
-	log.Info(fmt.Sprintf("eth_state commit. ws.header %v block.header %v blockHash %X",
-		ws.header, block.Header(), blockHash))
+	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
+		block.Header(), blockHash))
 
 	proctime := time.Since(ws.bstart)
 	blockchain.AddGcproc(proctime)

@@ -293,9 +293,9 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 				signer,
 				tmAddress,
 			}
-			updateValidators = append(updateValidators, validator)
 			//Remember tmPubKey.Address 's index in the currentValidators Array
 			selectedValidators[tmAddress] = len(updateValidators)
+			updateValidators = append(updateValidators, validator)
 		}
 	}
 	lastUpdateValidators := app.strategy.CurrHeightValData.UpdateValidators
