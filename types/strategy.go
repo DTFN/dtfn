@@ -107,8 +107,6 @@ type CurrentHeightValData struct {
 	// we should remember it for balance bonus and then clear it
 	//AccountMapListTemp *AccountMapList
 
-	LastEpochAccountMap *AccountMap `json:"last_epoch_account_map"`
-
 	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable *PosTable `json:"pos_table"`
 

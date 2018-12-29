@@ -306,9 +306,9 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
 	app.backend.AccumulateRewards(app.strategy)
-	if (app.strategy.CurrHeightValData.Height)%200 == 0 {
+	height := app.strategy.CurrHeightValData.Height
+	if height%200 == 1 && height > 1 {
 		//DeepCopy
-		app.strategy.CurrHeightValData.LastEpochAccountMap = app.strategy.CurrHeightValData.AccountMap.Copy()
 		app.strategy.CurrHeightValData.AccountMap = app.strategy.NextEpochValData.NextAccountMap.Copy()
 		app.strategy.CurrHeightValData.CurrCandidateValidators = app.strategy.NextEpochValData.ExportCandidateValidators()
 		app.strategy.CurrHeightValData.PosTable = app.strategy.NextEpochValData.NextPosTable.Copy()
@@ -465,7 +465,7 @@ func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balan
 	pubkey abciTypes.PubKey) (bool, error) {
 	if app.strategy != nil {
 		bool, err := app.strategy.CurrHeightValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
-		if !bool||err!=nil{
+		if !bool || err != nil {
 			return bool, err
 		}
 		bool, err = app.strategy.NextEpochValData.NextPosTable.UpsertPosItem(account, balance, beneficiary, pubkey)

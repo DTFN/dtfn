@@ -271,11 +271,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		if accountItem, ok := strategy.CurrHeightValData.AccountMap.MapList[address]; ok {
 			beneficiary = accountItem.Beneficiary
 		} else {
-			if accountItem, ok := strategy.CurrHeightValData.LastEpochAccountMap.MapList[address]; !ok {
-				panic(fmt.Sprintf("address %v not exist in accountMap", address))
-			} else {
-				beneficiary = accountItem.Beneficiary
-			}
+			panic(fmt.Sprintf("address %v not exist in accountMap", address))
 		}
 		ws.state.AddBalance(beneficiary, bonusAverage)
 

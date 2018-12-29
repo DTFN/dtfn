@@ -283,7 +283,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			updateValidators[index].Power++
 			validatorsSlice[index].Power++
 		} else {
-			validatorUpdate:=abciTypes.ValidatorUpdate{
+			validatorUpdate := abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
 				Power:  1000,
 			}
@@ -336,7 +336,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 				PubKey: app.strategy.NextEpochValData.NextCandidateValidators[tmAddress].PubKey,
 				Power:  power.Int64(),
 			}
-			emtValidator:=ethmintTypes.Validator{validator,signer,tmAddress}
+			emtValidator := ethmintTypes.Validator{validator, signer, tmAddress}
 			updateValidators = append(updateValidators, emtValidator)
 			validatorsSlice = append(validatorsSlice, validator)
 			blsPubkeySlice = append(blsPubkeySlice, app.strategy.NextEpochValData.NextAccountMap.MapList[tmAddress].BlsKeyString)
@@ -345,7 +345,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 
 	for _, v := range app.strategy.CurrHeightValData.UpdateValidators {
 		//pubkey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
-		signer:=v.Signer
+		signer := v.Signer
 
 		_, ok := topKSignerMap[signer]
 		if !ok && v.Power != 0 {
@@ -427,12 +427,12 @@ func (app *EthermintApplication) SetPersistenceData() {
 	wsState, _ := app.getCurrentState()
 	height := app.strategy.CurrHeightValData.Height
 	app.logger.Info(fmt.Sprintf("set persist data in height %v", height))
-	if app.strategy.NextEpochValData.ChangedFlagThisBlock || height%200 == 0 {
+	if app.strategy.NextEpochValData.ChangedFlagThisBlock || height%200 == 1 && height > 1 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData)
 		wsState.SetCode(common.HexToAddress("0x8888888888888888888888888888888888888888"), nextBytes)
 	}
 
-	if height%200 == 0 {
+	if height%200 == 1 || height == 0 {
 		currBytes, _ := json.Marshal(app.strategy.CurrHeightValData)
 		wsState.SetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"), currBytes)
 	}
