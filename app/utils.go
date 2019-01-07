@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -14,7 +15,6 @@ import (
 	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
 	"strconv"
-	"fmt"
 )
 
 // format of query data
@@ -328,6 +328,9 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	selectedValidators := make(map[string]int)
 
 	//select validators from posTable
+	if app.strategy.HFExpectedData.BlockVersion >= 2 {
+
+	}
 	for i := 0; i < selectCount; i++ {
 		var tmPubKey crypto.PubKey
 		var validator ethmintTypes.Validator
