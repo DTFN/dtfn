@@ -329,42 +329,77 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 
 	//select validators from posTable
 	if app.strategy.HFExpectedData.BlockVersion >= 2 {
+		for i := 0; len(validatorsSlice) != selectCount; i++ {
+			var tmPubKey crypto.PubKey
+			var validator ethmintTypes.Validator
+			var signer common.Address
+			var pubKey abciTypes.PubKey
+			var posItem ethmintTypes.PosItem
+			if height == -1 {
+				//height=-1 表示 seed 存在，使用seed
+				signer, posItem = app.strategy.CurrHeightValData.PosTable.SelectItemBySeedValue(seed, i)
+			} else {
+				//seed 不存在，使用height
+				startIndex := height
+				signer, posItem = app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
+			}
+			pubKey = posItem.PubKey
+			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
+			tmAddress := tmPubKey.Address().String()
+			if index, ok := selectedValidators[tmAddress]; ok {
+				validatorsSlice[index].Power++
+			} else {
+				validatorUpdate := abciTypes.ValidatorUpdate{
+					PubKey: pubKey,
+					Power:  1000,
+				}
+				validator = ethmintTypes.Validator{
+					validatorUpdate,
+					signer,
+				}
+				//Remember tmPubKey.Address 's index in the currentValidators Array
+				selectedValidators[tmAddress] = len(validatorsSlice)
+				validatorsSlice = append(validatorsSlice, validatorUpdate)
+				app.strategy.CurrHeightValData.CurrentValidators[tmAddress] = validator
+			}
+		}
+	}else{
+		for i := 0; i < selectCount; i++ {
+			var tmPubKey crypto.PubKey
+			var validator ethmintTypes.Validator
+			var signer common.Address
+			var pubKey abciTypes.PubKey
+			var posItem ethmintTypes.PosItem
+			if height == -1 {
+				//height=-1 表示 seed 存在，使用seed
+				signer, posItem = app.strategy.CurrHeightValData.PosTable.SelectItemBySeedValue(seed, i)
+			} else {
+				//seed 不存在，使用height
+				startIndex := height
+				signer, posItem = app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
+			}
+			pubKey = posItem.PubKey
+			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
+			tmAddress := tmPubKey.Address().String()
+			if index, ok := selectedValidators[tmAddress]; ok {
+				validatorsSlice[index].Power++
+			} else {
+				validatorUpdate := abciTypes.ValidatorUpdate{
+					PubKey: pubKey,
+					Power:  1000,
+				}
+				validator = ethmintTypes.Validator{
+					validatorUpdate,
+					signer,
+				}
+				//Remember tmPubKey.Address 's index in the currentValidators Array
+				selectedValidators[tmAddress] = len(validatorsSlice)
+				validatorsSlice = append(validatorsSlice, validatorUpdate)
+				app.strategy.CurrHeightValData.CurrentValidators[tmAddress] = validator
+			}
+		}
+	}
 
-	}
-	for i := 0; i < selectCount; i++ {
-		var tmPubKey crypto.PubKey
-		var validator ethmintTypes.Validator
-		var signer common.Address
-		var pubKey abciTypes.PubKey
-		var posItem ethmintTypes.PosItem
-		if height == -1 {
-			//height=-1 表示 seed 存在，使用seed
-			signer, posItem = app.strategy.CurrHeightValData.PosTable.SelectItemBySeedValue(seed, i)
-		} else {
-			//seed 不存在，使用height
-			startIndex := height
-			signer, posItem = app.strategy.CurrHeightValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
-		}
-		pubKey = posItem.PubKey
-		tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
-		tmAddress := tmPubKey.Address().String()
-		if index, ok := selectedValidators[tmAddress]; ok {
-			validatorsSlice[index].Power++
-		} else {
-			validatorUpdate := abciTypes.ValidatorUpdate{
-				PubKey: pubKey,
-				Power:  1000,
-			}
-			validator = ethmintTypes.Validator{
-				validatorUpdate,
-				signer,
-			}
-			//Remember tmPubKey.Address 's index in the currentValidators Array
-			selectedValidators[tmAddress] = len(validatorsSlice)
-			validatorsSlice = append(validatorsSlice, validatorUpdate)
-			app.strategy.CurrHeightValData.CurrentValidators[tmAddress] = validator
-		}
-	}
 	//append the validators which will be deleted
 	for address, v := range app.strategy.CurrHeightValData.CurrentValidators {
 		//tmPubKey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
