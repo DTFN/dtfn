@@ -233,6 +233,8 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
+	app.logger.Info(fmt.Sprintf("current epoch data %v. next epoch data %v",
+		app.strategy.CurrEpochValData, app.strategy.NextEpochValData))
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!breaking!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
