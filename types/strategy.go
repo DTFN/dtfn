@@ -100,20 +100,19 @@ type CurrentHeightValData struct {
 	LastVoteInfo []abciTypes.VoteInfo `json:"-"`
 }
 
-func NewStrategy(totalBalance *big.Int) *Strategy {
+func NewStrategy() *Strategy {
 	//If ThresholdUnit = 1000 ,it mean we set the lowest posTable threshold to 1/1000 of totalBalance.
-	thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
-	threshold := big.NewInt(1)
+	//thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
+	//threshold := big.NewInt(1)
 	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true, StatisticsVersion: 0, BlockVersion: 0}
 	return &Strategy{
 		CurrEpochValData: CurrEpochValData{
-			PosTable:     txfilter.NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			TotalBalance: totalBalance,
+			PosTable:     txfilter.NewPosTable(),
 		},
 		HFExpectedData: hfExpectedData,
 
 		NextEpochValData: NextEpochValData{
-			PosTable: txfilter.CreatePosTable(threshold.Div(totalBalance, thresholdUnit)),
+			PosTable: txfilter.CreatePosTable(),
 		},
 		CurrentHeightValData: CurrentHeightValData{
 			Validators: make(map[string]Validator),

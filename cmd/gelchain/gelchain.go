@@ -33,6 +33,7 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/green-element-chain/gelchain/utils"
 	"math/big"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -44,13 +45,6 @@ func ethermintCmd(ctx *cli.Context) error {
 	addr := ctx.GlobalString(emtUtils.ABCIAddrFlag.Name)
 	abci := ctx.GlobalString(emtUtils.ABCIProtocolFlag.Name)
 	blsSelectStrategy := ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
-
-	ethGenesisJson := ethermintGenesisPath(ctx)
-	genesis := utils.ReadGenesis(ethGenesisJson)
-	totalBalanceInital := big.NewInt(0)
-	for key, _ := range genesis.Alloc {
-		totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
-	}
 
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
@@ -65,7 +59,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	}
 
 	// Create the ABCI app
-	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy(totalBalanceInital))
+	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy())
 	strategy:=ethApp.GetStrategy()
 	strategy.BlsSelectStrategy = blsSelectStrategy
 	if err != nil {
@@ -82,6 +76,19 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	ethApp.InitPersistData()
 	if strategy.CurrentHeightValData.Height==0 && strategy.CurrEpochValData.PosTable.TotalSlots==0{
+		ethGenesisJson := ethermintGenesisPath(ctx)
+		genesis := utils.ReadGenesis(ethGenesisJson)
+		totalBalanceInital := big.NewInt(0)
+		for key, _ := range genesis.Alloc {
+			totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
+		}
+		strategy.CurrEpochValData.TotalBalance=totalBalanceInital
+		thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
+		threshold := big.NewInt(0)
+		threshold.Div(totalBalanceInital, thresholdUnit)
+		strategy.CurrEpochValData.PosTable.SetThreshold(threshold)
+		strategy.NextEpochValData.PosTable.SetThreshold(threshold)
+
 		ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
 
 		genDocFile := tmConfig.GenesisFile()
