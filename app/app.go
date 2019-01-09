@@ -233,14 +233,14 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
-	app.logger.Info(fmt.Sprintf("current epoch data %v. next epoch data %v",
-		app.strategy.CurrEpochValData, app.strategy.NextEpochValData))
+	app.logger.Info("current epoch","data", app.strategy.CurrEpochValData)
+	app.logger.Info("next epoch","data", app.strategy.NextEpochValData)
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!breaking!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.HFExpectedData.Height = beginBlock.GetHeader().Height
 	app.strategy.HFExpectedData.BlockVersion = beginBlock.GetHeader().Version.App
-	app.logger.Info("block version", "appversion", app.strategy.HFExpectedData.BlockVersion)
+	app.logger.Info("block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
 
 	app.strategy.CurrentHeightValData.Height = beginBlock.GetHeader().Height
 	//when we reach the upgrade height,we change the blockversion
