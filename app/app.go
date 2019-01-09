@@ -233,8 +233,6 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
-	app.logger.Info("current epoch","data", app.strategy.CurrEpochValData)
-	app.logger.Info("next epoch","data", app.strategy.NextEpochValData)
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!breaking!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
@@ -275,6 +273,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 		app.TryRemoveValidatorTxs()
 		//DeepCopy
 		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
+		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
 	}
 
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
