@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"github.com/green-element-chain/gelchain/ethereum"
 	emtTypes "github.com/green-element-chain/gelchain/types"
@@ -10,7 +9,6 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
-	"sort"
 )
 
 type THandler struct {
@@ -32,11 +30,11 @@ func NewTHandler(strategy *emtTypes.Strategy, backend *ethereum.Backend) *THandl
 func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/hello"] = tHandler.Hello
 	tHandler.HandlersMap["/test"] = tHandler.test
-	tHandler.HandlersMap["/isUpsert"] = tHandler.IsUpsert
-	tHandler.HandlersMap["/isRemove"] = tHandler.IsRemove
+	//tHandler.HandlersMap["/isUpsert"] = tHandler.IsUpsert
+	//tHandler.HandlersMap["/isRemove"] = tHandler.IsRemove
 	tHandler.HandlersMap["/GetPosTable"] = tHandler.GetPosTableData
 	tHandler.HandlersMap["/GetAccountMap"] = tHandler.GetAccountMapData
-	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.GetPreBlockValidators
+	tHandler.HandlersMap["/GetCurrentValidators"] = tHandler.GetPreBlockUpdateValidators
 	tHandler.HandlersMap["/GetPreBlockProposer"] = tHandler.GetPreBlockProposer
 	tHandler.HandlersMap["/GetAllCandidateValidators"] = tHandler.GetAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetEncourage"] = tHandler.GetEncourage
@@ -63,21 +61,20 @@ func (tHandler *THandler) Hello(w http.ResponseWriter, req *http.Request) {
 }
 
 // This function will return the used data structure
-func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
+/*func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
 	var nextValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.CurrHeightValData.CurrCandidateValidators); i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey)
+	for _,posItem:=range tHandler.strategy.NextEpochValData.PosTable.PosItemMap {
 		nextValidators = append(nextValidators, &Validator{
-			//Address:       tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].Address,
-			PubKey:        tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey,
-			Power:         tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].Power,
-			AddressString: hex.EncodeToString(tmPubKey.Address()),
+			//Address:       tHandler.strategy.CurrentHeightValData.CurrCandidateValidators[i].Address,
+			PubKey:        posItem.PubKey,
+			Power:         posItem.Slots,
+			AddressString: posItem.TmAddress,
 		})
 	}
 
 	PosReceipt := &PTableAll{
-		PosItemMap:              tHandler.strategy.CurrHeightValData.PosTable.PosItemMap,
-		AccountMapList:          tHandler.strategy.CurrHeightValData.AccountMap,
+		PosItemMap:              tHandler.strategy.CurrEpochValData.PosTable.PosItemMap,
+		AccountMapList:          tHandler.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap,
 		NextCandidateValidators: nextValidators,
 	}
 	jsonStr, err := json.Marshal(PosReceipt)
@@ -86,40 +83,16 @@ func (tHandler *THandler) IsUpsert(w http.ResponseWriter, req *http.Request) {
 	} else {
 		w.Write(jsonStr)
 	}
-}
-
-// This function will return the used data structure
-func (tHandler *THandler) IsRemove(w http.ResponseWriter, req *http.Request) {
-	var nextValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.CurrHeightValData.CurrCandidateValidators); i++ {
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey)
-		nextValidators = append(nextValidators, &Validator{
-			//Address:       tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].Address,
-			PubKey:        tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey,
-			Power:         tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].Power,
-			AddressString: hex.EncodeToString(tmPubKey.Address()),
-		})
-	}
-
-	PosReceipt := &PTableAll{
-		PosItemMap:              tHandler.strategy.CurrHeightValData.PosTable.PosItemMap,
-		AccountMapList:          tHandler.strategy.CurrHeightValData.AccountMap,
-		NextCandidateValidators: nextValidators,
-	}
-	jsonStr, err := json.Marshal(PosReceipt)
-	if err != nil {
-		w.Write([]byte("error occured when marshal into json"))
-	} else {
-		w.Write(jsonStr)
-	}
-}
+}*/
 
 // This function will return the used data structure
 func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Request) {
+	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
+	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
 	PosTable := &PosItemMapData{
-		PosItemMap:   tHandler.strategy.CurrHeightValData.PosTable.PosItemMap,
-		Threshold:    tHandler.strategy.CurrHeightValData.PosTable.Threshold,
-		PosArraySize: tHandler.strategy.CurrHeightValData.PosTable.PosArraySize,
+		PosItemMap: tHandler.strategy.CurrEpochValData.PosTable.PosItemMap,
+		Threshold:  tHandler.strategy.CurrEpochValData.PosTable.Threshold,
+		TotalSlots: tHandler.strategy.CurrEpochValData.PosTable.TotalSlots,
 	}
 	jsonStr, err := json.Marshal(PosTable)
 	if err != nil {
@@ -131,10 +104,12 @@ func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Reque
 
 // This function will return the used data structure
 func (tHandler *THandler) GetNextPosTableData(w http.ResponseWriter, req *http.Request) {
+	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
+	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
 	PosTable := &PosItemMapData{
-		PosItemMap:   tHandler.strategy.NextEpochValData.PosTable.PosItemMap,
-		Threshold:    tHandler.strategy.NextEpochValData.PosTable.Threshold,
-		PosArraySize: tHandler.strategy.NextEpochValData.PosTable.PosArraySize,
+		PosItemMap: tHandler.strategy.NextEpochValData.PosTable.PosItemMap,
+		Threshold:  tHandler.strategy.NextEpochValData.PosTable.Threshold,
+		TotalSlots: tHandler.strategy.NextEpochValData.PosTable.TotalSlots,
 	}
 	jsonStr, err := json.Marshal(PosTable)
 	if err != nil {
@@ -146,8 +121,10 @@ func (tHandler *THandler) GetNextPosTableData(w http.ResponseWriter, req *http.R
 
 // This function will return the used data structure
 func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Request) {
+	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
+	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
 	AccountMap := &AccountMapData{
-		MapList: tHandler.strategy.CurrHeightValData.AccountMap.MapList,
+		MapList: tHandler.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap,
 	}
 	jsonStr, err := json.Marshal(AccountMap)
 	if err != nil {
@@ -159,8 +136,10 @@ func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Req
 
 // This function will return the used data structure
 func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http.Request) {
+	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
+	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
 	AccountMap := &AccountMapData{
-		MapList: tHandler.strategy.NextEpochValData.AccountMap.MapList,
+		MapList: tHandler.strategy.NextEpochValData.PosTable.TmAddressToSignerMap,
 	}
 	jsonStr, err := json.Marshal(AccountMap)
 	if err != nil {
@@ -171,10 +150,12 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 }
 
 // This function will return the used data structure
-func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http.Request) {
+func (tHandler *THandler) GetPreBlockUpdateValidators(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	for tmAddressStr, v := range tHandler.strategy.CurrHeightValData.CurrentValidators {
-		//pubKey := tHandler.strategy.CurrHeightValData.UpdateValidators[i].PubKey
+	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
+	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
+	for tmAddressStr, v := range tHandler.strategy.CurrentHeightValData.Validators {
+		//pubKey := tHandler.strategy.CurrentHeightValData.UpdateValidators[i].PubKey
 		//tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
@@ -182,7 +163,7 @@ func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http
 			PubKey:        v.PubKey,
 			Power:         v.Power,
 			Signer:        v.Signer,
-			Beneficiary:   tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Beneficiary,
+			Beneficiary:   tHandler.strategy.CurrEpochValData.PosTable.PosItemMap[v.Signer].Beneficiary,
 		})
 	}
 
@@ -196,11 +177,14 @@ func (tHandler *THandler) GetPreBlockValidators(w http.ResponseWriter, req *http
 
 // This function will return the used data structure
 func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.Request) {
-	proposer := tHandler.strategy.CurrHeightValData.ProposerAddress
+	proposer := tHandler.strategy.CurrentHeightValData.ProposerAddress
+	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
+	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
+	signer := tHandler.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[proposer]
 	PreBlockProposer := &PreBlockProposer{
 		PreBlockProposer: proposer,
-		Beneficiary:      tHandler.strategy.CurrHeightValData.AccountMap.MapList[proposer].Beneficiary,
-		Signer:           tHandler.strategy.CurrHeightValData.AccountMap.MapList[proposer].Signer,
+		Beneficiary:      tHandler.strategy.CurrEpochValData.PosTable.PosItemMap[signer].Beneficiary,
+		Signer:           signer,
 	}
 	jsonStr, err := json.Marshal(PreBlockProposer)
 	if err != nil {
@@ -212,21 +196,23 @@ func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.R
 
 func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	for i := 0; i < len(tHandler.strategy.CurrHeightValData.CurrCandidateValidators); i++ {
-		pubKey := tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey
-		tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
-		tmAddressStr := tmPubKey.Address().String()
-		signer := tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Signer
-		balance := tHandler.strategy.CurrHeightValData.PosTable.PosItemMap[signer].Balance
+	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
+	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
+	for signer, posItem := range tHandler.strategy.CurrEpochValData.PosTable.PosItemMap {
+		pubKey := posItem.PubKey
+		//tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
+		tmAddressStr := posItem.TmAddress
+		balance := big.NewInt(1)
+		balance.Mul(tHandler.strategy.CurrEpochValData.PosTable.Threshold, big.NewInt(posItem.Slots))
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: tmAddressStr,
-			PubKey:        tHandler.strategy.CurrHeightValData.CurrCandidateValidators[i].PubKey,
+			PubKey:        pubKey,
 			SignerBalance: balance,
 			Signer:        signer,
-			Beneficiary:   tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].Beneficiary,
-			BlsKeyString:  tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].BlsKeyString,
+			Beneficiary:   posItem.Beneficiary,
+			BlsKeyString:  posItem.BlsKeyString,
 		})
 	}
 
@@ -240,24 +226,22 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 
 func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	var keys []string
-	for k := range tHandler.strategy.NextEpochValData.CandidateValidators {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, tmAddressStr := range keys {
-		signer := tHandler.strategy.NextEpochValData.AccountMap.MapList[tmAddressStr].Signer
-		balance := tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer].Balance
+	topKSigners := tHandler.strategy.NextEpochValData.PosTable.TopKSigners(100)
+	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
+	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
+	for _, signer := range topKSigners {
+		posItem := tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer]
+		balance := big.NewInt(1)
+		balance.Mul(tHandler.strategy.CurrEpochValData.PosTable.Threshold, big.NewInt(posItem.Slots))
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
-			AddressString: tmAddressStr,
-			PubKey:        tHandler.strategy.NextEpochValData.CandidateValidators[tmAddressStr].PubKey,
+			AddressString: posItem.TmAddress,
+			PubKey:        posItem.PubKey,
 			SignerBalance: balance,
 			Signer:        signer,
-			Beneficiary:   tHandler.strategy.NextEpochValData.AccountMap.MapList[tmAddressStr].Beneficiary,
-			BlsKeyString:  tHandler.strategy.CurrHeightValData.AccountMap.MapList[tmAddressStr].BlsKeyString,
+			Beneficiary:   posItem.Beneficiary,
+			BlsKeyString:  posItem.BlsKeyString,
 		})
 	}
 
@@ -291,12 +275,12 @@ func (tHandler *THandler) GetInitialValidator(w http.ResponseWriter, req *http.R
 }
 
 func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request) {
-	minerBonus := big.NewInt(1)
+	minerBonus := big.NewInt(0)
 	divisor := big.NewInt(1)
-	minerBonus.Div(tHandler.strategy.CurrHeightValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	minerBonus.Div(tHandler.strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 
 	encourage := &Encourage{
-		TotalBalance:          tHandler.strategy.CurrHeightValData.TotalBalance,
+		TotalBalance:          tHandler.strategy.CurrEpochValData.TotalBalance,
 		EncourageAverageBlock: minerBonus,
 	}
 

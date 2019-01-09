@@ -19,13 +19,10 @@ import (
 
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/ethereum/go-ethereum/core/blacklist"
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/green-element-chain/gelchain/types"
-	"github.com/tendermint/tendermint/crypto"
 	"time"
 	"encoding/hex"
-	"math"
 )
 
 const errorCode = 1
@@ -85,7 +82,7 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx, *Wrap) {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
@@ -214,7 +211,7 @@ type Wrap struct {
 	Signer       common.Address
 	Balance      *big.Int
 	Beneficiary  common.Address
-	Pubkey       crypto.PubKey
+	Pubkey       abciTypes.PubKey
 	BlsKeyString string
 
 	Height  *big.Int
@@ -228,56 +225,51 @@ func (ws *workState) State() *state.StateDB {
 // nolint: unparam
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	//ws.state.AddBalance(ws.header.Coinbase, ethash.FrontierBlockReward)
-	log.Info(fmt.Sprintf("accumulateRewards LastVoteInfo %v", strategy.CurrHeightValData.LastVoteInfo))
-	minerBonus := strategy.CurrHeightValData.MinorBonus
+	log.Info(fmt.Sprintf("accumulateRewards LastVoteInfo %v", strategy.CurrentHeightValData.LastVoteInfo))
+	minerBonus := strategy.CurrEpochValData.MinorBonus
 
 	weightSum := int64(0)
-	smallestPower := int64(math.MaxInt64)
-	for _, voteInfo := range strategy.CurrHeightValData.LastVoteInfo {
+	for _, voteInfo := range strategy.CurrentHeightValData.LastVoteInfo {
 		if voteInfo.SignedLastBlock {
-			if voteInfo.Validator.Power < smallestPower {
-				smallestPower = voteInfo.Validator.Power
-			}
+			weightSum = weightSum + voteInfo.Validator.Power
 		}
 	}
 
-	shift := int64(0)
-	if smallestPower < 0 { //shift all power to positive
-		shift = -smallestPower
-	}
-	shiftPowers := []int64{}
-	for _, voteInfo := range strategy.CurrHeightValData.LastVoteInfo {
-		if voteInfo.SignedLastBlock {
-			adjustPower := voteInfo.Validator.Power + shift
-			shiftPowers = append(shiftPowers, adjustPower)
-			weightSum = weightSum + adjustPower
-		} else {
-			shiftPowers = append(shiftPowers, 0)
-		}
-	}
-
-	for i, power := range shiftPowers {
-		if power == 0 {
+	for i, voteInfo := range strategy.CurrentHeightValData.LastVoteInfo {
+		if !voteInfo.SignedLastBlock || voteInfo.Validator.Power == 0 {
 			continue
+		}
+		if voteInfo.Validator.Power < 0 {
+			panic(fmt.Sprintf("Validator.Power < 0 %v", voteInfo))
 		}
 		bonusAverage := big.NewInt(1)
 		bonusSpecify := big.NewInt(1)
-		bonusSpecify.Mul(big.NewInt(power), bonusAverage.
+		bonusSpecify.Mul(big.NewInt(voteInfo.Validator.Power), bonusAverage.
 			Div(minerBonus, big.NewInt(int64(weightSum))))
 
 		address := strings.ToUpper(hex.EncodeToString(
-			strategy.CurrHeightValData.LastVoteInfo[i].Validator.Address))
+			strategy.CurrentHeightValData.LastVoteInfo[i].Validator.Address))
 		var beneficiary common.Address
-		if accountItem, ok := strategy.CurrHeightValData.AccountMap.MapList[address]; ok {
-			beneficiary = accountItem.Beneficiary
+		if signer, ok := strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[address]; ok {
+			posItem, found := strategy.CurrEpochValData.PosTable.PosItemMap[signer]
+			if found {
+				beneficiary = posItem.Beneficiary
+			} else {	//the validator has just unbonded
+				posItem, found := strategy.CurrEpochValData.PosTable.UnbondPosItemMap[signer]
+				if found {
+					beneficiary = posItem.Beneficiary
+				} else {
+					panic(fmt.Sprintf("address %v exist in TmAddressToSignerMap, but not found in either posItemMap or UnbondPosItemMap", signer))
+				}
+			}
 		} else {
-			panic(fmt.Sprintf("address %v not exist in accountMap", address))
+			panic(fmt.Sprintf("address %v not exist in TmAddressToSignerMap", address))
 		}
 		ws.state.AddBalance(beneficiary, bonusAverage)
 
 		log.Info(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
 			strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),
-			power, address))
+			voteInfo.Validator.Power, address))
 	}
 
 	//This is no statistic data
@@ -308,7 +300,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx, *Wrap) {
+	tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx) {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, msg, _, err := core.ApplyTransactionFacade(
 		chainConfig,
@@ -323,10 +315,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	)
 
 	if err != nil {
-		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}, &Wrap{}
+		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
 	log.Info("from:" + msg.From().Hex())
-	wrap := handleTx(ws.state, msg, ws.header.Number, receipt)
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -337,34 +328,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	ws.receipts = append(ws.receipts, receipt)
 	ws.allLogs = append(ws.allLogs, logs...)
 
-	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}, wrap
-}
-
-func handleTx(statedb *state.StateDB, msg core.Message, h *big.Int, receipt *ethTypes.Receipt) *Wrap {
-	if msg.To() != nil {
-		if blacklist.IsLockTx(msg.To().Hex()) {
-			data, _ := MarshalTxData(string(msg.Data()))
-			balance := statedb.GetBalance(msg.From())
-			return &Wrap{
-				Type:         "upsert",
-				Signer:       msg.From(),
-				Balance:      balance,
-				Beneficiary:  common.HexToAddress(data.Beneficiary),
-				Pubkey:       data.Pv.PubKey,
-				BlsKeyString: data.BlsKeyString,
-				Height:       h,
-				Receipt:      receipt,
-			}
-		} else if blacklist.IsUnlockTx(msg.To().Hex()) {
-			return &Wrap{
-				Type:    "remove",
-				Signer:  msg.From(),
-				Height:  h,
-				Receipt: receipt,
-			}
-		}
-	}
-	return &Wrap{}
+	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}
 }
 
 // Commit the ethereum state, update the header, make a new block and add it to
@@ -394,7 +358,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	// block).
 	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
 	blockHash := block.Hash()
-	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
+	log.Debug(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
 	proctime := time.Since(ws.bstart)

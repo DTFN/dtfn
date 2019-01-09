@@ -11,9 +11,9 @@ import (
 
 // AccountMapItem connects tm address with eth address and blsPubKey
 type AccountMapItem struct {
-	Signer           common.Address `json:"signer"`
-	Beneficiary      common.Address `json:"beneficiary"`
-	BlsKeyString     string         `json:"blsKeyString"`
+	Signer           common.Address
+	Beneficiary      common.Address
+	BlsKeyString     string
 }
 
 func (accountMapItem *AccountMapItem) Copy() *AccountMapItem {
@@ -24,7 +24,7 @@ func (accountMapItem *AccountMapItem) Copy() *AccountMapItem {
 	}
 }
 
-type AccountMap struct {
+type AccountMap struct {	//tm address to eth address
 	MapList map[string]*AccountMapItem `json:"map_list"`
 
 	FilePath string `json:"filePath"`

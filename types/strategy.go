@@ -3,15 +3,12 @@ package types
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/log"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	"reflect"
-	"sort"
 )
-
-const UnbondedEpochs = 3
-const EpochBlocks = 200
 
 // MinerRewardStrategy is a mining strategy
 type MinerRewardStrategy interface {
@@ -33,18 +30,20 @@ type Strategy struct {
 	InitialValidators []abciTypes.ValidatorUpdate
 
 	currentValidators []abciTypes.ValidatorUpdate //old code use. We don't use this
-	//This map was used when some validator was removed when initial at initChain(i.e dont have enough money)
-	// and didnt existed in the accountMapList
-	// we should remember it for balance bonus and then clear it
+
+	//initial bond accounts
 	AccMapInitial *AccountMap
 
 	//needn't to be persisted
 	BlsSelectStrategy bool
 
-	// reused,need persistence
-	CurrHeightValData CurrentHeightValData
+	// need persist every height
+	CurrentHeightValData CurrentHeightValData
 
-	//reused,need persistence
+	// need persist when epoch changes
+	CurrEpochValData CurrEpochValData
+
+	// need persist when epoch changes or changed this block
 	NextEpochValData NextEpochValData
 
 	// add for hard fork
@@ -52,37 +51,8 @@ type Strategy struct {
 }
 
 type NextEpochValData struct {
-	//we should deepcopy evert 200 height
-	//first deepcopy:copy at height 1 from CurrentRoundValData to NextRoundValData
-	//height/200 ==0:c from NextRoundValData to CurrentRoundValData   `json:"-"`
-	PosTable *PosTable `json:"pos_table"`
-
-	CandidateValidators map[string]abciTypes.ValidatorUpdate `json:"candidate_validators"`
-
-	AccountMap *AccountMap `json:"account_map"`
-
-	//key is signer address, value is the epoch when unbond tx is received
-	//need to maintain for punishment
-	//after a given epochs(const unbondedEpochs), the unbonded accounts will be deleted in both UnBondAccountMap and AccountMap
-	UnBondAccountMap map[common.Address]int64 `json:"unbond_account_map"`
-
-	ChangedFlagThisBlock bool
-	// whether upsert or remove in this block
-	// when we need to write into the ethState ,we set it to true
-}
-
-func (nextRoundValData *NextEpochValData) ExportCandidateValidators() []abciTypes.ValidatorUpdate {
-	var keys []string
-	for k := range nextRoundValData.CandidateValidators {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	validators := []abciTypes.ValidatorUpdate{}
-	for _, k := range keys {
-		validators = append(validators, nextRoundValData.CandidateValidators[k])
-	}
-	return validators
+	//deepcopy from NextEpochValData to CurrEpochValData each epoch
+	PosTable *txfilter.PosTable
 }
 
 type Proposer struct {
@@ -107,42 +77,12 @@ type HardForkExpectedData struct {
 	BlockVersion uint64
 }
 
-type CurrentHeightValData struct {
-	Height int64
-
-	AccountMap *AccountMap `json:"account_map"`
-	//This map was used when some validator was removed and didnt existed in the accountMapList
-	// we should remember it for balance bonus and then clear it
-	//AccountMapListTemp *AccountMapList
-
+type CurrEpochValData struct {
 	// will be changed by addValidatorTx and removeValidatorTx.
-	PosTable *PosTable `json:"pos_table"`
+	PosTable *txfilter.PosTable `json:"pos_table"`
 
-	// current candidate Validators , will changed every 200 height,will be changed by addValidatorTx and removeValidatorTx
-	CurrCandidateValidators []abciTypes.ValidatorUpdate `json:"curr_candidate_validators"`
-
-	// UpdateValidators of currentBlock, will use to set votePower to 0 ,then remove from tendermint validatorSet
-	// will be select by posTable.
-	// CurrentValidators is the true validators except committee validator when height != 1
-	// if height =1 ,UpdateValidators = nil
-	CurrentValidators map[string]Validator //saved in another address separately
-
-	TotalBalance *big.Int `json:"totalBalance"`
-	MinorBonus   *big.Int //award all validators per block.
-
-	ProposerAddress string
-
-	LastVoteInfo []abciTypes.VoteInfo
-
-	// note : if we get a addValidatorsTx at height 101,
-	// we will put it into the CandidateValidators and move into posTable
-	// NextCandidateValidator will used in the next epoch
-	// posTable will used in the next height 102
-
-	//note : if we get a removeValidatorsTx at height 101
-	// we will remove it from the CandidateValidators and remove from posTable
-	// NextCandidateValidator will used in the next height200
-	// posTable will used in the next height 102
+	TotalBalance *big.Int `json:"total_balance"`
+	MinorBonus   *big.Int `json:"-"` //all voted validators share this bonus per block.
 }
 
 type Validator struct {
@@ -150,44 +90,47 @@ type Validator struct {
 	Signer common.Address
 }
 
-type CurrentValidators struct {
-	//used for persist data
+type CurrentHeightValData struct {
+	Height int64 `json:"height"`
+
 	Validators map[string]Validator `json:"validators"`
+
+	ProposerAddress string `json:"-"`
+
+	LastVoteInfo []abciTypes.VoteInfo `json:"-"`
 }
 
 func NewStrategy(totalBalance *big.Int) *Strategy {
 	//If ThresholdUnit = 1000 ,it mean we set the lowest posTable threshold to 1/1000 of totalBalance.
-	thresholdUnit := big.NewInt(ThresholdUnit)
+	thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
 	threshold := big.NewInt(1)
 	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true, StatisticsVersion: 0, BlockVersion: 0}
 	return &Strategy{
-		CurrHeightValData: CurrentHeightValData{
-			PosTable:          NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			AccountMap:        &AccountMap{MapList: map[string]*AccountMapItem{}},
-			CurrentValidators: make(map[string]Validator),
-			TotalBalance:      totalBalance,
+		CurrEpochValData: CurrEpochValData{
+			PosTable:     txfilter.NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
+			TotalBalance: totalBalance,
 		},
 		HFExpectedData: hfExpectedData,
 
 		NextEpochValData: NextEpochValData{
-			PosTable: NewPosTable(threshold.Div(totalBalance, thresholdUnit)),
-			AccountMap: &AccountMap{
-				MapList: make(map[string]*AccountMapItem),
-			},
-			CandidateValidators: make(map[string]abciTypes.ValidatorUpdate),
-			UnBondAccountMap:    make(map[common.Address]int64),
+			PosTable: txfilter.CreatePosTable(threshold.Div(totalBalance, thresholdUnit)),
+		},
+		CurrentHeightValData: CurrentHeightValData{
+			Validators: make(map[string]Validator),
 		},
 	}
 }
 
 // Receiver returns which address should receive the mining reward
 func (s *Strategy) Receiver() common.Address {
-	if s.CurrHeightValData.ProposerAddress == "" || len(s.CurrHeightValData.AccountMap.MapList) == 0 {
+	if s.CurrentHeightValData.ProposerAddress == "" || len(s.CurrEpochValData.PosTable.TmAddressToSignerMap) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	} else if s.CurrHeightValData.AccountMap.MapList[s.CurrHeightValData.ProposerAddress] != nil {
-		return s.CurrHeightValData.AccountMap.MapList[s.CurrHeightValData.ProposerAddress].Beneficiary
+	} else if signer, ok := s.CurrEpochValData.PosTable.TmAddressToSignerMap[s.CurrentHeightValData.ProposerAddress]; ok {
+		if pi, ok := s.CurrEpochValData.PosTable.PosItemMap[signer]; ok {
+			return pi.Beneficiary
+		}
 	}
-	log.Error("Proposer Address %v not found in accountMap", s.CurrHeightValData.ProposerAddress)
+	log.Error("Proposer Address %v not found in accountMap", s.CurrentHeightValData.ProposerAddress)
 	return common.HexToAddress("0000000000000000000000000000000000000002")
 }
 

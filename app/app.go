@@ -7,7 +7,7 @@ import (
 	errors "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/blacklist"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -58,7 +58,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 	}
 
 	amountStrategy := &Percent100AmountStrategy{}
-	subBalanceStrategy := &BurnStrategy{}
+	subBalanceStrategy := &TransferStrategy{}
 	app := &EthermintApplication{
 		backend:         backend,
 		rpcClient:       client,
@@ -103,12 +103,11 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 
 	app.logger.Debug("Info", "height", height) // nolint: errcheck
 
-	app.InitPersistData()
 	minerBonus := big.NewInt(1)
 	divisor := big.NewInt(1)
 	// for 1% every year increment
-	minerBonus.Div(app.strategy.CurrHeightValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
-	app.strategy.CurrHeightValData.MinorBonus = minerBonus
+	minerBonus.Div(app.strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	app.strategy.CurrEpochValData.MinorBonus = minerBonus
 
 	// This check determines whether it is the first time gelchain gets started.
 	// If it is the first time, then we have to respond with an empty hash, since
@@ -154,32 +153,27 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.logger.Error(fmt.Sprintf("initChain address %v not found in initialAccountMap, ignore. Please check configuration!", address))
 			continue
 		}
-		signer:=app.strategy.AccMapInitial.MapList[address].Signer
+		signer := app.strategy.AccMapInitial.MapList[address].Signer
 		signerBalance := ethState.GetBalance(signer)
-		upsertFlag, _ := app.UpsertPosItemInit(
+		err := app.UpsertPosItemInit(
 			signer,
 			signerBalance,
 			app.strategy.AccMapInitial.MapList[address].Beneficiary,
-			validator.PubKey)
-		if upsertFlag {
-			app.strategy.CurrHeightValData.CurrCandidateValidators = append(app.strategy.CurrHeightValData.CurrCandidateValidators,
-				validator)
-			app.strategy.CurrHeightValData.AccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
-			app.strategy.NextEpochValData.AccountMap.MapList[address] = app.strategy.AccMapInitial.MapList[address].Copy()
-			app.strategy.NextEpochValData.CandidateValidators[address] = validator
+			validator.PubKey,
+			app.strategy.AccMapInitial.MapList[address].BlsKeyString)
+		if err == nil {
 			app.strategy.InitialValidators = append(app.strategy.InitialValidators, validator)
-			app.strategy.CurrHeightValData.CurrentValidators[address] = emtTypes.Validator{
+			app.strategy.CurrentHeightValData.Validators[address] = emtTypes.Validator{
 				validator,
 				signer,
-			}	//In height 1, we will start delete validators
+			} //In height 1, we will start delete validators
 
-			blacklist.Lock(ethState, signer)
 			app.GetLogger().Info("UpsertPosTable true and Lock initial Account", "blacklist", signer)
 		} else {
 			//This is used to remove the validators who dont have enough balance
 			//but he is in the accountmap.
 			delete(app.strategy.AccMapInitial.MapList, address)
-			app.GetLogger().Error(fmt.Sprintf("remove not enough balance validator %v", app.strategy.AccMapInitial.MapList[address]))
+			app.GetLogger().Error(fmt.Sprintf("remove not enough balance validator %v.  err %v", app.strategy.AccMapInitial.MapList[address], err))
 		}
 	}
 	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", len(app.strategy.InitialValidators),
@@ -220,37 +214,13 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 	}
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res, wrap := app.backend.DeliverTx(tx, app.Receiver())
+	res := app.backend.DeliverTx(tx, app.Receiver())
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
 			"err", err)
 		return res
 	}
-
-	db, e := app.getCurrentState()
-	if e == nil {
-		if wrap.Type == "upsert" {
-			b, e := app.UpsertValidatorTx(wrap.Signer, wrap.Height, wrap.Balance, wrap.Beneficiary, wrap.Pubkey, wrap.BlsKeyString)
-			if e == nil && b {
-				blacklist.Lock(db, wrap.Signer)
-			} else {
-				eMsg := "error"
-				if e != nil {
-					eMsg = e.Error()
-				}
-				wrap.Receipt.Status = ethTypes.ReceiptStatusFailed
-				log := &ethTypes.Log{Address: wrap.Signer, Data: []byte(eMsg)}
-				wrap.Receipt.Logs = append(wrap.Receipt.Logs, log)
-			}
-		} else if wrap.Type == "remove" {
-			b, e := app.PendingRemoveValidatorTx(wrap.Signer)
-			if e == nil && b {
-				blacklist.Unlock(db, wrap.Signer, wrap.Height)
-			}
-		}
-	}
-
 	//app.CollectTx(tx)
 
 	return abciTypes.ResponseDeliverTx{
@@ -262,7 +232,7 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 // #stable - 0.4.0
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
-	app.strategy.NextEpochValData.ChangedFlagThisBlock = false
+	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!breaking!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
@@ -270,27 +240,23 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.strategy.HFExpectedData.BlockVersion = beginBlock.GetHeader().Version.App
 	app.logger.Info("block version", "appversion", app.strategy.HFExpectedData.BlockVersion)
 
-	app.strategy.CurrHeightValData.Height = beginBlock.GetHeader().Height
+	app.strategy.CurrentHeightValData.Height = beginBlock.GetHeader().Height
 	//when we reach the upgrade height,we change the blockversion
 	if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
 		app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	}
 
-	app.strategy.CurrHeightValData.ProposerAddress = strings.ToUpper(hex.EncodeToString(beginBlock.Header.ProposerAddress))
+	app.strategy.CurrentHeightValData.ProposerAddress = strings.ToUpper(hex.EncodeToString(beginBlock.Header.ProposerAddress))
 	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
-	app.strategy.CurrHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
+	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
 	db, e := app.getCurrentState()
 	if e == nil {
 		//app.logger.Info("do punish")
-		app.punishment.DoPunish(app, db, beginBlock.ByzantineValidators, app.strategy.CurrHeightValData.AccountMap)
+		app.punishment.DoPunish(db, app.strategy, beginBlock.ByzantineValidators, beginBlock.Header.ProposerAddress, beginBlock.Header.Height)
 	}
 
 	return abciTypes.ResponseBeginBlock{}
-}
-
-func (app *EthermintApplication) GetAccountMap(tmAddress string) *emtTypes.AccountMapItem {
-	return app.strategy.CurrHeightValData.AccountMap.MapList[tmAddress]
 }
 
 // EndBlock accumulates rewards for the validators and updates them
@@ -303,12 +269,10 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
 
 	height := endBlock.Height
-	if height%emtTypes.EpochBlocks == 0 && height != 0 { //height==0 is when initChain calls this func
+	if height%txfilter.EpochBlocks == 0 && height != 0 { //height==0 is when initChain calls this func
 		app.TryRemoveValidatorTxs()
 		//DeepCopy
-		app.strategy.CurrHeightValData.AccountMap = app.strategy.NextEpochValData.AccountMap.Copy()
-		app.strategy.CurrHeightValData.CurrCandidateValidators = app.strategy.NextEpochValData.ExportCandidateValidators()
-		app.strategy.CurrHeightValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
+		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
 	}
 
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
@@ -468,22 +432,18 @@ func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 }
 
 func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balance *big.Int, beneficiary common.Address,
-	pubkey abciTypes.PubKey) (bool, error) {
+	pubKey abciTypes.PubKey, blsKeyString string) error {
 	if app.strategy != nil {
-		bool, err := app.strategy.CurrHeightValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
-		if !bool || err != nil {
-			return bool, err
+		tmpSlot := big.NewInt(0)
+		tmpSlot.Div(balance, app.strategy.CurrEpochValData.PosTable.Threshold)
+		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
+		tmAddress := tmPubKey.Address().String()
+		err := app.strategy.CurrEpochValData.PosTable.UpsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
+		if err != nil {
+			return err
 		}
-		bool, err = app.strategy.NextEpochValData.PosTable.UpsertPosItem(account, balance, beneficiary, pubkey)
-		return bool, err
+		err = app.strategy.NextEpochValData.PosTable.UpsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
+		return err
 	}
-	return false, nil
-}
-
-func (app *EthermintApplication) RemovePosItemInit(account common.Address) (bool, error) {
-	if app.strategy != nil {
-		bool, err := app.strategy.CurrHeightValData.PosTable.RemovePosItem(account)
-		return bool, err
-	}
-	return false, nil
+	return nil
 }

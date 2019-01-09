@@ -2,9 +2,9 @@ package httpserver
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/green-element-chain/gelchain/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 )
 
 type Validator struct {
@@ -19,23 +19,23 @@ type Validator struct {
 }
 
 type PTableAll struct {
-	NextCandidateValidators []*Validator `json:"nextValidators"`
+	NextCandidateValidators []*Validator `json:"next_validators"`
 
-	AccountMapList *types.AccountMap `json:"accountMap"`
+	AccountMapList map[string]common.Address `json:"account_map"`
 
-	PosItemMap map[common.Address]*types.PosItem `json:"posTableMap"`
+	PosItemMap map[common.Address]*txfilter.PosItem `json:"pos_table_map"`
 
 	Success bool `json:"success"`
 }
 
 type AccountMapData struct {
-	MapList map[string]*types.AccountMapItem `json:"map_list"`
+	MapList map[string]common.Address `json:"map_list"`
 }
 
 type PosItemMapData struct {
-	PosItemMap   map[common.Address]*types.PosItem `json:"posTableMap"`
+	PosItemMap   map[common.Address]*txfilter.PosItem `json:"pos_table_map"`
 	Threshold    *big.Int                          `json:"threshold"`
-	PosArraySize int                               `json:"posArraySize"`
+	TotalSlots int64                               `json:"total_slots"`
 }
 
 type PreBlockProposer struct {

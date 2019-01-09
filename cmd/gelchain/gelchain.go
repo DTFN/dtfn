@@ -66,7 +66,8 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	// Create the ABCI app
 	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy(totalBalanceInital))
-	ethApp.GetStrategy().BlsSelectStrategy = blsSelectStrategy
+	strategy:=ethApp.GetStrategy()
+	strategy.BlsSelectStrategy = blsSelectStrategy
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -78,37 +79,41 @@ func ethermintCmd(ctx *cli.Context) error {
 	ethApp.SetLogger(ethLogger)
 
 	tmConfig := loadTMConfig(ctx)
-	ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
 
-	genDocFile := tmConfig.GenesisFile()
-	genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
-	if err != nil {
-		panic("Sorry but you don't have initial account file")
-	}
-	validators := genDoc.Validators
-	amlist := &types.AccountMap{
-		MapList: make(map[string]*types.AccountMapItem),
-	}
-	log.Info(fmt.Sprintf("get Initial accountMap len %v. genDoc.Validators len %v",
-		len(ethAccounts.EthAccounts), len(validators)))
-	for i := 0; i < len(validators); i++ {
-		tmAddress := validators[i].PubKey.Address().String()
-		blsKey := validators[i].BlsPubKey
-		blsKeyJsonStr, _ := json.Marshal(blsKey)
-		/*		accountBalance := big.NewInt(1)
-				accountBalance.Div(totalBalanceInital, big.NewInt(100))*/
-		if i == len(ethAccounts.EthAccounts) {
-			break
-		}
-		amlist.MapList[tmAddress] = &types.AccountMapItem{
-			common.HexToAddress(ethAccounts.EthAccounts[i]),
-			common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
-			string(blsKeyJsonStr),
-		}
-	}
+	ethApp.InitPersistData()
+	if strategy.CurrentHeightValData.Height==0 && strategy.CurrEpochValData.PosTable.TotalSlots==0{
+		ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
 
-	ethApp.GetStrategy().SetInitialAccountMap(amlist)
-	log.Info(fmt.Sprintf("SetInitialAccountMap %v", amlist))
+		genDocFile := tmConfig.GenesisFile()
+		genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
+		if err != nil {
+			panic("Sorry but you don't have initial account file")
+		}
+		validators := genDoc.Validators
+		amlist := &types.AccountMap{
+			MapList: make(map[string]*types.AccountMapItem),
+		}
+		log.Info(fmt.Sprintf("get Initial accountMap len %v. genDoc.Validators len %v",
+			len(ethAccounts.EthAccounts), len(validators)))
+		for i := 0; i < len(validators); i++ {
+			tmAddress := validators[i].PubKey.Address().String()
+			blsKey := validators[i].BlsPubKey
+			blsKeyJsonStr, _ := json.Marshal(blsKey)
+			/*		accountBalance := big.NewInt(1)
+					accountBalance.Div(totalBalanceInital, big.NewInt(100))*/
+			if i == len(ethAccounts.EthAccounts) {
+				break
+			}
+			amlist.MapList[tmAddress] = &types.AccountMapItem{
+				common.HexToAddress(ethAccounts.EthAccounts[i]),
+				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
+				string(blsKeyJsonStr),
+			}
+		}
+
+		strategy.SetInitialAccountMap(amlist)
+		log.Info(fmt.Sprintf("SetInitialAccountMap %v", amlist))
+	}
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make gelchain as self contained as possible.
