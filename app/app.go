@@ -178,6 +178,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	}
 	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", len(app.strategy.InitialValidators),
 		"validators", app.strategy.InitialValidators)
+	app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
 	app.SetPersistenceData()
 
 	return abciTypes.ResponseInitChain{}
