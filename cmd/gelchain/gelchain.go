@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -98,7 +99,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		log.Info("get Initial accounts")
 		for i := 0; i < len(validators); i++ {
 			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
-			blsKey := validators[i].BlsPubKey
+			blsKey := strconv.Itoa(i)
 			blsKeyJsonStr, _ := json.Marshal(blsKey)
 			accountBalance := big.NewInt(1)
 			accountBalance.Div(totalBalanceInital, big.NewInt(100))
