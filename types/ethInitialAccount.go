@@ -21,7 +21,7 @@ func GetInitialEthAccountFromFile(EthAccountsPath string) (*EthAccounts, error) 
 	}
 	ethAccounts, err := EthAccountsFromJSON(jsonBlob)
 	if err != nil {
-		return nil, cmn.ErrorWrap(err, cmn.Fmt("Error reading GenesisDoc at %v", EthAccountsPath))
+		return nil, cmn.ErrorWrap(err, "Error reading GenesisDoc at %v", EthAccountsPath)
 	}
 	return ethAccounts, nil
 }

@@ -75,7 +75,7 @@ func AccountMapFromFile(AccountMapFile string) (*AccountMapList, error) {
 	}
 	amlist, err := AccountMapFromJSON(jsonBlob)
 	if err != nil {
-		return nil, cmn.ErrorWrap(err, cmn.Fmt("Error reading GenesisDoc at %v", AccountMapFile))
+		return nil, cmn.ErrorWrap("Error reading GenesisDoc at %v", AccountMapFile)
 	}
 	return amlist, nil
 }
