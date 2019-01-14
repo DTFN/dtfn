@@ -350,13 +350,7 @@ func (app *EthermintApplication) GetAccountMap(tmAddress string) *emtTypes.Accou
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
-	if endBlock.GetSeed() != nil {
-		app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
-	}
-
-	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
-
-	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
+	return app.GetUpdatedValidators(endBlock.GetHeight(), nil)
 }
 
 // Commit commits the block and returns a hash of the current state
