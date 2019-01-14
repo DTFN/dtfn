@@ -5,7 +5,6 @@ import (
 	emtUtils "github.com/green-element-chain/gelchain/cmd/utils"
 	"github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/consensus"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
@@ -58,7 +57,7 @@ func testnetCmd(ctx *cli.Context) error {
 	genVals := make([]types.GenesisValidator, nValidators)
 
 	for i := 0; i < nValidators; i++ {
-		nodeDirName := cmn.Fmt("%s%d", nodeDirPrefix, i)
+		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outputDir, nodeDirName)
 		config.SetRoot(nodeDir)
 
@@ -72,22 +71,16 @@ func testnetCmd(ctx *cli.Context) error {
 
 		pvFile := filepath.Join(nodeDir, config.BaseConfig.PrivValidator)
 		pv := privval.LoadFilePV(pvFile)
-		blsState := consensus.LoadFileBS(filepath.Join(nodeDir, config.BaseConfig.BlsState))
-		blsPubK := types.BLSPubKey{
-			Type:    "Secp256k1",
-			Address: pv.Address.String(),
-			Value:   blsState.GetPubKPKE(),
-		}
+
 		genVals[i] = types.GenesisValidator{
 			PubKey:    pv.GetPubKey(),
-			BlsPubKey: blsPubK,
 			Power:     1,
 			Name:      nodeDirName,
 		}
 	}
 
 	for i := 0; i < nNonValidators; i++ {
-		nodeDir := filepath.Join(outputDir, cmn.Fmt("%s%d", nodeDirPrefix, i+nValidators))
+		nodeDir := filepath.Join(outputDir, fmt.Sprintf("%s%d", nodeDirPrefix, i+nValidators))
 		config.SetRoot(nodeDir)
 
 		err := os.MkdirAll(filepath.Join(nodeDir, "config"), nodeDirPerm)
@@ -108,7 +101,7 @@ func testnetCmd(ctx *cli.Context) error {
 
 	// Write genesis file.
 	for i := 0; i < nValidators+nNonValidators; i++ {
-		nodeDir := filepath.Join(outputDir, cmn.Fmt("%s%d", nodeDirPrefix, i))
+		nodeDir := filepath.Join(outputDir, fmt.Sprintf("%s%d", nodeDirPrefix, i))
 		if err := genDoc.SaveAs(filepath.Join(nodeDir, config.BaseConfig.Genesis)); err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
@@ -148,7 +141,7 @@ func hostnameOrIP(i int) string {
 func populatePersistentPeersInConfigAndWriteIt(config *cfg.Config) error {
 	persistentPeers := make([]string, nValidators+nNonValidators)
 	for i := 0; i < nValidators+nNonValidators; i++ {
-		nodeDir := filepath.Join(outputDir, cmn.Fmt("%s%d", nodeDirPrefix, i))
+		nodeDir := filepath.Join(outputDir, fmt.Sprintf("%s%d", nodeDirPrefix, i))
 		config.SetRoot(nodeDir)
 		nodeKey, err := p2p.LoadNodeKey(config.NodeKeyFile())
 		if err != nil {
@@ -159,7 +152,7 @@ func populatePersistentPeersInConfigAndWriteIt(config *cfg.Config) error {
 	persistentPeersList := strings.Join(persistentPeers, ",")
 
 	for i := 0; i < nValidators+nNonValidators; i++ {
-		nodeDir := filepath.Join(outputDir, cmn.Fmt("%s%d", nodeDirPrefix, i))
+		nodeDir := filepath.Join(outputDir, fmt.Sprintf("%s%d", nodeDirPrefix, i))
 		config.SetRoot(nodeDir)
 		config.P2P.PersistentPeers = persistentPeersList
 		config.P2P.AddrBookStrict = false

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -60,7 +61,7 @@ func initCmd(ctx *cli.Context) error {
 			log.Info("Found genesis file", "path", genFile)
 		} else {
 			genDoc := types.GenesisDoc{
-				ChainID: cmn.Fmt("test-chain-%v", cmn.RandStr(6)),
+				ChainID: fmt.Sprintf("test-chain-%v", cmn.RandStr(6)),
 			}
 			genDoc.Validators = []types.GenesisValidator{{
 				PubKey: privValidator.GetPubKey(),
