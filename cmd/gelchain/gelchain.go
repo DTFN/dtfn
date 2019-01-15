@@ -385,6 +385,8 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 	return *match
 }
 
+//delete history block and rollback state here
+//and should put it before the rollback of tendermint
 func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, ethApp *abciApp.EthermintApplication) {
 	if rollbackFlag {
 		fmt.Println("you are rollbacking")
