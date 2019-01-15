@@ -28,6 +28,9 @@ var (
 	hostnamePrefix          string
 	startingIPAddress       string
 	p2pPort                 int
+
+	rollbackHeight int
+	rollbackFlag   bool
 )
 
 const (
@@ -54,6 +57,13 @@ func testnetCmd(ctx *cli.Context) error {
 	hostnamePrefix = ctx.GlobalString(emtUtils.TestNetHostnamePrefix.Name)
 	startingIPAddress = ctx.GlobalString(emtUtils.TestnetStartingIPAddress.Name)
 
+	rollbackHeight = ctx.GlobalInt(emtUtils.RollbackHeight.Name)
+	rollbackFlag = ctx.GlobalBool(emtUtils.RollbackFlag.Name)
+
+	fmt.Println(rollbackFlag)
+	fmt.Println(rollbackHeight)
+
+
 	genVals := make([]types.GenesisValidator, nValidators)
 
 	for i := 0; i < nValidators; i++ {
@@ -73,9 +83,9 @@ func testnetCmd(ctx *cli.Context) error {
 		pv := privval.LoadFilePV(pvFile)
 
 		genVals[i] = types.GenesisValidator{
-			PubKey:    pv.GetPubKey(),
-			Power:     1,
-			Name:      nodeDirName,
+			PubKey: pv.GetPubKey(),
+			Power:  1,
+			Name:   nodeDirName,
 		}
 	}
 
