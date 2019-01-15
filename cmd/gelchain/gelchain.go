@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core"
 	"math/big"
 	"os"
 	"strconv"
@@ -390,17 +391,23 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, appBackend *ethereum.Backend) {
 	if rollbackFlag {
 		fmt.Println("you are rollbacking")
-		deleteBlock()
-		rollbackState()
+		//deleteBlock(appBackend)
+		//appBackend.Ethereum().BlockChain().SetHead(uint64(rollbackHeight))
+		fmt.Println(appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64())
 	} else {
 		fmt.Println("You are not rollbacking")
 	}
 }
 
-func deleteBlock(){
+func deleteBlock(appBackend *ethereum.Backend) {
+	fmt.Println(appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64())
+	for i := appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64(); i > uint64(rollbackHeight); i-- {
+		hash := core.GetCanonicalHash(appBackend.Ethereum().ChainDb(), i)
+		core.DeleteBlock(appBackend.Ethereum().ChainDb(), hash, i)
+	}
 	fmt.Println("you are deleting the block of eth app")
 }
 
-func rollbackState(){
+func rollbackState() {
 	fmt.Println("you are rollbacking the state of eth app")
 }

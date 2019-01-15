@@ -100,7 +100,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 	height := currentBlock.Number()
 	hash := currentBlock.Header().Hash()
 
-	app.logger.Debug("Info", "height", height) // nolint: errcheck
+	app.logger.Info("Info", "appheight", height) // nolint: errcheck
 
 	// This check determines whether it is the first time gelchain gets started.
 	// If it is the first time, then we have to respond with an empty hash, since
@@ -357,8 +357,8 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 // #stable - 0.4.0
 func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
-	//app.backend.AccumulateRewards(app.strategy)
-	//app.PersistenceData()
+	app.backend.AccumulateRewards(app.strategy)
+	app.PersistenceData()
 
 	app.logger.Debug("Commit") // nolint: errcheck
 	state, err := app.getCurrentState()
