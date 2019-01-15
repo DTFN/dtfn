@@ -374,6 +374,9 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		return abciTypes.ResponseCommit{}
 	}
 
+	app.logger.Info("ethstate","stateRoot",
+		app.backend.Ethereum().BlockChain().GetHeaderByHash(blockHash).Root.String())
+
 	return abciTypes.ResponseCommit{
 		Data: blockHash[:],
 	}
