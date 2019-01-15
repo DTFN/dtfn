@@ -60,10 +60,6 @@ func testnetCmd(ctx *cli.Context) error {
 	rollbackHeight = ctx.GlobalInt(emtUtils.RollbackHeight.Name)
 	rollbackFlag = ctx.GlobalBool(emtUtils.RollbackFlag.Name)
 
-	fmt.Println(rollbackFlag)
-	fmt.Println(rollbackHeight)
-
-
 	genVals := make([]types.GenesisValidator, nValidators)
 
 	for i := 0; i < nValidators; i++ {
