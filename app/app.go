@@ -357,8 +357,8 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 // #stable - 0.4.0
 func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
-	app.backend.AccumulateRewards(app.strategy)
-	app.PersistenceData()
+	//app.backend.AccumulateRewards(app.strategy)
+	//app.PersistenceData()
 
 	app.logger.Debug("Commit") // nolint: errcheck
 	state, err := app.getCurrentState()
