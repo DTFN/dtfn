@@ -76,7 +76,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
 	rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
-	whetherRollbackEthApp(rollbackFlag, rollbackHeight, ethApp)
+	whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
 	ethApp.StartHttpServer()
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
@@ -387,10 +387,20 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 
 //delete history block and rollback state here
 //and should put it before the rollback of tendermint
-func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, ethApp *abciApp.EthermintApplication) {
+func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, appBackend *ethereum.Backend) {
 	if rollbackFlag {
 		fmt.Println("you are rollbacking")
+		deleteBlock()
+		rollbackState()
 	} else {
 		fmt.Println("You are not rollbacking")
 	}
+}
+
+func deleteBlock(){
+	fmt.Println("you are deleting the block of eth app")
+}
+
+func rollbackState(){
+	fmt.Println("you are rollbacking the state of eth app")
 }
