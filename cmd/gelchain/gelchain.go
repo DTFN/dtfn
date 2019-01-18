@@ -60,7 +60,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	// Create the ABCI app
 	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy())
-	strategy:=ethApp.GetStrategy()
+	strategy := ethApp.GetStrategy()
 	strategy.BlsSelectStrategy = blsSelectStrategy
 	if err != nil {
 		fmt.Println(err)
@@ -75,14 +75,14 @@ func ethermintCmd(ctx *cli.Context) error {
 	tmConfig := loadTMConfig(ctx)
 
 	ethApp.InitPersistData()
-	if strategy.CurrentHeightValData.Height==0 && strategy.CurrEpochValData.PosTable.TotalSlots==0{
+	if strategy.CurrentHeightValData.Height == 0 && strategy.CurrEpochValData.PosTable.TotalSlots == 0 {
 		ethGenesisJson := ethermintGenesisPath(ctx)
 		genesis := utils.ReadGenesis(ethGenesisJson)
 		totalBalanceInital := big.NewInt(0)
 		for key, _ := range genesis.Alloc {
 			totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
 		}
-		strategy.CurrEpochValData.TotalBalance=totalBalanceInital
+		strategy.CurrEpochValData.TotalBalance = totalBalanceInital
 
 		ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
 

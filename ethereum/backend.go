@@ -130,10 +130,9 @@ func (b *Backend) InitEthState(receiver common.Address) error {
 	return b.es.ResetWorkState(receiver)
 }
 
-func (b *Backend) InitReceiver() string{
-	return "0000000000000000000000000000000000000002"	//will be overwritten by CurrentHeightValData.ProposerAddress
+func (b *Backend) InitReceiver() string {
+	return "0000000000000000000000000000000000000002" //will be overwritten by CurrentHeightValData.ProposerAddress
 }
-
 
 // UpdateHeaderWithTimeInfo uses the tendermint header to update the ethereum header
 // #unstable

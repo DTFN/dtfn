@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 
 	"github.com/green-element-chain/gelchain/ethereum"
 
@@ -104,7 +105,7 @@ func SetEthermintNodeConfig(cfg *node.Config) {
 func SetEthermintEthConfig(ctx *cli.Context, cfg *eth.Config) {
 	/*cfg.MaxPeers = 0
 	cfg.PowFake = true*/
-	cfg.Ethash.PowMode = 3
+	cfg.Ethash.PowMode = ethash.ModeNil
 	cfg.MinerThreads = 0
 	trieTimeLimit := ctx.GlobalInt(TrieTimeLimitFlag.Name)
 	if trieTimeLimit > 0 {
