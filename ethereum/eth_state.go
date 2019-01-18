@@ -317,7 +317,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
-	log.Debug(fmt.Sprintf("deliver a tx from %X tx %v" ,msg.From(),tx))
+	log.Info(fmt.Sprintf("deliver a tx from %X tx %v" ,msg.From(),tx))
 
 	logs := ws.state.GetLogs(tx.Hash())
 

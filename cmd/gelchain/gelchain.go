@@ -120,6 +120,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	threshold := big.NewInt(0)
 	threshold.Div(strategy.CurrEpochValData.TotalBalance, thresholdUnit)
 	strategy.CurrEpochValData.PosTable.SetThreshold(threshold)
+	threshold = big.NewInt(threshold.Int64())
 	strategy.NextEpochValData.PosTable.SetThreshold(threshold)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so

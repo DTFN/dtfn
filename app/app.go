@@ -278,7 +278,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
 
 	height := endBlock.Height
-	if height%txfilter.EpochBlocks == 0 && height != 0 { //height==0 is when initChain calls this func
+	if height%txfilter.EpochBlocks == 0 {
 		app.TryRemoveValidatorTxs()
 		//DeepCopy
 		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()

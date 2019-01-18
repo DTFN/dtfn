@@ -255,7 +255,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 		nextBytes := wsState.GetCode(nextEpochDataAddress)*/
 
 	app.logger.Info("Read CurrEpochValData")
-	currBytes := wsState.GetCode(common.HexToAddress("0x7777777777777777777777777777777777777777"))
+	currBytes := wsState.GetCode(currEpochDataAddress)
 
 	app.logger.Info("Read currentHeightData")
 	key := []byte("CurrentHeightData")
@@ -330,10 +330,12 @@ func (app *EthermintApplication) SetPersistenceData() {
 	if app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock || height%txfilter.EpochBlocks == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
 		wsState.SetCode(nextEpochDataAddress, nextBytes)
+		app.logger.Info(fmt.Sprintf("nextBytes %X", nextBytes))
 	}
 	if height%txfilter.EpochBlocks == 0 {
 		currBytes, _ := json.Marshal(app.strategy.CurrEpochValData)
 		wsState.SetCode(currEpochDataAddress, currBytes)
+		app.logger.Info(fmt.Sprintf("currBytes %X", currBytes))
 	}
 
 	trie := wsState.GetOrNewStateObject(currEpochDataAddress).GetTrie(wsState.Database())
@@ -344,4 +346,5 @@ func (app *EthermintApplication) SetPersistenceData() {
 	trie.TryUpdate(key, valBytes)
 	valueHash := ethereumCrypto.Keccak256Hash(valBytes)
 	wsState.SetState(currEpochDataAddress, keyHash, valueHash)
+	app.logger.Info(fmt.Sprintf("valBytes %X", valBytes))
 }
