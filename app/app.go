@@ -176,9 +176,17 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.GetLogger().Error(fmt.Sprintf("remove not enough balance validator %v.  err %v", app.strategy.AccMapInitial.MapList[address], err))
 		}
 	}
-	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", len(app.strategy.InitialValidators),
+	initialValidatorsLen := len(app.strategy.InitialValidators)
+	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", initialValidatorsLen,
 		"validators", app.strategy.InitialValidators)
-	app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
+	if initialValidatorsLen != 0 {
+		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
+		app.strategy.CurrEpochValData.PosTable.InitFlag = true
+		app.strategy.NextEpochValData.PosTable.InitFlag = true
+	} else {
+		panic("no qualified initial validators, please check config")
+	}
+
 	app.SetPersistenceData()
 
 	return abciTypes.ResponseInitChain{}

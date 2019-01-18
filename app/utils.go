@@ -150,7 +150,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 				app.strategy.CurrentHeightValData.Validators[tmAddress] = validator
 			}
 		}
-	}else{
+	} else {
 		//select validators from posTable
 		for i := 0; i < selectCount; i++ {
 			var tmPubKey crypto.PubKey
