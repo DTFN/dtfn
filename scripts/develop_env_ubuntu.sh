@@ -3,7 +3,7 @@ installEthereum(){
     mkdir -p $GOPATH/src/github.com/ethereum  && cd $_
     git clone git@github.com:green-element-chain/go-ethereum.git
     cd go-ethereum
-    git reset --hard c29f76d8e0da426416a669a5ee50527f324db3b6
+    git checkout gelchain_rollback
     cd ..
 }
 
