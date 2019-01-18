@@ -83,11 +83,6 @@ func ethermintCmd(ctx *cli.Context) error {
 			totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
 		}
 		strategy.CurrEpochValData.TotalBalance=totalBalanceInital
-		thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
-		threshold := big.NewInt(0)
-		threshold.Div(totalBalanceInital, thresholdUnit)
-		strategy.CurrEpochValData.PosTable.SetThreshold(threshold)
-		strategy.NextEpochValData.PosTable.SetThreshold(threshold)
 
 		ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
 
@@ -121,6 +116,11 @@ func ethermintCmd(ctx *cli.Context) error {
 		strategy.SetInitialAccountMap(amlist)
 		log.Info(fmt.Sprintf("SetInitialAccountMap %v", amlist))
 	}
+	thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
+	threshold := big.NewInt(0)
+	threshold.Div(strategy.CurrEpochValData.TotalBalance, thresholdUnit)
+	strategy.CurrEpochValData.PosTable.SetThreshold(threshold)
+	strategy.NextEpochValData.PosTable.SetThreshold(threshold)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make gelchain as self contained as possible.
