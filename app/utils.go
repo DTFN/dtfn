@@ -330,12 +330,14 @@ func (app *EthermintApplication) SetPersistenceData() {
 	if app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock || height%txfilter.EpochBlocks == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
 		wsState.SetCode(nextEpochDataAddress, nextBytes)
-		app.logger.Info(fmt.Sprintf("nextBytes %X", nextBytes))
+		app.logger.Info(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
+	}else{
+		app.logger.Info(fmt.Sprintf("NextEpochValData.PosTable NOCHANGE %v", app.strategy.NextEpochValData.PosTable))
 	}
 	if height%txfilter.EpochBlocks == 0 {
 		currBytes, _ := json.Marshal(app.strategy.CurrEpochValData)
 		wsState.SetCode(currEpochDataAddress, currBytes)
-		app.logger.Info(fmt.Sprintf("currBytes %X", currBytes))
+		app.logger.Info(fmt.Sprintf("CurrEpochValData %v", app.strategy.CurrEpochValData))
 	}
 
 	trie := wsState.GetOrNewStateObject(currEpochDataAddress).GetTrie(wsState.Database())
@@ -346,5 +348,5 @@ func (app *EthermintApplication) SetPersistenceData() {
 	trie.TryUpdate(key, valBytes)
 	valueHash := ethereumCrypto.Keccak256Hash(valBytes)
 	wsState.SetState(currEpochDataAddress, keyHash, valueHash)
-	app.logger.Info(fmt.Sprintf("valBytes %X", valBytes))
+	app.logger.Info(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
 }
