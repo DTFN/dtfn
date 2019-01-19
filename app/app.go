@@ -189,7 +189,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", initialValidatorsLen,
 		"validators", app.strategy.InitialValidators)
 	if initialValidatorsLen != 0 {
-		app.strategy.CurrEpochValData.PosTable=app.strategy.NextEpochValData.PosTable.Copy()
+		app.strategy.NextEpochValData.PosTable.InitFlag = true
+		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
 		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
 	} else {
 		panic("no qualified initial validators, please check config")
