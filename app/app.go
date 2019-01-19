@@ -151,7 +151,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	if app.strategy.NextEpochValData.PosTable != nil {
 		panic("InitChain, app.strategy.NextEpochValData.PosTable!=nil")
 	} else {
-		app.strategy.NextEpochValData.PosTable = txfilter.NewPosTable()
+		app.strategy.NextEpochValData.PosTable = txfilter.CreatePosTable()
 	}
 	app.SetPosTableThreshold()
 	for _, validator := range req.Validators {
