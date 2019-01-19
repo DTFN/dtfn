@@ -107,14 +107,15 @@ func NewStrategy() *Strategy {
 	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true, StatisticsVersion: 0, BlockVersion: 0}
 	return &Strategy{
 		CurrEpochValData: CurrEpochValData{
-			PosTable:     txfilter.NewPosTable(),
+			PosTable: nil, //later assigned in InitPersistData
 		},
 		HFExpectedData: hfExpectedData,
 
 		NextEpochValData: NextEpochValData{
-			PosTable: txfilter.CreatePosTable(),
+			PosTable: nil, //later assigned in InitPersistData
 		},
 		CurrentHeightValData: CurrentHeightValData{
+			Height:     0,
 			Validators: make(map[string]Validator),
 		},
 	}

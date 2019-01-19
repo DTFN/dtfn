@@ -145,6 +145,15 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	ethState, _ := app.getCurrentState()
 	app.strategy.InitialValidators = []abciTypes.ValidatorUpdate{}
 
+	if app.strategy.CurrEpochValData.PosTable != nil {
+		panic("InitChain, app.strategy.CurrEpochValData.PosTable!=nil")
+	}
+	if app.strategy.NextEpochValData.PosTable != nil {
+		panic("InitChain, app.strategy.NextEpochValData.PosTable!=nil")
+	} else {
+		app.strategy.NextEpochValData.PosTable = txfilter.NewPosTable()
+	}
+	app.SetPosTableThreshold()
 	for _, validator := range req.Validators {
 		pubKey := validator.PubKey
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
@@ -180,9 +189,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", initialValidatorsLen,
 		"validators", app.strategy.InitialValidators)
 	if initialValidatorsLen != 0 {
+		app.strategy.CurrEpochValData.PosTable=app.strategy.NextEpochValData.PosTable.Copy()
 		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
-		app.strategy.CurrEpochValData.PosTable.InitFlag = true
-		app.strategy.NextEpochValData.PosTable.InitFlag = true
 	} else {
 		panic("no qualified initial validators, please check config")
 	}
@@ -445,15 +453,10 @@ func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balan
 	pubKey abciTypes.PubKey, blsKeyString string) error {
 	if app.strategy != nil {
 		tmpSlot := big.NewInt(0)
-		tmpSlot.Div(balance, app.strategy.CurrEpochValData.PosTable.Threshold)
+		tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		tmAddress := tmPubKey.Address().String()
-		err := app.strategy.CurrEpochValData.PosTable.UpsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
-		if err != nil {
-			return err
-		}
-		err = app.strategy.NextEpochValData.PosTable.UpsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
-		return err
+		return app.strategy.NextEpochValData.PosTable.UpsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
 	}
 	return nil
 }

@@ -67,12 +67,6 @@ func (app *EthermintApplication) TryRemoveValidatorTxs() (bool, error) {
 	return false, errors.New("app strategy nil")
 }
 
-func (app *EthermintApplication) SetThreshold(threshold *big.Int) {
-	if app.strategy != nil {
-		app.strategy.CurrEpochValData.PosTable.SetThreshold(threshold)
-	}
-}
-
 // GetUpdatedValidators returns an updated validator set from the strategy
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
@@ -239,13 +233,21 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
+func (app *EthermintApplication) SetPosTableThreshold() {
+	if app.strategy.CurrEpochValData.TotalBalance.Int64() == 0 {
+		panic("strategy.CurrEpochValData.TotalBalance==0")
+	}
+	thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
+	threshold := big.NewInt(0)
+	threshold.Div(app.strategy.CurrEpochValData.TotalBalance, thresholdUnit)
+	app.strategy.NextEpochValData.PosTable.SetThreshold(threshold)
+}
 
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 	// marshal map to jsonBytes,is it sorted?
 	wsState, _ := app.backend.Es().State()
 
-	var initFlag bool
 	//nextEpochDataAddress := common.HexToAddress("0x8888888888888888888888888888888888888888")
 	currEpochDataAddress := common.HexToAddress("0x7777777777777777777777777777777777777777")
 
@@ -263,6 +265,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 	valueHash := wsState.GetState(currEpochDataAddress, keyHash)
 	if bytes.Equal(valueHash.Bytes(), common.Hash{}.Bytes()) {
 		app.logger.Info("no pre CurrentHeightData")
+		return false
 	} else {
 		currentHeightData, err := trie.TryGet(key)
 		if err != nil {
@@ -270,14 +273,12 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 		if len(currentHeightData) == 0 {
 			// no predata existed
-			app.logger.Info("len(currentHeightData) == 0")
+			panic("len(currentHeightData) == 0")
 		} else {
 			app.logger.Info("currentHeightData Not nil")
 			err := json.Unmarshal(currentHeightData, &app.strategy.CurrentHeightValData)
 			if err != nil {
 				panic(fmt.Sprintf("initialize CurrentHeightValData.Validators error %v", err))
-			} else {
-				initFlag = true
 			}
 		}
 	}
@@ -297,27 +298,26 @@ func (app *EthermintApplication) InitPersistData() bool {
 
 	if len(currBytes) == 0 {
 		// no predata existed
-		app.logger.Info("no pre CurrEpochValData")
+		panic("no pre CurrEpochValData")
 	} else {
 		app.logger.Info("CurrEpochValData Not nil")
 		err := json.Unmarshal(currBytes, &app.strategy.CurrEpochValData)
 		if err != nil {
 			panic(fmt.Sprintf("initialize CurrEpochValData error %v", err))
 		} else {
-			initFlag = true
+			app.strategy.CurrEpochValData.PosTable.InitStruct()
 		}
 	}
 
 	app.logger.Info("Read PosTable")
-	wsState.InitPosTable()
+	app.strategy.NextEpochValData.PosTable = wsState.InitPosTable()
 	if app.strategy.NextEpochValData.PosTable == nil {
-		panic("app.strategy.NextEpochValData.PosTable==nil")
+		panic("no pre NextEpochValData.PosTable")
+	} else {
+		app.strategy.NextEpochValData.PosTable.InitStruct()
 	}
-	app.strategy.CurrEpochValData.PosTable.InitStruct()
-	app.strategy.NextEpochValData.PosTable.InitStruct()
-	//app.strategy.NextEpochValData.PosTable = txfilter.EthPosTable
 
-	return initFlag
+	return true
 }
 
 func (app *EthermintApplication) SetPersistenceData() {

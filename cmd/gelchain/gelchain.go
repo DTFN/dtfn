@@ -33,7 +33,6 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/green-element-chain/gelchain/utils"
 	"math/big"
-	"github.com/ethereum/go-ethereum/core/txfilter"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -74,8 +73,8 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	tmConfig := loadTMConfig(ctx)
 
-	ethApp.InitPersistData()
-	if strategy.CurrentHeightValData.Height == 0 && strategy.CurrEpochValData.PosTable.TotalSlots == 0 {
+	hasPersistData := ethApp.InitPersistData()
+	if !hasPersistData {
 		ethGenesisJson := ethermintGenesisPath(ctx)
 		genesis := utils.ReadGenesis(ethGenesisJson)
 		totalBalanceInital := big.NewInt(0)
@@ -116,13 +115,9 @@ func ethermintCmd(ctx *cli.Context) error {
 		strategy.SetInitialAccountMap(amlist)
 		log.Info(fmt.Sprintf("SetInitialAccountMap %v", amlist))
 	}
-	thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
-	threshold := big.NewInt(0)
-	threshold.Div(strategy.CurrEpochValData.TotalBalance, thresholdUnit)
-	strategy.CurrEpochValData.PosTable.SetThreshold(threshold)
-	threshold = big.NewInt(threshold.Int64())
-	strategy.NextEpochValData.PosTable.SetThreshold(threshold)
-
+	if strategy.CurrEpochValData.TotalBalance.Int64() == 0 {
+		panic("strategy.CurrEpochValData.TotalBalance==0")
+	}
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make gelchain as self contained as possible.
 	// See Issue https://github.com/tendermint/ethermint/issues/244
