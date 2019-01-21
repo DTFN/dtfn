@@ -433,6 +433,16 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Log:  err.Error()}
 	}
 
+	err = txfilter.IsBlocked(from, *tx.To(), currentBalance, tx.Data())
+	if err != nil {
+		return abciTypes.ResponseCheckTx{
+			// TODO: Add errors.CodeTypeTxIsBlocked ?
+			Code: uint32(errors.CodeInsufficientFunds),
+			Log: fmt.Sprintf(
+				"Tx is blocked: %v",
+				err)}
+	}
+
 	// Update ether balances
 	// amount + gasprice * gaslimit
 	currentState.SubBalance(from, tx.Cost())
