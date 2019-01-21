@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -58,20 +57,11 @@ func (app *EthermintApplication) StartHttpServer() {
 	go app.httpServer.HttpServer.ListenAndServe()
 }
 
-func (app *EthermintApplication) TryRemoveValidatorTxs() (bool, error) {
-	if app.strategy != nil {
-		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height)
-		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
-		return true, nil
-	}
-	return false, errors.New("app strategy nil")
-}
-
 // GetUpdatedValidators returns an updated validator set from the strategy
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
-		if int(height)%txfilter.EpochBlocks != 0 {
+		if height%txfilter.EpochBlocks != 0 {
 			if seed != nil {
 				//seed 存在的时，优先seed
 				return app.enterSelectValidators(seed, -1)
@@ -332,13 +322,11 @@ func (app *EthermintApplication) SetPersistenceData() {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
 		wsState.SetCode(nextEpochDataAddress, nextBytes)
 		app.logger.Info(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
-	}else{
-		app.logger.Info(fmt.Sprintf("NextEpochValData.PosTable NOCHANGE %v", app.strategy.NextEpochValData.PosTable))
 	}
+
 	if height%txfilter.EpochBlocks == 0 {
 		currBytes, _ := json.Marshal(app.strategy.CurrEpochValData)
 		wsState.SetCode(currEpochDataAddress, currBytes)
-		app.logger.Info(fmt.Sprintf("CurrEpochValData %v", app.strategy.CurrEpochValData))
 	}
 
 	trie := wsState.GetOrNewStateObject(currEpochDataAddress).GetTrie(wsState.Database())
@@ -349,5 +337,5 @@ func (app *EthermintApplication) SetPersistenceData() {
 	trie.TryUpdate(key, valBytes)
 	valueHash := ethereumCrypto.Keccak256Hash(valBytes)
 	wsState.SetState(currEpochDataAddress, keyHash, valueHash)
-	app.logger.Info(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
+	app.logger.Debug(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
 }

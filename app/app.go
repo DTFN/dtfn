@@ -280,18 +280,15 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
-	if endBlock.GetSeed() != nil {
-		app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
-	}
-
-	app.logger.Debug("EndBlock", "height", endBlock.GetSeed()) // nolint: errcheck
+	app.logger.Info("EndBlock", "height", endBlock.GetHeight(), "seed", endBlock.GetSeed()) // nolint: errcheck
 
 	height := endBlock.Height
 	if height%txfilter.EpochBlocks == 0 {
-		app.TryRemoveValidatorTxs()
 		//DeepCopy
 		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
 		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
+		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height,app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
+		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
 	}
 
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
