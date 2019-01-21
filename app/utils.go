@@ -306,6 +306,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 			panic(fmt.Sprintf("initialize CurrEpochValData error %v", err))
 		} else {
 			app.strategy.CurrEpochValData.PosTable.InitStruct()
+			app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
 		}
 	}
 
