@@ -8,6 +8,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	"reflect"
+	"fmt"
 )
 
 // MinerRewardStrategy is a mining strategy
@@ -129,8 +130,11 @@ func (s *Strategy) Receiver() common.Address {
 		if pi, ok := s.CurrEpochValData.PosTable.PosItemMap[signer]; ok {
 			return pi.Beneficiary
 		}
+		if pi, ok := s.CurrEpochValData.PosTable.UnbondPosItemMap[signer]; ok && pi.Slots != 0 { //pi.Slots==0 means it's a slashed account
+			return pi.Beneficiary
+		}
 	}
-	log.Error("Proposer Address %v not found in accountMap", s.CurrentHeightValData.ProposerAddress)
+	log.Error(fmt.Sprintf("Proposer Address %v not found in accountMap", s.CurrentHeightValData.ProposerAddress))
 	return common.HexToAddress("0000000000000000000000000000000000000002")
 }
 

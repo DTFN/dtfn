@@ -280,7 +280,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
-	app.logger.Info("EndBlock", "height", endBlock.GetHeight(), "seed", endBlock.GetSeed()) // nolint: errcheck
+	app.logger.Info(fmt.Sprintf("EndBlock height %v seed %X ",endBlock.GetHeight(),  endBlock.GetSeed())) // nolint: errcheck
 
 	height := endBlock.Height
 	if height%txfilter.EpochBlocks == 0 {

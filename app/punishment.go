@@ -100,7 +100,7 @@ func (p *Punishment) DoPunish(stateDB *state.StateDB, strategy *types.Strategy, 
 			_, found := strategy.CurrEpochValData.PosTable.PosItemMap[signer]
 			if found { //evil signer has not unbonded, kicked it out
 				strategy.NextEpochValData.PosTable.Mtx.Lock()
-				err := strategy.NextEpochValData.PosTable.RemovePosItem(signer, currentHeight)
+				err := strategy.NextEpochValData.PosTable.RemovePosItem(signer, currentHeight,true)
 				if err != nil {
 					panic(err)
 				}
