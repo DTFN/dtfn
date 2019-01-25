@@ -96,6 +96,8 @@ var (
 		utils.TestNetpOpulatePersistentPeers,
 		utils.TestnetStartingIPAddress,
 		utils.TestNetVals,
+		utils.RollbackHeight,
+		utils.RollbackFlag,
 	}
 )
 

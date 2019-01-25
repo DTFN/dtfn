@@ -209,4 +209,15 @@ var (
 		Value: "",
 		Usage: "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:26656, ID1@192.168.0.2:26656, ...)",
 	}
+
+	RollbackHeight = cli.IntFlag{
+		Name:  "rollback_height",
+		Value: 200,
+		Usage: "the height which want to rollback",
+	}
+
+	RollbackFlag = cli.BoolFlag{
+		Name:  "rollback_flag",
+		Usage: "whether or not rollback",
+	}
 )
