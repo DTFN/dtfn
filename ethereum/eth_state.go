@@ -206,18 +206,6 @@ type workState struct {
 	gp           *core.GasPool
 }
 
-type Wrap struct {
-	Type         string
-	Signer       common.Address
-	Balance      *big.Int
-	Beneficiary  common.Address
-	Pubkey       abciTypes.PubKey
-	BlsKeyString string
-
-	Height  *big.Int
-	Receipt *ethTypes.Receipt
-}
-
 func (ws *workState) State() *state.StateDB {
 	return ws.state
 }

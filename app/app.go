@@ -429,8 +429,11 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Code: uint32(errors.CodeInsufficientCoins),
 			Log:  err.Error()}
 	}
-
-	err = txfilter.IsBlocked(from, *tx.To(), currentBalance, tx.Data())
+	to := tx.To()
+	if to == nil {
+		to = &common.Address{}
+	}
+	err = txfilter.IsBlocked(from, *to, currentBalance, tx.Data())
 	if err != nil {
 		return abciTypes.ResponseCheckTx{
 			// TODO: Add errors.CodeTypeTxIsBlocked ?
