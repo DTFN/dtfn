@@ -125,17 +125,17 @@ func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Req
 	AccountMap := &AccountMapData{
 		MapList: make(map[string]AccountBean),
 	}
-	for tmAddress,signer:=range tHandler.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap{
-		posItem,ok:=tHandler.strategy.CurrEpochValData.PosTable.PosItemMap[signer]
-		if !ok{
-			panic(fmt.Sprintf("TmAddressToSignerMap and PosItemMap mismatch in tmAddress %v signer %X",tmAddress,signer))
+	for tmAddress, signer := range tHandler.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap {
+		posItem, ok := tHandler.strategy.CurrEpochValData.PosTable.PosItemMap[signer]
+		if !ok {
+			panic(fmt.Sprintf("TmAddressToSignerMap and PosItemMap mismatch in tmAddress %v signer %X", tmAddress, signer))
 		}
-		AccountMap.MapList[tmAddress]=AccountBean{
-			signer:signer.String(),
-			slots:posItem.Slots,
-			beneficiaryBonus:posItem.BeneficiaryBonus.Int64(),
-			beneficiary:posItem.Beneficiary.String(),
-			blsKeyString:posItem.BlsKeyString,
+		AccountMap.MapList[tmAddress] = AccountBean{
+			signer:           signer.String(),
+			slots:            posItem.Slots,
+			beneficiaryBonus: posItem.BeneficiaryBonus.Int64(),
+			beneficiary:      posItem.Beneficiary.String(),
+			blsKeyString:     posItem.BlsKeyString,
 		}
 	}
 	jsonStr, err := json.Marshal(AccountMap)
@@ -153,17 +153,17 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 	}
 	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
 	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
-	for tmAddress,signer:=range tHandler.strategy.NextEpochValData.PosTable.TmAddressToSignerMap{
-		posItem,ok:=tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer]
-		if !ok{
-			panic(fmt.Sprintf("TmAddressToSignerMap and PosItemMap mismatch in tmAddress %v signer %X",tmAddress,signer))
+	for tmAddress, signer := range tHandler.strategy.NextEpochValData.PosTable.TmAddressToSignerMap {
+		posItem, ok := tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer]
+		if !ok {
+			panic(fmt.Sprintf("TmAddressToSignerMap and PosItemMap mismatch in tmAddress %v signer %X", tmAddress, signer))
 		}
-		AccountMap.MapList[tmAddress]=AccountBean{
-			signer:signer.String(),
-			slots:posItem.Slots,
-			beneficiaryBonus:posItem.BeneficiaryBonus.Int64(),
-			beneficiary:posItem.Beneficiary.String(),
-			blsKeyString:posItem.BlsKeyString,
+		AccountMap.MapList[tmAddress] = AccountBean{
+			signer:           signer.String(),
+			slots:            posItem.Slots,
+			beneficiaryBonus: posItem.BeneficiaryBonus.Int64(),
+			beneficiary:      posItem.Beneficiary.String(),
+			blsKeyString:     posItem.BlsKeyString,
 		}
 	}
 
@@ -233,7 +233,7 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 			Power:         int64(1),
 			AddressString: tmAddressStr,
 			PubKey:        pubKey,
-			Slots: posItem.Slots,
+			Slots:         posItem.Slots,
 			Signer:        signer,
 			Beneficiary:   posItem.Beneficiary,
 			BlsKeyString:  posItem.BlsKeyString,
@@ -255,14 +255,12 @@ func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter
 	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
 	for _, signer := range topKSigners {
 		posItem := tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer]
-		balance := big.NewInt(1)
-		balance.Mul(tHandler.strategy.CurrEpochValData.PosTable.Threshold, big.NewInt(posItem.Slots))
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: posItem.TmAddress,
 			PubKey:        posItem.PubKey,
-			Slots: posItem.Slots,
+			Slots:         posItem.Slots,
 			Signer:        signer,
 			Beneficiary:   posItem.Beneficiary,
 			BlsKeyString:  posItem.BlsKeyString,
