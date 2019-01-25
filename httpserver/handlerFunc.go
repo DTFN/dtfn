@@ -41,7 +41,9 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetEncourage"] = tHandler.GetEncourage
 
 	tHandler.HandlersMap["/GetPosTable"] = tHandler.GetPosTableData
+	tHandler.HandlersMap["/GetNextPosTable"] = tHandler.GetNextPosTableData
 	tHandler.HandlersMap["/GetAccountMap"] = tHandler.GetAccountMapData
+	tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
 	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetInitialValidator"] = tHandler.GetInitialValidator
 	tHandler.HandlersMap["/GetHeadEventSize"] = tHandler.GetTxPoolEventSize
@@ -131,11 +133,11 @@ func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Req
 			panic(fmt.Sprintf("TmAddressToSignerMap and PosItemMap mismatch in tmAddress %v signer %X", tmAddress, signer))
 		}
 		AccountMap.MapList[tmAddress] = AccountBean{
-			signer:           signer.String(),
-			slots:            posItem.Slots,
-			beneficiaryBonus: posItem.BeneficiaryBonus.Int64(),
-			beneficiary:      posItem.Beneficiary.String(),
-			blsKeyString:     posItem.BlsKeyString,
+			Signer:           signer.String(),
+			Slots:            posItem.Slots,
+			BeneficiaryBonus: posItem.BeneficiaryBonus.Int64(),
+			Beneficiary:      posItem.Beneficiary.String(),
+			BlsKeyString:     posItem.BlsKeyString,
 		}
 	}
 	jsonStr, err := json.Marshal(AccountMap)
@@ -159,11 +161,11 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 			panic(fmt.Sprintf("TmAddressToSignerMap and PosItemMap mismatch in tmAddress %v signer %X", tmAddress, signer))
 		}
 		AccountMap.MapList[tmAddress] = AccountBean{
-			signer:           signer.String(),
-			slots:            posItem.Slots,
-			beneficiaryBonus: posItem.BeneficiaryBonus.Int64(),
-			beneficiary:      posItem.Beneficiary.String(),
-			blsKeyString:     posItem.BlsKeyString,
+			Signer:           signer.String(),
+			Slots:            posItem.Slots,
+			BeneficiaryBonus: posItem.BeneficiaryBonus.Int64(),
+			Beneficiary:      posItem.Beneficiary.String(),
+			BlsKeyString:     posItem.BlsKeyString,
 		}
 	}
 

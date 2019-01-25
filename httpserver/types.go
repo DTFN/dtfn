@@ -29,15 +29,15 @@ type PTableAll struct {
 }
 
 type AccountMapData struct {
-	MapList map[string]AccountBean `json:"map_list"`
+	MapList map[string]AccountBean `json:"accountmaplist"`
 }
 
 type AccountBean struct {
-	signer           string
-	slots            int64
-	beneficiaryBonus int64
-	beneficiary      string
-	blsKeyString     string
+	Signer           string `json:"signer"`
+	Slots            int64  `json:"slots"`
+	BeneficiaryBonus int64  `json:"beneficiaryBonus"`
+	Beneficiary      string `json:"beneficiary"`
+	BlsKeyString     string `json:"blsKeyString"`
 }
 
 type PosItemMapData struct {
