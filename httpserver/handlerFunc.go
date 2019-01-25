@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
+	"fmt"
 )
 
 type THandler struct {
@@ -121,10 +122,21 @@ func (tHandler *THandler) GetNextPosTableData(w http.ResponseWriter, req *http.R
 
 // This function will return the used data structure
 func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Request) {
-	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
-	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
 	AccountMap := &AccountMapData{
-		MapList: tHandler.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap,
+		MapList: make(map[string]AccountBean),
+	}
+	for tmAddress,signer:=range tHandler.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap{
+		posItem,ok:=tHandler.strategy.CurrEpochValData.PosTable.PosItemMap[signer]
+		if !ok{
+			panic(fmt.Sprintf("TmAddressToSignerMap and PosItemMap mismatch in tmAddress %v signer %X",tmAddress,signer))
+		}
+		AccountMap.MapList[tmAddress]=AccountBean{
+			signer:signer.String(),
+			slots:posItem.Slots,
+			beneficiaryBonus:posItem.BeneficiaryBonus.Int64(),
+			beneficiary:posItem.Beneficiary.String(),
+			blsKeyString:posItem.BlsKeyString,
+		}
 	}
 	jsonStr, err := json.Marshal(AccountMap)
 	if err != nil {
@@ -136,11 +148,25 @@ func (tHandler *THandler) GetAccountMapData(w http.ResponseWriter, req *http.Req
 
 // This function will return the used data structure
 func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http.Request) {
+	AccountMap := &AccountMapData{
+		MapList: make(map[string]AccountBean),
+	}
 	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
 	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
-	AccountMap := &AccountMapData{
-		MapList: tHandler.strategy.NextEpochValData.PosTable.TmAddressToSignerMap,
+	for tmAddress,signer:=range tHandler.strategy.NextEpochValData.PosTable.TmAddressToSignerMap{
+		posItem,ok:=tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer]
+		if !ok{
+			panic(fmt.Sprintf("TmAddressToSignerMap and PosItemMap mismatch in tmAddress %v signer %X",tmAddress,signer))
+		}
+		AccountMap.MapList[tmAddress]=AccountBean{
+			signer:signer.String(),
+			slots:posItem.Slots,
+			beneficiaryBonus:posItem.BeneficiaryBonus.Int64(),
+			beneficiary:posItem.Beneficiary.String(),
+			blsKeyString:posItem.BlsKeyString,
+		}
 	}
+
 	jsonStr, err := json.Marshal(AccountMap)
 	if err != nil {
 		w.Write([]byte("error occured when marshal into json"))
@@ -202,14 +228,12 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 		pubKey := posItem.PubKey
 		//tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
 		tmAddressStr := posItem.TmAddress
-		balance := big.NewInt(1)
-		balance.Mul(tHandler.strategy.CurrEpochValData.PosTable.Threshold, big.NewInt(posItem.Slots))
 		preValidators = append(preValidators, &Validator{
 			//Address:       tmAddress,
 			Power:         int64(1),
 			AddressString: tmAddressStr,
 			PubKey:        pubKey,
-			SignerBalance: balance,
+			Slots: posItem.Slots,
 			Signer:        signer,
 			Beneficiary:   posItem.Beneficiary,
 			BlsKeyString:  posItem.BlsKeyString,
@@ -238,7 +262,7 @@ func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter
 			Power:         int64(1),
 			AddressString: posItem.TmAddress,
 			PubKey:        posItem.PubKey,
-			SignerBalance: balance,
+			Slots: posItem.Slots,
 			Signer:        signer,
 			Beneficiary:   posItem.Beneficiary,
 			BlsKeyString:  posItem.BlsKeyString,

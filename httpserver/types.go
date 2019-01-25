@@ -13,7 +13,7 @@ type Validator struct {
 	Power         int64            `json:"power"`
 	AddressString string           `json:"addressString"`
 	Signer        common.Address   `json:"signer"`
-	SignerBalance *big.Int         `json:"signerBalance"`
+	Slots         int64            `json:"slots"`
 	Beneficiary   common.Address   `json:"beneficiary"`
 	BlsKeyString  string           `json:"blsKeyString"`
 }
@@ -29,13 +29,21 @@ type PTableAll struct {
 }
 
 type AccountMapData struct {
-	MapList map[string]common.Address `json:"map_list"`
+	MapList map[string]AccountBean `json:"map_list"`
+}
+
+type AccountBean struct {
+	signer           string
+	slots            int64
+	beneficiaryBonus int64
+	beneficiary      string
+	blsKeyString     string
 }
 
 type PosItemMapData struct {
-	PosItemMap   map[common.Address]*txfilter.PosItem `json:"pos_table_map"`
-	Threshold    *big.Int                          `json:"threshold"`
-	TotalSlots int64                               `json:"total_slots"`
+	PosItemMap map[common.Address]*txfilter.PosItem `json:"pos_table_map"`
+	Threshold  *big.Int                             `json:"threshold"`
+	TotalSlots int64                                `json:"total_slots"`
 }
 
 type PreBlockProposer struct {
