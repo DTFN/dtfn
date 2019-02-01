@@ -253,7 +253,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		} else {
 			panic(fmt.Sprintf("address %v not exist in TmAddressToSignerMap", address))
 		}
-		ws.state.AddBalance(beneficiary, bonusAverage)
+		ws.state.AddBalance(beneficiary, bonusSpecify)
 
 		log.Info(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
 			strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),
