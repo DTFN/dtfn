@@ -26,8 +26,8 @@ func init() {
 const BeforeHardForkVersion = 0
 //If height < NextHardForkHeight,run currentHardForkVersion
 //else run NextHardForkVersion
-const NextHardForkHeight = 85000
-const NextHardForkVersion = 2
+const NextHardForkHeight = 1000000
+const NextHardForkVersion = 3
 
 //If we are in the version=4,we should remember all the
 //pre-version code and per-version height
@@ -45,3 +45,18 @@ const ThirdHardForkVersion  3
 const NextHardForkHeight 1600
 const NextHardForkVersion 4
  */
+
+
+ //upgrade node
+ /*
+ The beginning version is `1`
+ and we are in the height of 85000 hardforked first time
+ which select 7 nodes.
+ FirstHardForkVersion 2  FirstHardForkHeight 85000 From version 1 to 2
+
+
+ We want to fix the AddBalanceBug at version 3 at height 1000000
+ from `ws.state.AddBalance(beneficiary, bonusAverage)`
+ to `ws.state.AddBalance(beneficiary, bonusSpecify)`
+ SecondHardForkVersion 3 SecondHardForkHeight 1000000 From version 2 to 3
+  */
