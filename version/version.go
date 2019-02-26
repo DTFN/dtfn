@@ -26,7 +26,7 @@ func init() {
 const BeforeHardForkVersion = 0
 //If height < NextHardForkHeight,run currentHardForkVersion
 //else run NextHardForkVersion
-const NextHardForkHeight = 1000000
+const NextHardForkHeight = 1300000
 const NextHardForkVersion = 3
 
 //If we are in the version=4,we should remember all the
