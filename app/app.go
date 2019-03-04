@@ -7,8 +7,8 @@ import (
 	errors "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/green-element-chain/gelchain/ethereum"
@@ -19,6 +19,7 @@ import (
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -260,9 +261,24 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.strategy.CurrentHeightValData.Height = beginBlock.GetHeader().Height
 	//when we reach the upgrade height,we change the blockversion
-	if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
-		app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
+	heightArray := strings.Split(version.HeightString, ",")
+	versionArray := strings.Split(version.VersonString, ",")
+	for i := 0; i < len(heightArray); i++ {
+		if app.strategy.HFExpectedData.IsHarfForkPassed {
+			currHeight, _ := strconv.ParseInt(heightArray[i], 10, 64)
+			currVersion, _ := strconv.ParseUint(versionArray[i], 10, 64)
+			if app.strategy.HFExpectedData.Height >= currHeight {
+				app.strategy.HFExpectedData.BlockVersion = currVersion
+			}
+			fmt.Println(currHeight)
+			fmt.Println(currVersion)
+			fmt.Println(app.strategy.HFExpectedData.BlockVersion)
+		}
+
 	}
+	//if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
+	//	app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
+	//}
 
 	app.strategy.CurrentHeightValData.ProposerAddress = strings.ToUpper(hex.EncodeToString(beginBlock.Header.ProposerAddress))
 	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
@@ -280,14 +296,14 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
-	app.logger.Info(fmt.Sprintf("EndBlock height %v seed %X ",endBlock.GetHeight(),  endBlock.GetSeed())) // nolint: errcheck
+	app.logger.Info(fmt.Sprintf("EndBlock height %v seed %X ", endBlock.GetHeight(), endBlock.GetSeed())) // nolint: errcheck
 
 	height := endBlock.Height
 	if height%txfilter.EpochBlocks == 0 {
 		//DeepCopy
 		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
 		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
-		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height,app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
+		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height, app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
 		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
 	}
 

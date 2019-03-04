@@ -24,10 +24,16 @@ func init() {
 }
 
 const BeforeHardForkVersion = 0
+
 //If height < NextHardForkHeight,run currentHardForkVersion
 //else run NextHardForkVersion
+const PreHardForkHeight = 85000
+const PreHardForeVersion = 2
 const NextHardForkHeight = 1300000
 const NextHardForkVersion = 3
+
+const HeightString = "85000,1300000"
+const VersonString = "2,3"
 
 //If we are in the version=4,we should remember all the
 //pre-version code and per-version height
@@ -44,11 +50,10 @@ const ThirdHardForkHeight  1200
 const ThirdHardForkVersion  3
 const NextHardForkHeight 1600
 const NextHardForkVersion 4
- */
+*/
 
-
- //upgrade node
- /*
+//upgrade node
+/*
  The beginning version is `1`
  and we are in the height of 85000 hardforked first time
  which select 7 nodes.
@@ -59,4 +64,4 @@ const NextHardForkVersion 4
  from `ws.state.AddBalance(beneficiary, bonusAverage)`
  to `ws.state.AddBalance(beneficiary, bonusSpecify)`
  SecondHardForkVersion 3 SecondHardForkHeight 1000000 From version 2 to 3
-  */
+*/
