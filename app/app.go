@@ -270,9 +270,6 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 			if app.strategy.HFExpectedData.Height >= currHeight {
 				app.strategy.HFExpectedData.BlockVersion = currVersion
 			}
-			fmt.Println(currHeight)
-			fmt.Println(currVersion)
-			fmt.Println(app.strategy.HFExpectedData.BlockVersion)
 		}
 
 	}
