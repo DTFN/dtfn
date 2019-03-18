@@ -24,14 +24,14 @@ import (
 	emtUtils "github.com/green-element-chain/gelchain/cmd/utils"
 	"github.com/green-element-chain/gelchain/ethereum"
 	"github.com/green-element-chain/gelchain/types"
+	"github.com/green-element-chain/gelchain/utils"
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	tmNode "github.com/tendermint/tendermint/node"
+	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
-	"github.com/tendermint/tendermint/p2p"
-	"github.com/green-element-chain/gelchain/utils"
 	"math/big"
 )
 
@@ -65,6 +65,10 @@ func ethermintCmd(ctx *cli.Context) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
+	rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
+	whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
 	ethApp.StartHttpServer()
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
@@ -199,6 +203,9 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.Consensus.CreateEmptyBlocks = ctx.GlobalBool(emtUtils.TmConsEmptyBlock.Name)
 	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = time.Duration(ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)) * time.Second
 	defaultTmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
+
+	defaultTmConfig.RollbackHeight = ctx.GlobalInt(emtUtils.RollbackHeight.Name)
+	defaultTmConfig.RollbackFlag = ctx.GlobalBool(emtUtils.RollbackFlag.Name)
 
 	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
 
@@ -376,4 +383,18 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 		}
 	}
 	return *match
+}
+
+
+//delete history block and rollback state here
+//and should put it before the rollback of tendermint
+func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, appBackend *ethereum.Backend) {
+	if rollbackFlag {
+		fmt.Println("you are rollbacking")
+		appBackend.Ethereum().BlockChain().SetHead(uint64(rollbackHeight))
+		fmt.Println(appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64())
+	} else {
+		fmt.Println(appBackend.GasLimit())
+		fmt.Println("You are not rollbacking")
+	}
 }
