@@ -123,18 +123,18 @@ func NewStrategy() *Strategy {
 }
 
 // Receiver returns which address should receive the mining reward
-func (s *Strategy) Receiver() common.Address {
-	if s.CurrentHeightValData.ProposerAddress == "" || len(s.CurrEpochValData.PosTable.TmAddressToSignerMap) == 0 {
+func (strategy *Strategy) Receiver() common.Address {
+	if strategy.CurrentHeightValData.ProposerAddress == "" || len(strategy.CurrEpochValData.PosTable.TmAddressToSignerMap) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
-	} else if signer, ok := s.CurrEpochValData.PosTable.TmAddressToSignerMap[s.CurrentHeightValData.ProposerAddress]; ok {
-		if pi, ok := s.CurrEpochValData.PosTable.PosItemMap[signer]; ok {
+	} else if signer, ok := strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[strategy.CurrentHeightValData.ProposerAddress]; ok {
+		if pi, ok := strategy.CurrEpochValData.PosTable.PosItemMap[signer]; ok {
 			return pi.Beneficiary
 		}
-		if pi, ok := s.CurrEpochValData.PosTable.UnbondPosItemMap[signer]; ok && pi.Slots != 0 { //pi.Slots==0 means it's a slashed account
+		if pi, ok := strategy.CurrEpochValData.PosTable.UnbondPosItemMap[signer]; ok && pi.Slots != 0 { //pi.Slots==0 means it's a slashed account
 			return pi.Beneficiary
 		}
 	}
-	log.Error(fmt.Sprintf("Proposer Address %v not found in accountMap", s.CurrentHeightValData.ProposerAddress))
+	log.Error(fmt.Sprintf("Proposer Address %v not found in accountMap", strategy.CurrentHeightValData.ProposerAddress))
 	return common.HexToAddress("0000000000000000000000000000000000000002")
 }
 
