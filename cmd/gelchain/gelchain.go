@@ -393,6 +393,7 @@ func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, appBackend *et
 		fmt.Println("you are rollbacking")
 		appBackend.Ethereum().BlockChain().SetHead(uint64(rollbackHeight))
 		fmt.Println(appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64())
+		os.Exit(1)
 	} else {
 		fmt.Println(appBackend.GasLimit())
 		fmt.Println("You are not rollbacking")
