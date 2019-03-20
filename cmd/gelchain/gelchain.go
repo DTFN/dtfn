@@ -66,10 +66,6 @@ func ethermintCmd(ctx *cli.Context) error {
 		os.Exit(1)
 	}
 
-	rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
-	rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
-	whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
-
 	ethApp.StartHttpServer()
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
 	configLoggerLevel(ctx, &ethLogger)
@@ -150,6 +146,10 @@ func ethermintCmd(ctx *cli.Context) error {
 			log.Info("tendermint newNode", "error", err)
 			return err
 		}
+
+		rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
+		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
+		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
 		backend.SetMemPool(n.MempoolReactor().Mempool)
 		n.MempoolReactor().Mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
