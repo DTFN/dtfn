@@ -242,7 +242,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			posItem, found := strategy.CurrEpochValData.PosTable.PosItemMap[signer]
 			if found {
 				beneficiary = posItem.Beneficiary
-			} else {	//the validator has just unbonded
+			} else { //the validator has just unbonded
 				posItem, found := strategy.CurrEpochValData.PosTable.UnbondPosItemMap[signer]
 				if found {
 					beneficiary = posItem.Beneficiary
@@ -253,12 +253,11 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		} else {
 			panic(fmt.Sprintf("address %v not exist in TmAddressToSignerMap", address))
 		}
-		if strategy.HFExpectedData.BlockVersion >= 3{
+		if strategy.HFExpectedData.BlockVersion >= 3 {
 			ws.state.AddBalance(beneficiary, bonusSpecify)
-		}else{
+		} else {
 			ws.state.AddBalance(beneficiary, bonusAverage)
 		}
-
 
 		log.Info(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
 			strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),
@@ -310,7 +309,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
-	log.Info(fmt.Sprintf("deliver a tx from %X tx %v" ,msg.From(),tx))
+	log.Info(fmt.Sprintf("deliver a tx from %X tx %v", msg.From(), tx))
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -351,7 +350,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	// block).
 	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
 	blockHash := block.Hash()
-	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
+	log.Debug(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
 	proctime := time.Since(ws.bstart)
