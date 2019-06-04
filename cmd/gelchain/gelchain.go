@@ -148,6 +148,10 @@ func ethermintCmd(ctx *cli.Context) error {
 		}
 
 		rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
+		selectCount:= ctx.GlobalInt64(emtUtils.SelectCount.Name)
+		fmt.Println("selectCount",selectCount)
+		selectBlockNumber := ctx.GlobalInt64(emtUtils.SelectBlockNumber.Name)
+		fmt.Println("selectBlockNumber",selectBlockNumber)
 		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
 		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 

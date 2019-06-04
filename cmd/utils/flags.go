@@ -220,4 +220,16 @@ var (
 		Name:  "rollback_flag",
 		Usage: "whether or not rollback",
 	}
+
+	SelectCount = cli.Int64Flag{
+		Name:  "select_count",
+		Value: 7,
+		Usage: "the number of validators selected to consensus",
+	}
+
+	SelectBlockNumber = cli.Int64Flag{
+		Name:  "select_block_number",
+		Value: 1,
+		Usage: "the number of select block which use selectCount",
+	}
 )

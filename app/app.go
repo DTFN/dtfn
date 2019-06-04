@@ -41,6 +41,12 @@ type EthermintApplication struct {
 	// strategy for validator compensation
 	strategy *emtTypes.Strategy
 
+	// select count
+	SelectCount int64
+
+	// select change block number
+	SelectBlockNumber int64
+
 	httpServer *httpserver.BaseServer
 
 	punishment *Punishment

@@ -98,6 +98,8 @@ var (
 		utils.TestNetVals,
 		utils.RollbackHeight,
 		utils.RollbackFlag,
+		utils.SelectCount,
+		utils.SelectBlockNumber,
 	}
 )
 
