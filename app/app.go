@@ -47,6 +47,9 @@ type EthermintApplication struct {
 	// select change block number
 	SelectBlockNumber int64
 
+	//select Strategy in the test
+	SelectStrategy bool
+
 	httpServer *httpserver.BaseServer
 
 	punishment *Punishment

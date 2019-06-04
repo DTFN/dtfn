@@ -232,4 +232,10 @@ var (
 		Value: 1,
 		Usage: "the number of select block which use selectCount",
 	}
+
+	SelectStrategy = cli.BoolFlag{
+		Name:   "select_strategy",
+		Hidden: false,
+		Usage:  "whether use selectstrategy,mainly used in the test",
+	}
 )

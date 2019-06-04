@@ -148,10 +148,14 @@ func ethermintCmd(ctx *cli.Context) error {
 		}
 
 		rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
-		selectCount:= ctx.GlobalInt64(emtUtils.SelectCount.Name)
-		fmt.Println("selectCount",selectCount)
+
+		selectCount := ctx.GlobalInt64(emtUtils.SelectCount.Name)
+		fmt.Println("selectCount", selectCount)
 		selectBlockNumber := ctx.GlobalInt64(emtUtils.SelectBlockNumber.Name)
-		fmt.Println("selectBlockNumber",selectBlockNumber)
+		fmt.Println("selectBlockNumber", selectBlockNumber)
+		selectStrategy := ctx.GlobalBool(emtUtils.SelectStrategy.Name)
+		fmt.Println("selectStrategy", selectStrategy)
+
 		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
 		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
@@ -388,7 +392,6 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 	}
 	return *match
 }
-
 
 //delete history block and rollback state here
 //and should put it before the rollback of tendermint

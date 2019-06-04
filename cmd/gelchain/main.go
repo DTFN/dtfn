@@ -100,6 +100,7 @@ var (
 		utils.RollbackFlag,
 		utils.SelectCount,
 		utils.SelectBlockNumber,
+		utils.SelectStrategy,
 	}
 )
 
