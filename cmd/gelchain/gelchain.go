@@ -33,6 +33,7 @@ import (
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
 	"math/big"
+	mempool2 "github.com/tendermint/tendermint/mempool"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -134,8 +135,24 @@ func ethermintCmd(ctx *cli.Context) error {
 			return err
 		}
 
+		// Convert old PrivValidator if it exists.
+		oldPrivVal := tmConfig.OldPrivValidatorFile()
+		newPrivValKey := tmConfig.PrivValidatorKeyFile()
+		newPrivValState := tmConfig.PrivValidatorStateFile()
+		if _, err := os.Stat(oldPrivVal); !os.IsNotExist(err) {
+			oldPV, err := privval.LoadOldFilePV(oldPrivVal)
+			if err != nil {
+				return fmt.Errorf("error reading OldPrivValidator from %v: %v\n", oldPrivVal, err)
+			}
+			fmt.Println("Upgrading PrivValidator file",
+				"old", oldPrivVal,
+				"newKey", newPrivValKey,
+				"newState", newPrivValState,
+			)
+			oldPV.Upgrade(newPrivValKey, newPrivValState)
+		}
 		n, err := tmNode.NewNode(tmConfig,
-			privval.LoadOrGenFilePV(tmConfig.PrivValidatorFile()),
+			privval.LoadOrGenFilePV(newPrivValKey, newPrivValState),
 			nodeKey,
 			clientCreator,
 			tmNode.DefaultGenesisDocProviderFunc(tmConfig),
@@ -151,16 +168,24 @@ func ethermintCmd(ctx *cli.Context) error {
 		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
 		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
-		backend.SetMemPool(n.MempoolReactor().Mempool)
-		n.MempoolReactor().Mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
+		mempool := n.Mempool()
+		backend.SetMemPool(mempool)
+		clist_mempool := mempool.(*mempool2.CListMempool)
+		clist_mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
 
 		err = n.Start()
 		if err != nil {
 			log.Error("server with tendermint start", "error", err)
 			return err
 		}
-		// Trap signal, run forever.
-		n.RunForever()
+		// Stop upon receiving SIGTERM or CTRL-C.
+		cmn.TrapSignal(tmLogger, func() {
+			if n.IsRunning() {
+				n.Stop()
+			}
+		})
+		// Run forever.
+		select {}
 		return nil
 	} else {
 		// Start the app on the ABCI server
@@ -170,16 +195,21 @@ func ethermintCmd(ctx *cli.Context) error {
 			os.Exit(1)
 		}
 
-		srv.SetLogger(emtUtils.EthermintLogger().With("module", "abci-server"))
+		logger := emtUtils.EthermintLogger().With("module", "abci-server")
+		srv.SetLogger(logger)
 
 		if err := srv.Start(); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		cmn.TrapSignal(func() {
-			srv.Stop()
+		cmn.TrapSignal(logger, func() {
+			if srv.IsRunning() {
+				srv.Stop()
+			}
 		})
+		// Run forever.
+		select {}
 	}
 
 	return nil
@@ -212,7 +242,7 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)
 	defaultTmConfig.BaseConfig.InitialEthAccount = ctx.GlobalString(emtUtils.TmInitialEthAccount.Name)
 	defaultTmConfig.PrivValidatorListenAddr = ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
-	defaultTmConfig.PrivValidator = ctx.GlobalString(emtUtils.PrivValidator.Name)
+	defaultTmConfig.PrivValidatorKey = ctx.GlobalString(emtUtils.PrivValidator.Name)
 	defaultTmConfig.P2P.AddrBook = ctx.GlobalString(emtUtils.AddrBook.Name)
 	defaultTmConfig.P2P.AddrBookStrict = ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
 	defaultTmConfig.P2P.PersistentPeers = ctx.GlobalString(emtUtils.PersistentPeers.Name)
@@ -384,7 +414,6 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 	}
 	return *match
 }
-
 
 //delete history block and rollback state here
 //and should put it before the rollback of tendermint

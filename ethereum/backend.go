@@ -17,7 +17,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	emtTypes "github.com/green-element-chain/gelchain/types"
-	"github.com/tendermint/tendermint/mempool"
+	mempl "github.com/tendermint/tendermint/mempool"
 )
 
 //----------------------------------------------------------------------
@@ -41,7 +41,7 @@ type Backend struct {
 	client rpcClient.HTTPClient
 
 	//leilei add.  Use mempool to forward txs directly
-	memPool *mempool.Mempool
+	memPool mempl.Mempool
 }
 
 // NewBackend creates a new Backend
@@ -95,7 +95,7 @@ func (b *Backend) Config() *eth.Config {
 	return b.ethConfig
 }
 
-func (b *Backend) SetMemPool(memPool *mempool.Mempool) {
+func (b *Backend) SetMemPool(memPool mempl.Mempool) {
 	b.memPool = memPool
 }
 
