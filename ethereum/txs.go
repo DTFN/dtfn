@@ -44,7 +44,9 @@ func (b *Backend) BroadcastTxSync(tx tmTypes.Tx) (*ctypes.ResultBroadcastTx, err
 	if err != nil {
 		return nil, fmt.Errorf("Error broadcasting transaction: %v", err)
 	}
+	fmt.Println("========before res := <-resCh")
 	res := <-resCh
+	fmt.Println("========after res := <-resCh")
 	r := res.GetCheckTx()
 	return &ctypes.ResultBroadcastTx{
 		Code: r.Code,
