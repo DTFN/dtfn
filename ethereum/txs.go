@@ -31,6 +31,7 @@ func (b *Backend) txBroadcastLoop() {
 	for obj := range ch {
 		if err := b.BroadcastTx(obj.Tx); err != nil {
 			log.Error("Broadcast error", "err", err)
+			obj.Result <- err
 			go b.ethereum.TxPool().RemoveTx(obj.Tx.Hash()) //start a goroutine to avoid deadlock
 		} else {
 			obj.Result <- nil
