@@ -20,7 +20,7 @@ import (
 // listen for txs and forward to tendermint
 func (b *Backend) txBroadcastLoop() {
 	//b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
-	ch := make(chan core.TxPreEvent, 10000)
+	ch := make(chan core.TxPreEvent, 100)
 	sub := b.ethereum.TxPool().SubscribeTxPreEvent(ch)
 	defer close(ch)
 	defer sub.Unsubscribe()
@@ -31,7 +31,9 @@ func (b *Backend) txBroadcastLoop() {
 	for obj := range ch {
 		if err := b.BroadcastTx(obj.Tx); err != nil {
 			log.Error("Broadcast error", "err", err)
-			go b.ethereum.TxPool().RemoveTx(obj.Tx.Hash()) //start a go routine to avoid deadlock
+			go b.ethereum.TxPool().RemoveTx(obj.Tx.Hash()) //start a goroutine to avoid deadlock
+		} else {
+			obj.Callback <- nil
 		}
 	}
 }
@@ -75,6 +77,7 @@ func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) error {
 	result, err := b.BroadcastTxSync(tmTx)
 	//result, err := b.client.Call("broadcast_tx_sync", params, &result)
 	if err != nil {
+		log.Error("broadcast_tx_sync return err %v", err)
 		return err
 	}
 	if result.Code != abciTypes.CodeTypeOK {
