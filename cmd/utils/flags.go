@@ -137,6 +137,11 @@ var (
 		Usage: "Address to advertise to peers for them to dial.If empty, will use the same port as the laddr",
 	}
 
+	MempoolBroadcastFlag = cli.BoolFlag{
+		Name:  "broadcast_tx",
+		Usage: "If set, mempool will broadcast tx",
+	}
+
 	TmConsEmptyBlock = cli.BoolFlag{
 		Name:  "tm_cons_emptyblock",
 		Usage: "EmptyBlocks mode",

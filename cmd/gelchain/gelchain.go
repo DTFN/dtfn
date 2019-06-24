@@ -226,6 +226,7 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig := tmcfg.DefaultConfig()
 	defaultTmConfig.BaseConfig = baseConfig
 	defaultTmConfig.Mempool.RootDir = tmHome
+	defaultTmConfig.Mempool.Broadcast = ctx.GlobalBool(emtUtils.MempoolBroadcastFlag.Name)
 	defaultTmConfig.P2P.RootDir = tmHome
 	defaultTmConfig.RPC.RootDir = tmHome
 	defaultTmConfig.Consensus.RootDir = tmHome
