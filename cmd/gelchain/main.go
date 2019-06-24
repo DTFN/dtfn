@@ -83,6 +83,7 @@ var (
 		utils.PrivatePeerIDs,
 		utils.TendermintP2PListenAddress,
 		utils.TendermintP2PExternalAddress,
+		utils.MempoolBroadcastFlag,
 		utils.TmConsEmptyBlock,
 		utils.TmConsEBlockInteval,
 		utils.TmConsNeedProofBlock,
