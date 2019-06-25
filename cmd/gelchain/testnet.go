@@ -73,6 +73,11 @@ func testnetCmd(ctx *cli.Context) error {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
+		err = os.MkdirAll(filepath.Join(nodeDir, "data"), nodeDirPerm)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
 
 		commands.InitFilesWithConfig(config)
 
