@@ -87,6 +87,7 @@ var (
 		utils.TmConsEmptyBlock,
 		utils.TmConsEBlockInteval,
 		utils.TmConsNeedProofBlock,
+		utils.TmConsProposeTimeout,
 		utils.TmInitialEthAccount,
 		utils.TmBlsSelectStrategy,
 		utils.TestNetHostnamePrefix,
