@@ -104,7 +104,7 @@ func (b *Backend) SetMemPool(memPool mempl.Mempool) {
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction, address common.Address) (abciTypes.ResponseDeliverTx) {
+func (b *Backend) DeliverTx(tx *emtTypes.EthTransaction, address common.Address) (abciTypes.ResponseDeliverTx) {
 	return b.es.DeliverTx(tx, &address)
 }
 

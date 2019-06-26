@@ -24,8 +24,8 @@ type jsonRequest struct {
 }
 
 // rlp decode an etherum transaction
-func decodeTx(txBytes []byte) (*types.Transaction, error) {
-	tx := new(types.Transaction)
+func decodeTx(txBytes []byte) (*ethmintTypes.EthTransaction, error) {
+	tx := new(ethmintTypes.EthTransaction)
 	rlpStream := rlp.NewStream(bytes.NewBuffer(txBytes), 0)
 	if err := tx.DecodeRLP(rlpStream); err != nil {
 		return nil, err

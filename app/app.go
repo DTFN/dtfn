@@ -363,8 +363,9 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 
 // validateTx checks the validity of a tx against the blockchain's current state.
 // it duplicates the logic in ethereum's tx_pool
-func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.ResponseCheckTx {
+func (app *EthermintApplication) validateTx(ethTx *emtTypes.EthTransaction) abciTypes.ResponseCheckTx {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
+	tx := ethTx.Tx
 	if tx.Size() > maxTransactionSize {
 		return abciTypes.ResponseCheckTx{
 			Code: uint32(errors.CodeInternal),
@@ -376,13 +377,17 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		signer = ethTypes.NewEIP155Signer(tx.ChainId())
 	}
 
-	// Make sure the transaction is signed properly
-	from, err := ethTypes.Sender(signer, tx)
-	if err != nil {
-		// TODO: Add errors.CodeTypeInvalidSignature ?
-		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInternal),
-			Log:  core.ErrInvalidSender.Error()}
+	from := ethTx.From
+	var err error
+	if len(from) == 0 {
+		// Make sure the transaction is signed properly
+		from, err = ethTypes.Sender(signer, tx)
+		if err != nil {
+			// TODO: Add errors.CodeTypeInvalidSignature ?
+			return abciTypes.ResponseCheckTx{
+				Code: uint32(errors.CodeInternal),
+				Log:  core.ErrInvalidSender.Error()}
+		}
 	}
 
 	// Transactions can't be negative. This may never happen using RLP decoded
