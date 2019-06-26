@@ -152,6 +152,11 @@ var (
 		Usage: "possible interval between empty blocks in seconds",
 	}
 
+	TmConsProposeTimeout = cli.Uint64Flag{
+		Name:  "propose_timeout",
+		Usage: "propose timeout in seconds",
+	}
+
 	TmConsNeedProofBlock = cli.BoolFlag{
 		Name:  "need_proof_block",
 		Usage: "whether to need proof block",
