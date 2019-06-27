@@ -5,7 +5,6 @@ import "github.com/ethereum/go-ethereum/core/types"
 import "github.com/ethereum/go-ethereum/rlp"
 import (
 	"io"
-	"bytes"
 )
 
 type EthTransaction struct {
@@ -20,7 +19,11 @@ type EthTransactionRLP struct {
 
 // EncodeRLP implements rlp.Encoder
 func (ethTx *EthTransaction) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &EthTransactionRLP{ethTx.Tx.Data(), ethTx.From})
+	txJson, err := ethTx.Tx.MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
+	return rlp.Encode(w, &EthTransactionRLP{txJson, ethTx.From})
 }
 
 // DecodeRLP implements rlp.Decoder
@@ -31,8 +34,7 @@ func (ethTx *EthTransaction) DecodeRLP(s *rlp.Stream) error {
 	}
 	ethTx.From = dec.From
 	tx := new(types.Transaction)
-	rlpStream := rlp.NewStream(bytes.NewBuffer(dec.TxData), 0)
-	tx.DecodeRLP(rlpStream)
+	tx.UnmarshalJSON(dec.TxData)
 	ethTx.Tx = tx
 	return nil
 }
