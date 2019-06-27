@@ -5,6 +5,7 @@ import "github.com/ethereum/go-ethereum/core/types"
 import "github.com/ethereum/go-ethereum/rlp"
 import (
 	"io"
+	"math/big"
 )
 
 type EthTransaction struct {
@@ -13,17 +14,27 @@ type EthTransaction struct {
 }
 
 type EthTransactionRLP struct {
-	TxData []byte
-	From   common.Address
+	AccountNonce uint64          `json:"nonce"    gencodec:"required"`
+	Price        *big.Int        `json:"gasPrice" gencodec:"required"`
+	GasLimit     uint64          `json:"gas"      gencodec:"required"`
+	Recipient    *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
+	Amount       *big.Int        `json:"value"    gencodec:"required"`
+	Payload      []byte          `json:"input"    gencodec:"required"`
+
+	From common.Address
 }
 
 // EncodeRLP implements rlp.Encoder
 func (ethTx *EthTransaction) EncodeRLP(w io.Writer) error {
-	txJson, err := ethTx.Tx.MarshalJSON()
-	if err != nil {
-		panic(err)
-	}
-	return rlp.Encode(w, &EthTransactionRLP{txJson, ethTx.From})
+	return rlp.Encode(w, &EthTransactionRLP{
+		AccountNonce: ethTx.Tx.Nonce(),
+		Price:        ethTx.Tx.GasPrice(),
+		GasLimit:     ethTx.Tx.Gas(),
+		Recipient:    ethTx.Tx.To(),
+		Amount:       ethTx.Tx.Value(),
+		Payload:      ethTx.Tx.Data(),
+		From:         ethTx.From,
+	})
 }
 
 // DecodeRLP implements rlp.Decoder
@@ -33,8 +44,7 @@ func (ethTx *EthTransaction) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 	ethTx.From = dec.From
-	tx := new(types.Transaction)
-	tx.UnmarshalJSON(dec.TxData)
-	ethTx.Tx = tx
+	ethTx.Tx = types.NewTransaction(dec.AccountNonce, *dec.Recipient, dec.Amount,
+		dec.GasLimit, dec.Price, dec.Payload)
 	return nil
 }
