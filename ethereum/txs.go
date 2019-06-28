@@ -12,6 +12,7 @@ import (
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"fmt"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/pkg/errors"
 )
 
 //----------------------------------------------------------------------
@@ -29,7 +30,7 @@ func (b *Backend) txBroadcastLoop() {
 
 	//for obj := range b.txSub.Chan() {
 	for obj := range ch {
-		if err := b.BroadcastTx(&emtTypes.EthTransaction{obj.Tx,obj.From}); err != nil {
+		if err := b.BroadcastTx(&emtTypes.EthTransaction{obj.Tx, obj.From}); err != nil {
 			log.Error("Broadcast error", "err", err)
 			obj.Result <- err
 			go b.ethereum.TxPool().RemoveTx(obj.Tx.Hash()) //start a goroutine to avoid deadlock
@@ -45,7 +46,7 @@ func (b *Backend) BroadcastTxSync(tx tmTypes.Tx) (*ctypes.ResultBroadcastTx, err
 		resCh <- res
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Error broadcasting transaction: %v", err)
+		return nil, fmt.Errorf("Error broadcasting transaction: %v ", err)
 	}
 	res := <-resCh
 	r := res.GetCheckTx()
@@ -78,12 +79,10 @@ func (b *Backend) BroadcastTx(tx *emtTypes.EthTransaction) error {
 	result, err := b.BroadcastTxSync(tmTx)
 	//result, err := b.client.Call("broadcast_tx_sync", params, &result)
 	if err != nil {
-		log.Error("broadcast_tx_sync return err %v", err)
 		return err
 	}
 	if result.Code != abciTypes.CodeTypeOK {
-		err = fmt.Errorf("Error on broadcast_tx_sync. result: %v", result)
-		return err
+		return errors.Errorf("checkTx fail, code %v log %v", result.Code, result.Log)
 	}
 	return nil
 }
