@@ -12,7 +12,6 @@ import (
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"fmt"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/pkg/errors"
 )
 
 //----------------------------------------------------------------------
@@ -82,7 +81,7 @@ func (b *Backend) BroadcastTx(tx *emtTypes.EthTransaction) error {
 		return err
 	}
 	if result.Code != abciTypes.CodeTypeOK {
-		return errors.Errorf("checkTx fail, code %v log %v", result.Code, result.Log)
+		return fmt.Errorf("CheckTx fail. result: %v ", result)
 	}
 	return nil
 }
