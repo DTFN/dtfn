@@ -26,7 +26,7 @@ func (b *Backend) txBroadcastLoop() {
 	defer sub.Unsubscribe()
 
 	waitForServer(b.client)
-
+	b.ethereum.TxPool().BeginConsume()
 	//for obj := range b.txSub.Chan() {
 	for obj := range ch {
 		if err := b.BroadcastTx(&emtTypes.EthTransaction{obj.Tx, obj.From}); err != nil {
