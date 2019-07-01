@@ -20,12 +20,12 @@ import (
 // listen for txs and forward to tendermint
 func (b *Backend) txBroadcastLoop() {
 	//b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
+	waitForServer(b.client)
+
 	ch := make(chan core.TxPreEvent, 100)
 	sub := b.ethereum.TxPool().SubscribeTxPreEvent(ch)
 	defer close(ch)
 	defer sub.Unsubscribe()
-
-	waitForServer(b.client)
 
 	//for obj := range b.txSub.Chan() {
 	for obj := range ch {
