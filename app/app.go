@@ -19,7 +19,6 @@ import (
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
 	"math/big"
-	"strconv"
 	"strings"
 )
 
@@ -261,17 +260,14 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.strategy.CurrentHeightValData.Height = beginBlock.GetHeader().Height
 	//when we reach the upgrade height,we change the blockversion
-	heightArray := strings.Split(version.HeightString, ",")
-	versionArray := strings.Split(version.VersonString, ",")
-	for i := 0; i < len(heightArray); i++ {
-		if app.strategy.HFExpectedData.IsHarfForkPassed {
-			currHeight, _ := strconv.ParseInt(heightArray[i], 10, 64)
-			currVersion, _ := strconv.ParseUint(versionArray[i], 10, 64)
-			if app.strategy.HFExpectedData.Height >= currHeight {
-				app.strategy.HFExpectedData.BlockVersion = currVersion
+
+	if app.strategy.HFExpectedData.IsHarfForkPassed {
+		for i := len(version.HeightArray) - 1; i >= 0; i-- {
+			app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
+			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
+				break
 			}
 		}
-
 	}
 	//if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
 	//	app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
