@@ -281,6 +281,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
 	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
+	app.backend.Ethereum().TxPool().HandleCachedTxs()
 	db, e := app.getCurrentState()
 	if e == nil {
 		//app.logger.Info("do punish")
