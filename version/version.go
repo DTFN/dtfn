@@ -33,6 +33,8 @@ func init() {
 	heightStrArray := strings.Split(HeightString, ",")
 	versionStrArray := strings.Split(VersionString, ",")
 
+	HeightArray = make([]int64, len(heightStrArray))
+	VersionArray = make([]int64, len(versionStrArray))
 	for i := 0; i < len(heightStrArray); i++ {
 		HeightArray[i], _ = strconv.ParseInt(heightStrArray[i], 10, 64)
 		VersionArray[i], _ = strconv.ParseInt(versionStrArray[i], 10, 64)
