@@ -90,10 +90,13 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	}*/
 	validatorsSlice := []abciTypes.ValidatorUpdate{}
 
-	selectCount := 7 //currently fixed
+	selectCount := app.strategy.CurrEpochValData.SelectCount //currently fixed
 	poolLen := len(app.strategy.CurrEpochValData.PosTable.PosItemMap)
 	if poolLen < 7 {
 		app.GetLogger().Info(fmt.Sprintf("PosTable.PosItemMap len < 7, current len %v", poolLen))
+	}
+	if selectCount == 0 {	//0 means return full set each height
+		selectCount = poolLen
 	}
 
 	// we use map to remember which validators selected has put into validatorSlice

@@ -230,4 +230,10 @@ var (
 		Name:  "rollback_flag",
 		Usage: "whether or not rollback",
 	}
+
+	SelectCount = cli.IntFlag{
+		Name:  "select_count",
+		Value: 7,
+		Usage: "how many different validators are selected each height",
+	}
 )
