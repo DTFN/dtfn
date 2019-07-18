@@ -116,7 +116,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		strategy.SetInitialAccountMap(amlist)
 		log.Info(fmt.Sprintf("SetInitialAccountMap %v", amlist))
 
-		strategy.CurrEpochValData.SelectCount=ctx.GlobalInt(emtUtils.SelectCount.Name)
+		strategy.CurrEpochValData.SelectCount = ctx.GlobalInt(emtUtils.SelectCount.Name)
 	}
 	if strategy.CurrEpochValData.TotalBalance.Int64() == 0 {
 		panic("strategy.CurrEpochValData.TotalBalance==0")
@@ -252,6 +252,8 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.P2P.PrivatePeerIDs = ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
 	defaultTmConfig.P2P.ListenAddress = ctx.GlobalString(emtUtils.TendermintP2PListenAddress.Name)
 	defaultTmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
+	defaultTmConfig.P2P.MaxNumInboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
+	defaultTmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
 
 	return defaultTmConfig
 }

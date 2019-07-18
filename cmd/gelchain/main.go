@@ -98,6 +98,8 @@ var (
 		utils.TestNetpOpulatePersistentPeers,
 		utils.TestnetStartingIPAddress,
 		utils.TestNetVals,
+		utils.MaxInPeers,
+		utils.MaxOutPeers,
 		utils.RollbackHeight,
 		utils.RollbackFlag,
 		utils.SelectCount,
