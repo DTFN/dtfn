@@ -239,13 +239,13 @@ var (
 
 	MaxInPeers = cli.IntFlag{
 		Name:  "max_in_peers",
-		Value: 9,
+		Value: 29,
 		Usage: "how many different validators are selected each height",
 	}
 
 	MaxOutPeers = cli.IntFlag{
 		Name:  "max_out_peers",
-		Value: 6,
+		Value: 11,
 		Usage: "how many different validators are selected each height",
 	}
 )
