@@ -103,6 +103,9 @@ var (
 		utils.RollbackHeight,
 		utils.RollbackFlag,
 		utils.SelectCount,
+		utils.MempoolSize,
+		utils.FlowControlFlag,
+		utils.FlowControlMaxSleepTime,
 	}
 )
 

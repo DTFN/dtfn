@@ -228,7 +228,10 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig := tmcfg.DefaultConfig()
 	defaultTmConfig.BaseConfig = baseConfig
 	defaultTmConfig.Mempool.RootDir = tmHome
+	defaultTmConfig.Mempool.Size = ctx.GlobalInt(emtUtils.MempoolSize.Name)
 	defaultTmConfig.Mempool.Broadcast = ctx.GlobalBool(emtUtils.MempoolBroadcastFlag.Name)
+	defaultTmConfig.Mempool.FlowControl = ctx.GlobalBool(emtUtils.FlowControlFlag.Name)
+	defaultTmConfig.Mempool.FlowControlMaxSleepTime = time.Duration(ctx.GlobalInt(emtUtils.FlowControlMaxSleepTime.Name)) * time.Second
 	defaultTmConfig.P2P.RootDir = tmHome
 	defaultTmConfig.RPC.RootDir = tmHome
 	defaultTmConfig.Consensus.RootDir = tmHome

@@ -112,6 +112,10 @@ func SetEthermintEthConfig(ctx *cli.Context, cfg *eth.Config) {
 		trieTimeout := int64(trieTimeLimit) * int64(time.Second)
 		cfg.TrieTimeout = time.Duration(trieTimeout)
 	}
+	if ctx.GlobalBool(FlowControlFlag.Name) {
+		cfg.TxPool.MempoolSize = uint64(ctx.GlobalInt(MempoolSize.Name))
+		cfg.TxPool.MaxFlowLimitSleepTime = time.Duration(ctx.GlobalInt(FlowControlMaxSleepTime.Name)) * time.Second
+	}
 
 }
 

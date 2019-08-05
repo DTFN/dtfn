@@ -240,12 +240,29 @@ var (
 	MaxInPeers = cli.IntFlag{
 		Name:  "max_in_peers",
 		Value: 29,
-		Usage: "how many different validators are selected each height",
+		Usage: "max inbound peers allowed",
 	}
 
 	MaxOutPeers = cli.IntFlag{
 		Name:  "max_out_peers",
 		Value: 11,
-		Usage: "how many different validators are selected each height",
+		Usage: "max outbound peers allowed",
+	}
+
+	MempoolSize = cli.IntFlag{
+		Name:  "mempool_size",
+		Value: 50000,
+		Usage: "the size of tendermint mempool",
+	}
+
+	FlowControlFlag = cli.BoolFlag{
+		Name:  "flow_control",
+		Usage: "if flow control, receiving tx and broadcasting tx get slower when txs over half the size of mempool",
+	}
+
+	FlowControlMaxSleepTime = cli.IntFlag{
+		Name:  "flow_control_sleep",
+		Value: 6,
+		Usage: "max sleep time for flow control, seconds",
 	}
 )
