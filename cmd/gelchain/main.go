@@ -104,6 +104,8 @@ var (
 		utils.RollbackFlag,
 		utils.SelectCount,
 		utils.MempoolSize,
+		utils.MempoolThreshold,
+		utils.TxPoolThreshold,
 		utils.FlowControlFlag,
 		utils.FlowControlMaxSleepTime,
 	}
