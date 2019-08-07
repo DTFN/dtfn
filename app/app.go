@@ -279,7 +279,10 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.backend.Ethereum().TxPool().HandleCachedTxs()
 	if app.backend.Ethereum().TxPool().IsFlowControlOpen() {
-		app.backend.Ethereum().TxPool().SetFlowLimit(app.backend.MemPool().SizeSnapshot())
+		memPool := app.backend.MemPool()
+		if memPool != nil { //when in replay, memPool has not been set, it is nil
+			app.backend.Ethereum().TxPool().SetFlowLimit(memPool.SizeSnapshot())
+		}
 	}
 	db, e := app.getCurrentState()
 	if e == nil {
