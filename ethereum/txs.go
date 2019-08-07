@@ -12,13 +12,16 @@ import (
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"fmt"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/event"
 )
 
 func (b *Backend) subscribeHandle() {
 	//b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
+	chTx := make(chan core.TxPreEvent, 50000)
+	subTx := b.ethereum.TxPool().SubscribeTxPreEvent(chTx)
 
 	waitForServer(b.client)
-	go b.txBroadcastLoop()
+	go b.txBroadcastLoop(chTx, subTx)
 	if b.ethereum.TxPool().IsFlowControlOpen() {
 		go b.newHeadHandleLoop()
 	}
@@ -28,9 +31,7 @@ func (b *Backend) subscribeHandle() {
 // Transactions sent via the go-ethereum rpc need to be routed to tendermint
 
 // listen for txs and forward to tendermint
-func (b *Backend) txBroadcastLoop() {
-	chTx := make(chan core.TxPreEvent, 10000)
-	subTx := b.ethereum.TxPool().SubscribeTxPreEvent(chTx)
+func (b *Backend) txBroadcastLoop(chTx chan core.TxPreEvent, subTx event.Subscription) {
 	defer close(chTx)
 	defer subTx.Unsubscribe()
 	b.ethereum.TxPool().BeginConsume()
