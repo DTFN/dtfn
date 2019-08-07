@@ -99,6 +99,10 @@ func (b *Backend) SetMemPool(memPool mempl.Mempool) {
 	b.memPool = memPool
 }
 
+func (b *Backend) MemPool() mempl.Mempool {
+	return b.memPool
+}
+
 //----------------------------------------------------------------------
 // Handle block processing
 
@@ -174,7 +178,7 @@ func (b *Backend) APIs() []rpc.API {
 // Ethereum protocol implementation.
 // #stable
 func (b *Backend) Start(_ *p2p.Server) error {
-	go b.subscribeHandle()
+	go b.txBroadcastLoop()
 	return nil
 }
 

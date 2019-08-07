@@ -12,32 +12,23 @@ import (
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"fmt"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/event"
 )
-
-func (b *Backend) subscribeHandle() {
-	//b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
-	chTx := make(chan core.TxPreEvent, 50000)
-	subTx := b.ethereum.TxPool().SubscribeTxPreEvent(chTx)
-
-	waitForServer(b.client)
-	go b.txBroadcastLoop(chTx, subTx)
-	if b.ethereum.TxPool().IsFlowControlOpen() {
-		go b.newHeadHandleLoop()
-	}
-}
 
 //----------------------------------------------------------------------
 // Transactions sent via the go-ethereum rpc need to be routed to tendermint
 
 // listen for txs and forward to tendermint
-func (b *Backend) txBroadcastLoop(chTx chan core.TxPreEvent, subTx event.Subscription) {
-	defer close(chTx)
-	defer subTx.Unsubscribe()
-	b.ethereum.TxPool().BeginConsume()
+func (b *Backend) txBroadcastLoop() {
+	//b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
+	ch := make(chan core.TxPreEvent, 50000)
+	sub := b.ethereum.TxPool().SubscribeTxPreEvent(ch)
+	defer close(ch)
+	defer sub.Unsubscribe()
 
+	waitForServer(b.client)
+	b.ethereum.TxPool().BeginConsume()
 	//for obj := range b.txSub.Chan() {
-	for obj := range chTx {
+	for obj := range ch {
 		if err := b.BroadcastTx(&emtTypes.EthTransaction{obj.Tx, obj.From}); err != nil {
 			log.Error("Broadcast error", "err", err)
 			obj.Result <- err
@@ -45,16 +36,6 @@ func (b *Backend) txBroadcastLoop(chTx chan core.TxPreEvent, subTx event.Subscri
 		} else {
 			obj.Result <- nil
 		}
-	}
-}
-
-func (b *Backend) newHeadHandleLoop() {
-	chHead := make(chan core.ChainHeadEvent, 0)
-	subHead := b.ethereum.BlockChain().SubscribeChainHeadEvent(chHead)
-	defer close(chHead)
-	defer subHead.Unsubscribe()
-	for range chHead {
-		b.ethereum.TxPool().SetFlowLimit(b.memPool.Size())
 	}
 }
 
