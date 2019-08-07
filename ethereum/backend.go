@@ -174,7 +174,7 @@ func (b *Backend) APIs() []rpc.API {
 // Ethereum protocol implementation.
 // #stable
 func (b *Backend) Start(_ *p2p.Server) error {
-	go b.txBroadcastLoop()
+	go b.subscribeHandle()
 	return nil
 }
 
