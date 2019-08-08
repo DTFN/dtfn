@@ -257,8 +257,14 @@ var (
 
 	MempoolThreshold = cli.IntFlag{
 		Name:  "mempool_threshold",
-		Value: 25000,
+		Value: 20000,
 		Usage: "the threshold of tendermint mempool for flow control",
+	}
+
+	TxpoolThreshold = cli.IntFlag{
+		Name:  "txpool_threshold",
+		Value: 35000,
+		Usage: "the threshold of ethereum txpool for flow control",
 	}
 
 	FlowControlFlag = cli.BoolFlag{
