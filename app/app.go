@@ -277,6 +277,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
 	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
+	app.backend.Ethereum().TxPool().HandleCachedTxs()
 	if app.backend.Ethereum().TxPool().IsFlowControlOpen() {
 		memPool := app.backend.MemPool()
 		if memPool != nil { //when in replay, memPool has not been set, it is nil
