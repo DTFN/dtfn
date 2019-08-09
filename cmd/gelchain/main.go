@@ -105,6 +105,7 @@ var (
 		utils.SelectCount,
 		utils.MempoolSize,
 		utils.MempoolThreshold,
+		utils.MempoolHeightThreshold,
 		utils.TxpoolThreshold,
 		utils.FlowControlFlag,
 		utils.FlowControlMaxSleepTime,

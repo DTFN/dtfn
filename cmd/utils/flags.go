@@ -261,6 +261,12 @@ var (
 		Usage: "the threshold of tendermint mempool for flow control",
 	}
 
+	MempoolHeightThreshold = cli.IntFlag{
+		Name:  "mempool_height_threshold",
+		Value: 100,
+		Usage: "the threshold of tendermint mempool for each height for flow control",
+	}
+
 	TxpoolThreshold = cli.IntFlag{
 		Name:  "txpool_threshold",
 		Value: 35000,
