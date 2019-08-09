@@ -20,14 +20,14 @@ import (
 // listen for txs and forward to tendermint
 func (b *Backend) txBroadcastLoop() {
 	//b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
-	ch := make(chan core.TxPreEvent, 10000)
+	ch := make(chan core.TxPreEvent, 50000)
 	sub := b.ethereum.TxPool().SubscribeTxPreEvent(ch)
 	defer close(ch)
 	defer sub.Unsubscribe()
 
 	waitForServer(b.client)
-	b.ethereum.TxPool().BeginConsume()
 	//for obj := range b.txSub.Chan() {
+	txCount := 0
 	for obj := range ch {
 		if err := b.BroadcastTx(&emtTypes.EthTransaction{obj.Tx, obj.From}); err != nil {
 			log.Error("Broadcast error", "err", err)
@@ -36,6 +36,11 @@ func (b *Backend) txBroadcastLoop() {
 		} else {
 			obj.Result <- nil
 		}
+		if txCount > 1<<10 {
+			b.ethereum.TxPool().SetFlowLimit(b.memPool.Size())
+			txCount = 0
+		}
+		txCount++
 	}
 }
 
