@@ -257,7 +257,7 @@ var (
 
 	MempoolThreshold = cli.IntFlag{
 		Name:  "mempool_threshold",
-		Value: 20000,
+		Value: 10000,
 		Usage: "the threshold of tendermint mempool for flow control",
 	}
 
@@ -269,7 +269,7 @@ var (
 
 	TxpoolThreshold = cli.IntFlag{
 		Name:  "txpool_threshold",
-		Value: 35000,
+		Value: 38000,
 		Usage: "the threshold of ethereum txpool for flow control",
 	}
 
@@ -280,7 +280,7 @@ var (
 
 	FlowControlMaxSleepTime = cli.IntFlag{
 		Name:  "flow_control_sleep",
-		Value: 6,
+		Value: 10,
 		Usage: "max sleep time for flow control, seconds",
 	}
 )
