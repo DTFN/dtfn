@@ -42,6 +42,7 @@ type Backend struct {
 
 	//leilei add.  Use mempool to forward txs directly
 	memPool mempl.Mempool
+	lastFrom    common.Address
 }
 
 // NewBackend creates a new Backend
@@ -103,12 +104,16 @@ func (b *Backend) MemPool() mempl.Mempool {
 	return b.memPool
 }
 
+func (b *Backend) LastFrom() common.Address {
+	return b.lastFrom
+}
+
 //----------------------------------------------------------------------
 // Handle block processing
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *emtTypes.EthTransaction, address common.Address) (abciTypes.ResponseDeliverTx) {
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, address common.Address) (abciTypes.ResponseDeliverTx) {
 	return b.es.DeliverTx(tx, &address)
 }
 

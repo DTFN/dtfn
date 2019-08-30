@@ -8,7 +8,7 @@ import (
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmTypes "github.com/tendermint/tendermint/types"
-	emtTypes "github.com/green-element-chain/gelchain/types"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"fmt"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -30,7 +30,8 @@ func (b *Backend) txBroadcastLoop() {
 	//for obj := range b.txSub.Chan() {
 	txCount := 0
 	for obj := range ch {
-		if err := b.BroadcastTx(&emtTypes.EthTransaction{obj.Tx, obj.From}); err != nil {
+		b.lastFrom = obj.From
+		if err := b.BroadcastTx(obj.Tx); err != nil {
 			log.Error("Broadcast error", "err", err)
 			obj.Result <- err
 			go b.ethereum.TxPool().RemoveTx(obj.Tx.Hash()) //start a goroutine to avoid deadlock
@@ -65,8 +66,7 @@ func (b *Backend) BroadcastTxSync(tx tmTypes.Tx) (*ctypes.ResultBroadcastTx, err
 
 // BroadcastTx broadcasts a transaction to tendermint core
 // #unstable
-func (b *Backend) BroadcastTx(tx *emtTypes.EthTransaction) error {
-
+func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) error {
 	txBytes, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Error("tx %v EncodeToBytes err %v", tx, err)

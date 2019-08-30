@@ -203,7 +203,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 
 // CheckTx checks a transaction is valid but does not mutate the state
 // #stable - 0.4.0
-func (app *EthermintApplication) CheckTx(txBytes []byte) abciTypes.ResponseCheckTx {
+func (app *EthermintApplication) CheckTx(req abciTypes.RequestCheckTx) abciTypes.ResponseCheckTx {
+	txBytes := req.Tx
 	tx, err := decodeTx(txBytes)
 	if err != nil {
 		// nolint: errcheck
@@ -215,13 +216,13 @@ func (app *EthermintApplication) CheckTx(txBytes []byte) abciTypes.ResponseCheck
 	}
 	app.logger.Debug("CheckTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	return app.validateTx(tx)
+	return app.validateTx(tx, req.Type != abciTypes.CheckTxType_Remote)
 }
 
 // DeliverTx executes a transaction against the latest state
 // #stable - 0.4.0
-func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDeliverTx {
-	tx, err := decodeTx(txBytes)
+func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciTypes.ResponseDeliverTx {
+	tx, err := decodeTx(req.Tx)
 	if err != nil {
 		// nolint: errcheck
 		app.logger.Debug("DelivexTx: Received invalid transaction", "tx", tx, "err", err)
@@ -366,9 +367,8 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 
 // validateTx checks the validity of a tx against the blockchain's current state.
 // it duplicates the logic in ethereum's tx_pool
-func (app *EthermintApplication) validateTx(ethTx *emtTypes.EthTransaction) abciTypes.ResponseCheckTx {
+func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, local bool) abciTypes.ResponseCheckTx {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
-	tx := ethTx.Tx
 	if tx.Size() > maxTransactionSize {
 		return abciTypes.ResponseCheckTx{
 			Code: uint32(errors.CodeInternal),
@@ -380,9 +380,11 @@ func (app *EthermintApplication) validateTx(ethTx *emtTypes.EthTransaction) abci
 		signer = ethTypes.NewEIP155Signer(tx.ChainId())
 	}
 
-	from := ethTx.From
-	var err error
-	if len(from) == 0 {
+	var from common.Address
+	if local {
+		from = app.backend.LastFrom()
+	} else {
+		var err error
 		// Make sure the transaction is signed properly
 		from, err = ethTypes.Sender(signer, tx)
 		if err != nil {
