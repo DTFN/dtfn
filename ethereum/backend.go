@@ -41,8 +41,9 @@ type Backend struct {
 	client rpcClient.HTTPClient
 
 	//leilei add.  Use mempool to forward txs directly
-	memPool mempl.Mempool
-	lastFrom    common.Address
+	memPool      mempl.Mempool
+	lastFrom     common.Address
+	cachedTxFrom map[common.Hash]common.Address
 }
 
 // NewBackend creates a new Backend
@@ -72,10 +73,11 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 	ethereum.BlockChain().SetValidator(core.NewBlockValidator(ethereum.BlockChain().Config(), ethereum.BlockChain(), ethash.NewFaker()))
 
 	ethBackend := &Backend{
-		ethereum:  ethereum,
-		ethConfig: ethConfig,
-		es:        es,
-		client:    client,
+		ethereum:     ethereum,
+		ethConfig:    ethConfig,
+		es:           es,
+		client:       client,
+		cachedTxFrom: make(map[common.Hash]common.Address),
 	}
 	return ethBackend, nil
 }
@@ -108,19 +110,32 @@ func (b *Backend) LastFrom() common.Address {
 	return b.lastFrom
 }
 
+func (b *Backend) CachedTxFrom() map[common.Hash]common.Address {
+	return b.cachedTxFrom
+}
+
 //----------------------------------------------------------------------
 // Handle block processing
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction, address common.Address) (abciTypes.ResponseDeliverTx) {
-	return b.es.DeliverTx(tx, &address)
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address, address common.Address) (abciTypes.ResponseDeliverTx) {
+	return b.es.DeliverTx(tx, &from, &address)
 }
 
 // AccumulateRewards accumulates the rewards based on the given strategy
 // #unstable
 func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
 	b.es.AccumulateRewards(strategy)
+}
+
+func (b *Backend) FetchCachedTxFrom(txHash common.Hash) (common.Address, bool) {
+	from, ok := b.cachedTxFrom[txHash]
+	return from, ok
+}
+
+func (b *Backend) DeleteCachedTxFrom(txHash common.Hash) {
+	delete(b.cachedTxFrom, txHash)
 }
 
 // Commit finalises the current block
@@ -220,4 +235,9 @@ func (v *NullBlockProcessor) ValidateBody(block *ethTypes.Block) error {
 // #unstable
 func (v *NullBlockProcessor) ValidateState(block, parent *ethTypes.Block, state *state.StateDB, receipts ethTypes.Receipts, usedGas uint64) error {
 	return nil
+}
+
+type TxFrom struct {
+	TxHash common.Hash
+	From   common.Address
 }

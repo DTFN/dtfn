@@ -216,7 +216,7 @@ func (app *EthermintApplication) CheckTx(req abciTypes.RequestCheckTx) abciTypes
 	}
 	app.logger.Debug("CheckTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	return app.validateTx(tx, req.Type != abciTypes.CheckTxType_Remote)
+	return app.validateTx(tx, req.Type)
 }
 
 // DeliverTx executes a transaction against the latest state
@@ -231,9 +231,27 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 			Log:  err.Error(),
 		}
 	}
+	from, ok := app.backend.FetchCachedTxFrom(tx.Hash())
+	if !ok {
+		var signer ethTypes.Signer = ethTypes.FrontierSigner{}
+		if tx.Protected() {
+			signer = ethTypes.NewEIP155Signer(tx.ChainId())
+		}
+		var err error
+		// Make sure the transaction is signed properly
+		from, err = ethTypes.Sender(signer, tx)
+		if err != nil {
+			return abciTypes.ResponseDeliverTx{
+				Code: uint32(errors.CodeInternal),
+				Log:  core.ErrInvalidSender.Error()}
+		}
+	} else {
+		app.backend.DeleteCachedTxFrom(tx.Hash())
+	}
+
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx, app.Receiver())
+	res := app.backend.DeliverTx(tx, from, app.Receiver())
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
@@ -241,7 +259,6 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		return res
 	}
 	//app.CollectTx(tx)
-
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,
 	}
@@ -278,7 +295,6 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
 	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
-	app.backend.Ethereum().TxPool().HandleCachedTxs()
 	if app.backend.Ethereum().TxPool().IsFlowControlOpen() {
 		memPool := app.backend.MemPool()
 		if memPool != nil { //when in replay, memPool has not been set, it is nil
@@ -367,7 +383,7 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 
 // validateTx checks the validity of a tx against the blockchain's current state.
 // it duplicates the logic in ethereum's tx_pool
-func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, local bool) abciTypes.ResponseCheckTx {
+func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType abciTypes.CheckTxType) abciTypes.ResponseCheckTx {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
 	if tx.Size() > maxTransactionSize {
 		return abciTypes.ResponseCheckTx{
@@ -381,8 +397,29 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, local bool
 	}
 
 	var from common.Address
-	if local {
+	var cached bool
+	success:=false
+	if checkType == abciTypes.CheckTxType_Local {
 		from = app.backend.LastFrom()
+	} else if checkType == abciTypes.CheckTxType_Recheck {
+		from, cached = app.backend.FetchCachedTxFrom(tx.Hash())
+		if !cached {
+			var err error
+			// Make sure the transaction is signed properly
+			from, err = ethTypes.Sender(signer, tx)
+			if err != nil {
+				// TODO: Add errors.CodeTypeInvalidSignature ?
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(errors.CodeInternal),
+					Log:  core.ErrInvalidSender.Error()}
+			}
+		}else{
+			defer func(){
+				if !success{
+					app.backend.DeleteCachedTxFrom(tx.Hash())
+				}
+			}()
+		}
 	} else {
 		var err error
 		// Make sure the transaction is signed properly
@@ -476,6 +513,11 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, local bool
 	}
 	currentState.SetNonce(from, tx.Nonce()+1)
 
+	if checkType != abciTypes.CheckTxType_Recheck || !cached {
+		cachedTxFrom := app.backend.CachedTxFrom()
+		cachedTxFrom[tx.Hash()] = from
+	}
+	success=true
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
 

@@ -82,14 +82,14 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx) {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address, address *common.Address) (abciTypes.ResponseDeliverTx) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
-	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, address)
+	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from, address)
 }
 
 // Accumulate validator rewards.
@@ -292,9 +292,9 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx) {
+	tx *ethTypes.Transaction, from *common.Address, address *common.Address) (abciTypes.ResponseDeliverTx) {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
-	receipt, msg, _, err := core.ApplyTransactionFacade(
+	receipt, msg, _, err := core.ApplyTransactionWithFrom(
 		chainConfig,
 		blockchain,
 		address, // defaults to address of the author of the header
@@ -302,6 +302,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		ws.state,
 		ws.header,
 		tx,
+		*from,
 		ws.totalUsedGas,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
