@@ -295,6 +295,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
 	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
+	app.backend.Ethereum().TxPool().HandleCachedTxs()
 	if app.backend.Ethereum().TxPool().IsFlowControlOpen() {
 		memPool := app.backend.MemPool()
 		if memPool != nil { //when in replay, memPool has not been set, it is nil
@@ -398,7 +399,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 
 	var from common.Address
 	var cached bool
-	success:=false
+	success := false
 	if checkType == abciTypes.CheckTxType_Local {
 		from = app.backend.LastFrom()
 	} else if checkType == abciTypes.CheckTxType_Recheck {
@@ -413,9 +414,9 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 					Code: uint32(errors.CodeInternal),
 					Log:  core.ErrInvalidSender.Error()}
 			}
-		}else{
-			defer func(){
-				if !success{
+		} else {
+			defer func() {
+				if !success {
 					app.backend.DeleteCachedTxFrom(tx.Hash())
 				}
 			}()
@@ -517,7 +518,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		cachedTxFrom := app.backend.CachedTxFrom()
 		cachedTxFrom[tx.Hash()] = from
 	}
-	success=true
+	success = true
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
 
