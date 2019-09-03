@@ -231,7 +231,8 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 			Log:  err.Error(),
 		}
 	}
-	from, ok := app.backend.FetchCachedTxFrom(tx.Hash())
+	txHash := tx.Hash()
+	from, ok := app.backend.FetchCachedTxFrom(&txHash)
 	if !ok {
 		var signer ethTypes.Signer = ethTypes.FrontierSigner{}
 		if tx.Protected() {
@@ -246,7 +247,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 				Log:  core.ErrInvalidSender.Error()}
 		}
 	} else {
-		app.backend.DeleteCachedTxFrom(tx.Hash())
+		app.backend.DeleteCachedTxFrom(&txHash)
 	}
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
@@ -400,10 +401,11 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	var from common.Address
 	var cached bool
 	success := false
+	txHash := tx.Hash()
 	if checkType == abciTypes.CheckTxType_Local {
 		from = app.backend.LastFrom()
 	} else if checkType == abciTypes.CheckTxType_Recheck {
-		from, cached = app.backend.FetchCachedTxFrom(tx.Hash())
+		from, cached = app.backend.FetchCachedTxFrom(&txHash)
 		if !cached {
 			var err error
 			// Make sure the transaction is signed properly
@@ -417,7 +419,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		} else {
 			defer func() {
 				if !success {
-					app.backend.DeleteCachedTxFrom(tx.Hash())
+					app.backend.DeleteCachedTxFrom(&txHash)
 				}
 			}()
 		}
@@ -515,8 +517,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	currentState.SetNonce(from, tx.Nonce()+1)
 
 	if checkType != abciTypes.CheckTxType_Recheck || !cached {
-		cachedTxFrom := app.backend.CachedTxFrom()
-		cachedTxFrom[tx.Hash()] = from
+		app.backend.InsertCachedTxFrom(&txHash, &from)
 	}
 	success = true
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}

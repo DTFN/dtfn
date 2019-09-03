@@ -129,13 +129,17 @@ func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
 	b.es.AccumulateRewards(strategy)
 }
 
-func (b *Backend) FetchCachedTxFrom(txHash common.Hash) (common.Address, bool) {
-	from, ok := b.cachedTxFrom[txHash]
+func (b *Backend) FetchCachedTxFrom(txHash *common.Hash) (common.Address, bool) {
+	from, ok := b.cachedTxFrom[*txHash]
 	return from, ok
 }
 
-func (b *Backend) DeleteCachedTxFrom(txHash common.Hash) {
-	delete(b.cachedTxFrom, txHash)
+func (b *Backend) DeleteCachedTxFrom(txHash *common.Hash) {
+	delete(b.cachedTxFrom, *txHash)
+}
+
+func (b *Backend) InsertCachedTxFrom(txHash *common.Hash, from *common.Address) {
+	b.cachedTxFrom[*txHash]=*from
 }
 
 // Commit finalises the current block
