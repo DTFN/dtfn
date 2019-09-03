@@ -324,7 +324,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height, app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
 		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
 	}
-
+	fmt.Println(fmt.Sprintf("===========txCacheFrom count %v", len(app.backend.CachedTxFrom())))
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
