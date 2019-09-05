@@ -232,7 +232,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		}
 	}
 	txHash := tx.Hash()
-	from, ok := app.backend.FetchCachedTxFrom(&txHash)
+	from, ok := app.backend.FetchCachedTxFrom(txHash)
 	if !ok {
 		var signer ethTypes.Signer = ethTypes.FrontierSigner{}
 		if tx.Protected() {
@@ -247,7 +247,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 				Log:  core.ErrInvalidSender.Error()}
 		}
 	} else {
-		app.backend.DeleteCachedTxFrom(&txHash)
+		app.backend.DeleteCachedTxFrom(txHash)
 	}
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
@@ -325,7 +325,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height, app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
 		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
 	}
-	fmt.Println(fmt.Sprintf("===========txCacheFrom count %v", len(app.backend.CachedTxFrom())))
+	//fmt.Println(fmt.Sprintf("===========txCacheFrom count %v", len(app.backend.CachedTxFrom())))
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
@@ -405,7 +405,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	if checkType == abciTypes.CheckTxType_Local {
 		from = app.backend.LastFrom()
 	} else if checkType == abciTypes.CheckTxType_Recheck {
-		from, cached = app.backend.FetchCachedTxFrom(&txHash)
+		from, cached = app.backend.FetchCachedTxFrom(txHash)
 		if !cached {
 			var err error
 			// Make sure the transaction is signed properly
@@ -419,7 +419,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		} else {
 			defer func() {
 				if !success {
-					app.backend.DeleteCachedTxFrom(&txHash)
+					app.backend.DeleteCachedTxFrom(txHash)
 				}
 			}()
 		}
@@ -517,7 +517,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	currentState.SetNonce(from, tx.Nonce()+1)
 
 	if checkType != abciTypes.CheckTxType_Recheck || !cached {
-		app.backend.InsertCachedTxFrom(&txHash, &from)
+		app.backend.InsertCachedTxFrom(txHash, from)
 	}
 	success = true
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
