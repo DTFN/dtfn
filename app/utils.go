@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	"net/http"
+	_ "net/http/pprof"
 )
 
 // format of query data
@@ -97,7 +98,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	if poolLen < 7 {
 		app.GetLogger().Info(fmt.Sprintf("PosTable.PosItemMap len < 7, current len %v", poolLen))
 	}
-	if selectCount == 0 {	//0 means return full set each height
+	if selectCount == 0 { //0 means return full set each height
 		selectCount = poolLen
 	}
 

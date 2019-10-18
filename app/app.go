@@ -296,13 +296,6 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.Es().UpdateHeaderCoinbase(app.Receiver())
 	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
-	app.backend.Ethereum().TxPool().HandleCachedTxs()
-	if app.backend.Ethereum().TxPool().IsFlowControlOpen() {
-		memPool := app.backend.MemPool()
-		if memPool != nil { //when in replay, memPool has not been set, it is nil
-			app.backend.Ethereum().TxPool().SetFlowLimit(memPool.SizeSnapshot())
-		}
-	}
 	db, e := app.getCurrentState()
 	if e == nil {
 		//app.logger.Info("do punish")
@@ -352,6 +345,14 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		// nolint: errcheck
 		app.logger.Error("Error getting latest ethereum state", "err", err)
 		return abciTypes.ResponseCommit{}
+	}
+
+	app.backend.Ethereum().TxPool().HandleCachedTxs()
+	if app.backend.Ethereum().TxPool().IsFlowControlOpen() {
+		memPool := app.backend.MemPool()
+		if memPool != nil { //when in replay, memPool has not been set, it is nil
+			app.backend.Ethereum().TxPool().SetFlowLimit(memPool.SizeSnapshot())
+		}
 	}
 
 	return abciTypes.ResponseCommit{
@@ -439,7 +440,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
 		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInvalidPubKey),
+			Code: uint32(errors.CodeInvalidCoins),
 			Log:  core.ErrNegativeValue.Error()}
 	}
 

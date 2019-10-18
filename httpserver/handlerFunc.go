@@ -8,7 +8,6 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	_ "net/http/pprof"
 	"strconv"
 	"fmt"
 )
