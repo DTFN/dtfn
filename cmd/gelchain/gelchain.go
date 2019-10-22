@@ -33,7 +33,9 @@ import (
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
 	"math/big"
-	mempool2 "github.com/tendermint/tendermint/mempool"
+	"github.com/tendermint/tendermint/mempool"
+	"github.com/fjl/memsize/memsizeui"
+	"net/http"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -170,9 +172,9 @@ func ethermintCmd(ctx *cli.Context) error {
 		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
 		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
-		mempool := n.Mempool()
-		backend.SetMemPool(mempool)
-		clist_mempool := mempool.(*mempool2.CListMempool)
+		memPool := n.Mempool()
+		backend.SetMemPool(memPool)
+		clist_mempool := memPool.(*mempool.CListMempool)
 		clist_mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
 
 		err = n.Start()
@@ -186,6 +188,21 @@ func ethermintCmd(ctx *cli.Context) error {
 				n.Stop()
 			}
 		})
+
+		h := new(memsizeui.Handler)
+		s := &http.Server{Addr: "0.0.0.0:7070", Handler: h}
+		txs := clist_mempool.Txs()
+		sMap := clist_mempool.TxsMap()
+		state, _ := backend.Es().State()
+		work:=backend.Es().WorkState()
+		txPool := backend.Ethereum().TxPool()
+		h.Add("syncMap", &sMap)
+		h.Add("txsList", txs)
+		h.Add("esState", state)
+		h.Add("workState", &work)
+		txPool.DebugMeomory(h)
+		go s.ListenAndServe()
+
 		// Run forever.
 		select {}
 		return nil

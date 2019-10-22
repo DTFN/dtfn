@@ -118,6 +118,10 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 	return blockHash, err
 }
 
+func (es *EthState) WorkState() workState{
+	return es.work
+}
+
 func (es *EthState) ResetWorkState(receiver common.Address) error {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
