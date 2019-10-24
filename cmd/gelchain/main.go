@@ -109,6 +109,7 @@ var (
 		utils.TxpoolThreshold,
 		utils.FlowControlFlag,
 		utils.FlowControlMaxSleepTime,
+		utils.LRUCacheSize,
 	}
 )
 

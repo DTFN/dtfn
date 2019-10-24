@@ -283,4 +283,10 @@ var (
 		Value: 10,
 		Usage: "max sleep time for flow control, seconds",
 	}
+
+	LRUCacheSize = cli.IntFlag{
+		Name:  "block_cache_Size",
+		Value: 64,
+		Usage: "the size of the block cache",
+	}
 )
