@@ -34,8 +34,6 @@ import (
 	tmState "github.com/tendermint/tendermint/state"
 	"math/big"
 	"github.com/tendermint/tendermint/mempool"
-	"github.com/fjl/memsize/memsizeui"
-	"net/http"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -189,7 +187,7 @@ func ethermintCmd(ctx *cli.Context) error {
 			}
 		})
 
-		h := new(memsizeui.Handler)
+	/*	h := new(memsizeui.Handler)
 		s := &http.Server{Addr: "0.0.0.0:7070", Handler: h}
 		txs := clist_mempool.Txs()
 		sMap := clist_mempool.TxsMap()
@@ -201,7 +199,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		h.Add("esState", state)
 		h.Add("workState", &work)
 		txPool.DebugMeomory(h)
-		go s.ListenAndServe()
+		go s.ListenAndServe()*/
 
 		// Run forever.
 		select {}

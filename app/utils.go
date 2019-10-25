@@ -14,8 +14,7 @@ import (
 	"math/big"
 	"fmt"
 	"github.com/ethereum/go-ethereum/core/txfilter"
-	"net/http"
-	_ "net/http/pprof"
+	//_ "net/http/pprof"
 )
 
 // format of query data
@@ -57,7 +56,7 @@ func (app *EthermintApplication) SetValidators(validators []abciTypes.ValidatorU
 
 func (app *EthermintApplication) StartHttpServer() {
 	go app.httpServer.HttpServer.ListenAndServe()
-	go http.ListenAndServe("0.0.0.0:6060", nil)
+	//go http.ListenAndServe("0.0.0.0:6060", nil)
 }
 
 // GetUpdatedValidators returns an updated validator set from the strategy
