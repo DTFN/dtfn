@@ -398,7 +398,7 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, appBackend *ethereum.Backend) {
 	if rollbackFlag {
 		fmt.Println("you are rollbacking")
-		appBackend.Ethereum().BlockChain().SetHead(uint64(rollbackHeight))
+		appBackend.Ethereum().BlockChain().RewindTo(uint64(rollbackHeight))
 		fmt.Println(appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64())
 		os.Exit(1)
 	} else {
