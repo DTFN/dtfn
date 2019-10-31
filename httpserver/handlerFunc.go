@@ -252,9 +252,9 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 
 func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	topKSigners := tHandler.strategy.NextEpochValData.PosTable.TopKSigners(100)
 	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
 	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
+	topKSigners := tHandler.strategy.NextEpochValData.PosTable.TopKSigners(100)
 	for _, signer := range topKSigners {
 		posItem := tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer]
 		preValidators = append(preValidators, &Validator{

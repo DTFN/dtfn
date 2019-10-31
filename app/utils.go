@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"fmt"
 	"github.com/ethereum/go-ethereum/core/txfilter"
+	//_ "net/http/pprof"
 )
 
 // format of query data
@@ -55,6 +56,7 @@ func (app *EthermintApplication) SetValidators(validators []abciTypes.ValidatorU
 
 func (app *EthermintApplication) StartHttpServer() {
 	go app.httpServer.HttpServer.ListenAndServe()
+	//go http.ListenAndServe("0.0.0.0:6060", nil)
 }
 
 // GetUpdatedValidators returns an updated validator set from the strategy
@@ -90,10 +92,13 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 	}*/
 	validatorsSlice := []abciTypes.ValidatorUpdate{}
 
-	selectCount := 7 //currently fixed
+	selectCount := app.strategy.CurrEpochValData.SelectCount //currently fixed
 	poolLen := len(app.strategy.CurrEpochValData.PosTable.PosItemMap)
 	if poolLen < 7 {
 		app.GetLogger().Info(fmt.Sprintf("PosTable.PosItemMap len < 7, current len %v", poolLen))
+	}
+	if selectCount == 0 { //0 means return full set each height
+		selectCount = poolLen
 	}
 
 	// we use map to remember which validators selected has put into validatorSlice

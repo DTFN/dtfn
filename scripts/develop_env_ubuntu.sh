@@ -14,6 +14,10 @@ installTendermint(){
     git checkout develop
     make get_tools
     make get_vendor_deps
+    if [ -d "$GOPATH/src/github.com/tendermint/tendermint/vendor/google.golang.org/grpc" ]; then
+        rm -r $GOPATH/src/github.com/tendermint/tendermint/vendor/google.golang.org/grpc
+    fi
+    ln -s $GOPATH/src/github.com/tendermint/tendermint/vendor/github.com/grpc/grpc-go  $GOPATH/src/github.com/tendermint/tendermint/vendor/google.golang.org/grpc
     rm -r vendor/github.com/ethereum
     rm -r vendor/github.com/tendermint/go-amino
 }

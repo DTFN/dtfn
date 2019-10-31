@@ -137,6 +137,11 @@ var (
 		Usage: "Address to advertise to peers for them to dial.If empty, will use the same port as the laddr",
 	}
 
+	MempoolBroadcastFlag = cli.BoolFlag{
+		Name:  "broadcast_tx",
+		Usage: "If set, mempool will broadcast tx",
+	}
+
 	TmConsEmptyBlock = cli.BoolFlag{
 		Name:  "tm_cons_emptyblock",
 		Usage: "EmptyBlocks mode",
@@ -145,6 +150,11 @@ var (
 	TmConsEBlockInteval = cli.Uint64Flag{
 		Name:  "tm_cons_eb_inteval",
 		Usage: "possible interval between empty blocks in seconds",
+	}
+
+	TmConsProposeTimeout = cli.Uint64Flag{
+		Name:  "propose_timeout",
+		Usage: "propose timeout in seconds",
 	}
 
 	TmConsNeedProofBlock = cli.BoolFlag{
@@ -221,21 +231,62 @@ var (
 		Usage: "whether or not rollback",
 	}
 
-	SelectCount = cli.Int64Flag{
+	SelectCount = cli.IntFlag{
 		Name:  "select_count",
 		Value: 7,
-		Usage: "the number of validators selected to consensus",
+		Usage: "how many different validators are selected each height",
 	}
 
-	SelectBlockNumber = cli.Int64Flag{
-		Name:  "select_block_number",
-		Value: 1,
-		Usage: "the number of select block which use selectCount",
+	MaxInPeers = cli.IntFlag{
+		Name:  "max_in_peers",
+		Value: 29,
+		Usage: "max inbound peers allowed",
 	}
 
-	SelectStrategy = cli.BoolFlag{
-		Name:   "select_strategy",
-		Hidden: false,
-		Usage:  "whether use selectstrategy,mainly used in the test",
+	MaxOutPeers = cli.IntFlag{
+		Name:  "max_out_peers",
+		Value: 11,
+		Usage: "max outbound peers allowed",
+	}
+
+	MempoolSize = cli.IntFlag{
+		Name:  "mempool_size",
+		Value: 50000,
+		Usage: "the size of tendermint mempool",
+	}
+
+	MempoolThreshold = cli.IntFlag{
+		Name:  "mempool_threshold",
+		Value: 10000,
+		Usage: "the threshold of tendermint mempool for flow control",
+	}
+
+	MempoolHeightThreshold = cli.IntFlag{
+		Name:  "mempool_height_threshold",
+		Value: 100,
+		Usage: "the threshold of tendermint mempool for each height for flow control",
+	}
+
+	TxpoolThreshold = cli.IntFlag{
+		Name:  "txpool_threshold",
+		Value: 38000,
+		Usage: "the threshold of ethereum txpool for flow control",
+	}
+
+	FlowControlFlag = cli.BoolFlag{
+		Name:  "flow_control",
+		Usage: "if flow control, receiving tx and broadcasting tx get slower when txs over half the size of mempool",
+	}
+
+	FlowControlMaxSleepTime = cli.IntFlag{
+		Name:  "flow_control_sleep",
+		Value: 10,
+		Usage: "max sleep time for flow control, seconds",
+	}
+
+	LRUCacheSize = cli.IntFlag{
+		Name:  "block_cache_Size",
+		Value: 64,
+		Usage: "the size of the block cache",
 	}
 )
