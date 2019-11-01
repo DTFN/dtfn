@@ -100,16 +100,20 @@ func (p *Punishment) DoPunish(stateDB *state.StateDB, strategy *types.Strategy, 
 			_, found := strategy.CurrEpochValData.PosTable.PosItemMap[signer]
 			if found { //evil signer has not unbonded, kicked it out
 				strategy.NextEpochValData.PosTable.Mtx.Lock()
-				err := strategy.NextEpochValData.PosTable.RemovePosItem(signer, currentHeight,true)
+				err := strategy.NextEpochValData.PosTable.RemovePosItem(signer, currentHeight, true)
 				if err != nil {
-					panic(err)
+					_, found := strategy.NextEpochValData.PosTable.UnbondPosItemMap[signer]
+					if !found {
+						panic(fmt.Sprintf("evil signer %v cannot be found in either posItemMap or unbondedPosItemMap of NextEpochValData.PosTable. but is in the TmAddressToSignerMap", signer))
+					}
+				} else {
+					log.Info(fmt.Sprintf("evil signer %v got unbonded because of Evidence %v", signer, e))
 				}
 				strategy.NextEpochValData.PosTable.Mtx.Unlock()
-				log.Info(fmt.Sprintf("evil signer %v got unbonded because of Evidence %v", signer, e))
 			} else { //he should be in the unbonded map
 				_, found := strategy.CurrEpochValData.PosTable.UnbondPosItemMap[signer]
 				if !found {
-					panic(fmt.Sprintf("evil signer %v cannot be found in either posItemMap or unbondedPosItemMap. but he is in the TmAddressToSignerMap", signer))
+					panic(fmt.Sprintf("evil signer %v cannot be found in either posItemMap or unbondedPosItemMap of CurrEpochValData.PosTable. but is in the TmAddressToSignerMap", signer))
 				}
 			}
 		} else {
