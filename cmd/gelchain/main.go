@@ -103,6 +103,8 @@ var (
 		utils.RollbackHeight,
 		utils.RollbackFlag,
 		utils.SelectCount,
+		utils.SelectBlockNumber,
+		utils.SelectStrategy,
 		utils.MempoolSize,
 		utils.MempoolThreshold,
 		utils.MempoolHeightThreshold,

@@ -237,6 +237,18 @@ var (
 		Usage: "how many different validators are selected each height",
 	}
 
+	SelectBlockNumber = cli.Int64Flag{
+		Name:  "select_block_number",
+		Value: 1,
+		Usage: "the number of select block which use selectCount",
+	}
+
+	SelectStrategy = cli.BoolFlag{
+		Name:   "select_strategy",
+		Hidden: false,
+		Usage:  "whether use selectstrategy,mainly used in the test",
+	}
+
 	MaxInPeers = cli.IntFlag{
 		Name:  "max_in_peers",
 		Value: 29,
