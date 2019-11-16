@@ -456,13 +456,10 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	currentState := app.checkTxState
 
 	// Make sure the account exist - cant send from non-existing account.
-	if !currentState.Exist(from) {
-		txPoolState := app.backend.Ethereum().TxPool().State()
-		if !txPoolState.Exist(from) {
-			return abciTypes.ResponseCheckTx{
-				Code: uint32(errors.CodeUnknownAddress),
-				Log:  core.ErrInvalidSender.Error()}
-		}
+	if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
+		return abciTypes.ResponseCheckTx{
+			Code: uint32(errors.CodeUnknownAddress),
+			Log:  core.ErrInvalidSender.Error()}
 	}
 
 	// Check the transaction doesn't exceed the current block limit gas.
