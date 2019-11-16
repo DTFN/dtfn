@@ -119,6 +119,9 @@ func SetEthermintEthConfig(ctx *cli.Context, cfg *eth.Config) {
 	} else {
 		cfg.TxPool.MempoolSize = uint64(0)
 	}
+	txpoolPriceLimit := ctx.GlobalInt(TxpoolPriceLimit.Name)
+	cfg.TxPool.PriceLimit = uint64(txpoolPriceLimit)
+
 	cacheSize := ctx.GlobalInt(LRUCacheSize.Name)
 	if cacheSize > 0 {
 		cfg.TxPool.LRUCacheSize = cacheSize

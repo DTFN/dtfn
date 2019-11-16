@@ -109,6 +109,7 @@ var (
 		utils.MempoolThreshold,
 		utils.MempoolHeightThreshold,
 		utils.TxpoolThreshold,
+		utils.TxpoolPriceLimit,
 		utils.FlowControlFlag,
 		utils.FlowControlMaxSleepTime,
 		utils.LRUCacheSize,

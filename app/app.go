@@ -115,7 +115,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 	minerBonus := big.NewInt(1)
 	divisor := big.NewInt(1)
 	// for 1% every year increment
-	minerBonus.Div(app.strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	minerBonus.Div(app.strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5/2))) //divide 2 is for proposer and voters share half the benefit
 	app.strategy.CurrEpochValData.MinorBonus = minerBonus
 
 	// This check determines whether it is the first time gelchain gets started.
@@ -261,7 +261,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx, from, app.Receiver())
+	res := app.backend.DeliverTx(tx, from)
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
@@ -349,7 +349,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 	state.Finalise(true)
 	app.logger.Debug(fmt.Sprintf("After finalise Commit trie.root=%X",state.Trie().Hash()))*/
 	app.checkTxState = state.Copy() //commit里会做recheck，需要先重置checkState,通过recheck也正好将checkState恢复到正确的状态
-	blockHash, err := app.backend.Commit(app.Receiver())
+	blockHash, err := app.backend.Commit()
 	if err != nil {
 		// nolint: errcheck
 		app.logger.Error("Error getting latest ethereum state", "err", err)
@@ -457,8 +457,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 
 	// Make sure the account exist - cant send from non-existing account.
 	if !currentState.Exist(from) {
-		workState, _ := app.backend.Es().State()
-		if !workState.Exist(from) {
+		txPoolState := app.backend.Ethereum().TxPool().State()
+		if !txPoolState.Exist(from) {
 			return abciTypes.ResponseCheckTx{
 				Code: uint32(errors.CodeUnknownAddress),
 				Log:  core.ErrInvalidSender.Error()}

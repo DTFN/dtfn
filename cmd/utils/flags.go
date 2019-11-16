@@ -220,6 +220,18 @@ var (
 		Usage: "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:26656, ID1@192.168.0.2:26656, ...)",
 	}
 
+	TxpoolThreshold = cli.IntFlag{
+		Name:  "txpool_threshold",
+		Value: 38000,
+		Usage: "the threshold of ethereum txpool for flow control",
+	}
+
+	TxpoolPriceLimit = cli.IntFlag{
+		Name:  "price_limit",
+		Value: 10,
+		Usage: "the threshold of ethereum txpool for remote broadcasted tx",
+	}
+
 	RollbackHeight = cli.Int64Flag{
 		Name:  "rollback_height",
 		Value: 200,
@@ -277,12 +289,6 @@ var (
 		Name:  "mempool_height_threshold",
 		Value: 100,
 		Usage: "the threshold of tendermint mempool for each height for flow control",
-	}
-
-	TxpoolThreshold = cli.IntFlag{
-		Name:  "txpool_threshold",
-		Value: 38000,
-		Usage: "the threshold of ethereum txpool for flow control",
 	}
 
 	FlowControlFlag = cli.BoolFlag{

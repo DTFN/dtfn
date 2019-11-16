@@ -119,8 +119,8 @@ func (b *Backend) CachedTxFrom() map[common.Hash]common.Address {
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address, address common.Address) (abciTypes.ResponseDeliverTx) {
-	return b.es.DeliverTx(tx, &from, &address)
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address) (abciTypes.ResponseDeliverTx) {
+	return b.es.DeliverTx(tx, &from)
 }
 
 // AccumulateRewards accumulates the rewards based on the given strategy
@@ -144,8 +144,8 @@ func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address) {
 
 // Commit finalises the current block
 // #unstable
-func (b *Backend) Commit(receiver common.Address) (common.Hash, error) {
-	appHash, err := b.es.Commit(receiver)
+func (b *Backend) Commit() (common.Hash, error) {
+	appHash, err := b.es.Commit()
 	/*	if err!=nil{
 		b.ethereum.TxPool().Loop()
 	}*/

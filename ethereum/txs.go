@@ -48,7 +48,7 @@ func (b *Backend) txBroadcastLoop() {
 
 func (b *Backend) BroadcastTxSync(tx tmTypes.Tx) (*ctypes.ResultBroadcastTx, error) {
 	resCh := make(chan *abciTypes.Response, 1)
-	err := b.memPool.CheckTx(tx, func(res *abciTypes.Response) {
+	err := b.memPool.CheckTxLocal(tx, func(res *abciTypes.Response) {
 		resCh <- res
 	})
 	if err != nil {

@@ -82,14 +82,14 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address, address *common.Address) (abciTypes.ResponseDeliverTx) {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address) (abciTypes.ResponseDeliverTx) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
-	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from, address)
+	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from)
 }
 
 // Accumulate validator rewards.
@@ -101,7 +101,7 @@ func (es *EthState) AccumulateRewards(strategy *emtTypes.Strategy) {
 }
 
 // Commit and reset the work.
-func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
+func (es *EthState) Commit() (common.Hash, error) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
@@ -110,7 +110,8 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	err = es.resetWorkState(receiver) //built for nextHeight, the coinbase in the header will later be overwritten in the next height
+	ws:=&es.work
+	err = es.resetWorkState(ws.header.Coinbase) //built for nextHeight, the coinbase in the header will later be overwritten in the next height
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -118,7 +119,7 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 	return blockHash, err
 }
 
-func (es *EthState) WorkState() workState{
+func (es *EthState) WorkState() workState {
 	return es.work
 }
 
@@ -220,6 +221,10 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	log.Info(fmt.Sprintf("accumulateRewards LastVoteInfo %v", strategy.CurrentHeightValData.LastVoteInfo))
 	minerBonus := strategy.CurrEpochValData.MinorBonus
 
+	ws.state.AddBalance(ws.CurrentHeader().Coinbase, minerBonus)
+	log.Info(fmt.Sprintf("proposer %v , Beneficiary address: %v, get money: %v",
+		strategy.CurrentHeightValData.ProposerAddress, ws.CurrentHeader().Coinbase, minerBonus))
+
 	weightSum := int64(0)
 	for _, voteInfo := range strategy.CurrentHeightValData.LastVoteInfo {
 		if voteInfo.SignedLastBlock {
@@ -296,12 +301,12 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, from *common.Address, address *common.Address) (abciTypes.ResponseDeliverTx) {
+	tx *ethTypes.Transaction, from *common.Address) (abciTypes.ResponseDeliverTx) {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, msg, _, err := core.ApplyTransactionWithFrom(
 		chainConfig,
 		blockchain,
-		address, // defaults to address of the author of the header
+		&ws.header.Coinbase, // defaults to address of the author of the header
 		ws.gp,
 		ws.state,
 		ws.header,
@@ -413,6 +418,9 @@ func (ws *workState) updateHeaderWithTimeInfo(
 }
 
 //----------------------------------------------------------------------
+func (ws *workState) CurrentHeader() *ethTypes.Header {
+	return ws.header
+}
 
 // Create a new block header from the previous block.
 func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethTypes.Header {
