@@ -293,6 +293,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		for i := len(version.HeightArray) - 1; i >= 0; i-- {
 			app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
 			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
+				fmt.Println(fmt.Sprintf("height %v blockversion %v",app.strategy.HFExpectedData.Height,app.strategy.HFExpectedData.BlockVersion, ))
 				break
 			}
 		}
