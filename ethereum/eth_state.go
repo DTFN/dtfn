@@ -222,7 +222,10 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	minerBonus := strategy.CurrEpochValData.MinorBonus
 
 	if strategy.CurrentHeightValData.Height <= 3588000 {
-		minerBonus.Mul(minerBonus, big.NewInt(2))
+		minerBonus = big.NewInt(1)
+		divisor := big.NewInt(1)
+		// for 1% every year increment
+		minerBonus.Div(strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 	} else {
 		ws.state.AddBalance(ws.CurrentHeader().Coinbase, minerBonus)
 		log.Info(fmt.Sprintf("proposer %v , Beneficiary address: %v, get money: %v",
