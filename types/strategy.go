@@ -85,7 +85,7 @@ type CurrEpochValData struct {
 	TotalBalance *big.Int `json:"total_balance"`
 	MinorBonus   *big.Int `json:"-"` //all voted validators share this bonus per block.
 
-	SelectCount int	`json:"select_count"`	//select count of each height
+	SelectCount int	`json:"-"`	//select count of each height
 }
 
 type Validator struct {
