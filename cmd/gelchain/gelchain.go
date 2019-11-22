@@ -85,12 +85,12 @@ func ethermintCmd(ctx *cli.Context) error {
 		strategy.CurrEpochValData.TotalBalance = totalBalanceInital
 
 		ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
-
-		genDocFile := tmConfig.GenesisFile()
-		genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
 		if err != nil {
 			panic("Sorry but you don't have initial account file")
 		}
+
+		genDocFile := tmConfig.GenesisFile()
+		genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
 		validators := genDoc.Validators
 		amlist := &types.AccountMap{
 			MapList: make(map[string]*types.AccountMapItem),

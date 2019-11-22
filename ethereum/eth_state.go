@@ -110,7 +110,7 @@ func (es *EthState) Commit() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	ws:=&es.work
+	ws := &es.work
 	err = es.resetWorkState(ws.header.Coinbase) //built for nextHeight, the coinbase in the header will later be overwritten in the next height
 	if err != nil {
 		return common.Hash{}, err
@@ -221,9 +221,13 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	log.Info(fmt.Sprintf("accumulateRewards LastVoteInfo %v", strategy.CurrentHeightValData.LastVoteInfo))
 	minerBonus := strategy.CurrEpochValData.MinorBonus
 
-	ws.state.AddBalance(ws.CurrentHeader().Coinbase, minerBonus)
-	log.Info(fmt.Sprintf("proposer %v , Beneficiary address: %v, get money: %v",
-		strategy.CurrentHeightValData.ProposerAddress, ws.CurrentHeader().Coinbase, minerBonus))
+	if strategy.CurrentHeightValData.Height <= 3588000 {
+		minerBonus.Mul(minerBonus, big.NewInt(2))
+	} else {
+		ws.state.AddBalance(ws.CurrentHeader().Coinbase, minerBonus)
+		log.Info(fmt.Sprintf("proposer %v , Beneficiary address: %v, get money: %v",
+			strategy.CurrentHeightValData.ProposerAddress, ws.CurrentHeader().Coinbase.String(), minerBonus))
+	}
 
 	weightSum := int64(0)
 	for _, voteInfo := range strategy.CurrentHeightValData.LastVoteInfo {

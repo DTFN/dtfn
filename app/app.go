@@ -243,7 +243,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 	txHash := tx.Hash()
 	from, ok := app.backend.FetchCachedTxFrom(txHash)
 	if !ok {
-		var signer ethTypes.Signer = ethTypes.FrontierSigner{}
+		var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
 		if tx.Protected() {
 			signer = ethTypes.NewEIP155Signer(tx.ChainId())
 		}
@@ -403,7 +403,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			Log:  core.ErrOversizedData.Error()}
 	}
 
-	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
+	var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
 	if tx.Protected() {
 		signer = ethTypes.NewEIP155Signer(tx.ChainId())
 	}
