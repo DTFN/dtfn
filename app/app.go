@@ -284,7 +284,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.HFExpectedData.Height = beginBlock.GetHeader().Height
 	app.strategy.HFExpectedData.BlockVersion = beginBlock.GetHeader().Version.App
-	//app.logger.Info("block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
+	app.logger.Info("block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
 
 	app.strategy.CurrentHeightValData.Height = beginBlock.GetHeader().Height
 	//when we reach the upgrade height,we change the blockversion
@@ -293,6 +293,8 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		for i := len(version.HeightArray) - 1; i >= 0; i-- {
 			app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
 			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
+				fmt.Println(fmt.Sprintf("height %v blockversion %v",app.strategy.HFExpectedData.Height,app.strategy.HFExpectedData.BlockVersion, ))
+				app.logger.Info("=========block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
 				break
 			}
 		}
