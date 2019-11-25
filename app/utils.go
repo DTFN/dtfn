@@ -337,5 +337,5 @@ func (app *EthermintApplication) SetPersistenceData() {
 	trie.TryUpdate(key, valBytes)
 	valueHash := ethereumCrypto.Keccak256Hash(valBytes)
 	wsState.SetState(currEpochDataAddress, keyHash, valueHash)
-	app.logger.Debug(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
+	app.logger.Info(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
 }
