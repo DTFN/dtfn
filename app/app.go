@@ -284,13 +284,10 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.UpdateHeaderWithTimeInfo(&header)
 	app.strategy.HFExpectedData.Height = beginBlock.GetHeader().Height
 	app.strategy.HFExpectedData.BlockVersion = beginBlock.GetHeader().Version.App
-	app.logger.Info("block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
-
 	app.strategy.CurrentHeightValData.Height = beginBlock.GetHeader().Height
 	//when we reach the upgrade height,we change the blockversion
 
 	if app.strategy.HFExpectedData.IsHarfForkPassed {
-		app.logger.Info("=========IsHarfForkPassed")
 		for i := len(version.HeightArray) - 1; i >= 0; i-- {
 			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
 				app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
@@ -299,7 +296,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 			}
 		}
 	}
-	app.logger.Info("=========block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
+	app.logger.Info("block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
 
 	//if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
 	//	app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
