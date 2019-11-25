@@ -112,7 +112,20 @@ func SetEthermintEthConfig(ctx *cli.Context, cfg *eth.Config) {
 		trieTimeout := int64(trieTimeLimit) * int64(time.Second)
 		cfg.TrieTimeout = time.Duration(trieTimeout)
 	}
+	if ctx.GlobalBool(FlowControlFlag.Name) {
+		cfg.TxPool.MempoolSize = uint64(ctx.GlobalInt(MempoolSize.Name))
+		cfg.TxPool.MaxFlowLimitSleepTime = time.Duration(ctx.GlobalInt(FlowControlMaxSleepTime.Name)) * time.Second
+		cfg.TxPool.FlowLimitThreshold = uint64(ctx.GlobalInt(TxpoolThreshold.Name))
+	} else {
+		cfg.TxPool.MempoolSize = uint64(0)
+	}
+	txpoolPriceLimit := ctx.GlobalInt(TxpoolPriceLimit.Name)
+	cfg.TxPool.PriceLimit = uint64(txpoolPriceLimit)
 
+	cacheSize := ctx.GlobalInt(LRUCacheSize.Name)
+	if cacheSize > 0 {
+		cfg.TxPool.LRUCacheSize = cacheSize
+	}
 }
 
 // MakeDataDir retrieves the currently requested data directory

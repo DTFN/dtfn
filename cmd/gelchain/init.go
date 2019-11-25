@@ -50,9 +50,17 @@ func initCmd(ctx *cli.Context) error {
 		config.EnsureRoot(tendermintHome)
 
 		tendermintConfig := filepath.Join(tendermintHome, "config")
-		privValFile := filepath.Join(tendermintConfig,"priv_validator.json")
+		oldPrivVal := filepath.Join(tendermintConfig,"priv_validator.json")
 		var privValidator *privval.FilePV
-		privValidator = privval.LoadOrGenFilePV(privValFile)
+		oldPV, err := privval.LoadOldFilePV(oldPrivVal)
+		if err != nil {
+			return fmt.Errorf("error reading OldPrivValidator from %v: %v\n", oldPrivVal, err)
+		}
+		fmt.Println("Upgrading PrivValidator file")
+		newPrivValKey:=filepath.Join(tendermintConfig,"priv_validator_key.json")
+		newPrivValState:=filepath.Join(tendermintConfig,"priv_validator_state.json")
+		oldPV.Upgrade(newPrivValKey, newPrivValState)
+		privValidator = privval.LoadOrGenFilePV(newPrivValKey, newPrivValState)
 
 
 		// genesis file

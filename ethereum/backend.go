@@ -17,7 +17,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	emtTypes "github.com/green-element-chain/gelchain/types"
-	"github.com/tendermint/tendermint/mempool"
+	mempl "github.com/tendermint/tendermint/mempool"
 )
 
 //----------------------------------------------------------------------
@@ -41,7 +41,9 @@ type Backend struct {
 	client rpcClient.HTTPClient
 
 	//leilei add.  Use mempool to forward txs directly
-	memPool *mempool.Mempool
+	memPool      mempl.Mempool
+	lastFrom     common.Address
+	cachedTxFrom map[common.Hash]common.Address
 }
 
 // NewBackend creates a new Backend
@@ -71,10 +73,11 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 	ethereum.BlockChain().SetValidator(core.NewBlockValidator(ethereum.BlockChain().Config(), ethereum.BlockChain(), ethash.NewFaker()))
 
 	ethBackend := &Backend{
-		ethereum:  ethereum,
-		ethConfig: ethConfig,
-		es:        es,
-		client:    client,
+		ethereum:     ethereum,
+		ethConfig:    ethConfig,
+		es:           es,
+		client:       client,
+		cachedTxFrom: make(map[common.Hash]common.Address),
 	}
 	return ethBackend, nil
 }
@@ -95,8 +98,20 @@ func (b *Backend) Config() *eth.Config {
 	return b.ethConfig
 }
 
-func (b *Backend) SetMemPool(memPool *mempool.Mempool) {
+func (b *Backend) SetMemPool(memPool mempl.Mempool) {
 	b.memPool = memPool
+}
+
+func (b *Backend) MemPool() mempl.Mempool {
+	return b.memPool
+}
+
+func (b *Backend) LastFrom() common.Address {
+	return b.lastFrom
+}
+
+func (b *Backend) CachedTxFrom() map[common.Hash]common.Address {
+	return b.cachedTxFrom
 }
 
 //----------------------------------------------------------------------
@@ -104,8 +119,8 @@ func (b *Backend) SetMemPool(memPool *mempool.Mempool) {
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction, address common.Address) (abciTypes.ResponseDeliverTx) {
-	return b.es.DeliverTx(tx, &address)
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address) (abciTypes.ResponseDeliverTx) {
+	return b.es.DeliverTx(tx, &from)
 }
 
 // AccumulateRewards accumulates the rewards based on the given strategy
@@ -114,10 +129,23 @@ func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
 	b.es.AccumulateRewards(strategy)
 }
 
+func (b *Backend) FetchCachedTxFrom(txHash common.Hash) (common.Address, bool) {
+	from, ok := b.cachedTxFrom[txHash]
+	return from, ok
+}
+
+func (b *Backend) DeleteCachedTxFrom(txHash common.Hash) {
+	delete(b.cachedTxFrom, txHash)
+}
+
+func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address) {
+	b.cachedTxFrom[txHash]=from
+}
+
 // Commit finalises the current block
 // #unstable
-func (b *Backend) Commit(receiver common.Address) (common.Hash, error) {
-	appHash, err := b.es.Commit(receiver)
+func (b *Backend) Commit() (common.Hash, error) {
+	appHash, err := b.es.Commit()
 	/*	if err!=nil{
 		b.ethereum.TxPool().Loop()
 	}*/
@@ -211,4 +239,9 @@ func (v *NullBlockProcessor) ValidateBody(block *ethTypes.Block) error {
 // #unstable
 func (v *NullBlockProcessor) ValidateState(block, parent *ethTypes.Block, state *state.StateDB, receipts ethTypes.Receipts, usedGas uint64) error {
 	return nil
+}
+
+type TxFrom struct {
+	TxHash common.Hash
+	From   common.Address
 }

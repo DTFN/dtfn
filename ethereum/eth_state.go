@@ -82,14 +82,14 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx) {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address) (abciTypes.ResponseDeliverTx) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
-	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, address)
+	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from)
 }
 
 // Accumulate validator rewards.
@@ -101,7 +101,7 @@ func (es *EthState) AccumulateRewards(strategy *emtTypes.Strategy) {
 }
 
 // Commit and reset the work.
-func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
+func (es *EthState) Commit() (common.Hash, error) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
@@ -110,12 +110,17 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	err = es.resetWorkState(receiver) //built for nextHeight, the coinbase in the header will later be overwritten in the next height
+	ws := &es.work
+	err = es.resetWorkState(ws.header.Coinbase) //built for nextHeight, the coinbase in the header will later be overwritten in the next height
 	if err != nil {
 		return common.Hash{}, err
 	}
 
 	return blockHash, err
+}
+
+func (es *EthState) WorkState() workState {
+	return es.work
 }
 
 func (es *EthState) ResetWorkState(receiver common.Address) error {
@@ -216,6 +221,17 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	log.Info(fmt.Sprintf("accumulateRewards LastVoteInfo %v", strategy.CurrentHeightValData.LastVoteInfo))
 	minerBonus := strategy.CurrEpochValData.MinorBonus
 
+	if strategy.CurrentHeightValData.Height <= 3588000 {
+		minerBonus = big.NewInt(1)
+		divisor := big.NewInt(1)
+		// for 1% every year increment
+		minerBonus.Div(strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	} else {
+		ws.state.AddBalance(ws.CurrentHeader().Coinbase, minerBonus)
+		log.Info(fmt.Sprintf("proposer %v , Beneficiary address: %v, get money: %v",
+			strategy.CurrentHeightValData.ProposerAddress, ws.CurrentHeader().Coinbase.String(), minerBonus))
+	}
+
 	weightSum := int64(0)
 	for _, voteInfo := range strategy.CurrentHeightValData.LastVoteInfo {
 		if voteInfo.SignedLastBlock {
@@ -292,16 +308,17 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, address *common.Address) (abciTypes.ResponseDeliverTx) {
+	tx *ethTypes.Transaction, from *common.Address) (abciTypes.ResponseDeliverTx) {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
-	receipt, msg, _, err := core.ApplyTransactionFacade(
+	receipt, msg, _, err := core.ApplyTransactionWithFrom(
 		chainConfig,
 		blockchain,
-		address, // defaults to address of the author of the header
+		&ws.header.Coinbase, // defaults to address of the author of the header
 		ws.gp,
 		ws.state,
 		ws.header,
 		tx,
+		*from,
 		ws.totalUsedGas,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
@@ -309,7 +326,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
-	log.Info(fmt.Sprintf("deliver a tx from %X tx %v", msg.From(), tx))
+	log.Debug(fmt.Sprintf("deliver a tx from %X tx %v", msg.From(), tx))
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -350,7 +367,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	// block).
 	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
 	blockHash := block.Hash()
-	log.Debug(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
+	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
 	proctime := time.Since(ws.bstart)
@@ -408,6 +425,9 @@ func (ws *workState) updateHeaderWithTimeInfo(
 }
 
 //----------------------------------------------------------------------
+func (ws *workState) CurrentHeader() *ethTypes.Header {
+	return ws.header
+}
 
 // Create a new block header from the previous block.
 func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethTypes.Header {

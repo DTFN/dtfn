@@ -1,5 +1,10 @@
 package version
 
+import (
+	"strings"
+	"strconv"
+)
+
 // Major version component of the current release
 const Major = 0
 
@@ -15,11 +20,24 @@ var (
 
 	// GitCommit is set with --ldflags "-X main.gitCommit=$(git rev-parse --short HEAD)"
 	GitCommit string
+
+	HeightArray []int64
+
+	VersionArray []int64
 )
 
 func init() {
 	if GitCommit != "" {
 		Version += "-" + GitCommit
+	}
+	heightStrArray := strings.Split(HeightString, ",")
+	versionStrArray := strings.Split(VersionString, ",")
+
+	HeightArray = make([]int64, len(heightStrArray))
+	VersionArray = make([]int64, len(versionStrArray))
+	for i := 0; i < len(heightStrArray); i++ {
+		HeightArray[i], _ = strconv.ParseInt(heightStrArray[i], 10, 64)
+		VersionArray[i], _ = strconv.ParseInt(versionStrArray[i], 10, 64)
 	}
 }
 
@@ -33,7 +51,7 @@ const NextHardForkHeight = 1300000
 const NextHardForkVersion = 3
 
 const HeightString = "85000,1300000"
-const VersonString = "2,3"
+const VersionString = "2,3"
 
 //If we are in the version=4,we should remember all the
 //pre-version code and per-version height

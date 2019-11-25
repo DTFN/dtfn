@@ -19,7 +19,6 @@ import (
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
 	"math/big"
-	"strconv"
 	"strings"
 )
 
@@ -40,6 +39,15 @@ type EthermintApplication struct {
 
 	// strategy for validator compensation
 	strategy *emtTypes.Strategy
+
+	// select count
+	SelectCount int64
+
+	// select change block number
+	SelectBlockNumber int64
+
+	//select Strategy in the test
+	SelectStrategy bool
 
 	httpServer *httpserver.BaseServer
 
@@ -107,7 +115,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 	minerBonus := big.NewInt(1)
 	divisor := big.NewInt(1)
 	// for 1% every year increment
-	minerBonus.Div(app.strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
+	minerBonus.Div(app.strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5/2))) //divide 2 is for proposer and voters share half the benefit
 	app.strategy.CurrEpochValData.MinorBonus = minerBonus
 
 	// This check determines whether it is the first time gelchain gets started.
@@ -204,7 +212,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 
 // CheckTx checks a transaction is valid but does not mutate the state
 // #stable - 0.4.0
-func (app *EthermintApplication) CheckTx(txBytes []byte) abciTypes.ResponseCheckTx {
+func (app *EthermintApplication) CheckTx(req abciTypes.RequestCheckTx) abciTypes.ResponseCheckTx {
+	txBytes := req.Tx
 	tx, err := decodeTx(txBytes)
 	if err != nil {
 		// nolint: errcheck
@@ -216,13 +225,13 @@ func (app *EthermintApplication) CheckTx(txBytes []byte) abciTypes.ResponseCheck
 	}
 	app.logger.Debug("CheckTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	return app.validateTx(tx)
+	return app.validateTx(tx, req.Type)
 }
 
 // DeliverTx executes a transaction against the latest state
 // #stable - 0.4.0
-func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDeliverTx {
-	tx, err := decodeTx(txBytes)
+func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciTypes.ResponseDeliverTx {
+	tx, err := decodeTx(req.Tx)
 	if err != nil {
 		// nolint: errcheck
 		app.logger.Debug("DelivexTx: Received invalid transaction", "tx", tx, "err", err)
@@ -231,9 +240,28 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 			Log:  err.Error(),
 		}
 	}
+	txHash := tx.Hash()
+	from, ok := app.backend.FetchCachedTxFrom(txHash)
+	if !ok {
+		var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
+		if tx.Protected() {
+			signer = ethTypes.NewEIP155Signer(tx.ChainId())
+		}
+		var err error
+		// Make sure the transaction is signed properly
+		from, err = ethTypes.Sender(signer, tx)
+		if err != nil {
+			return abciTypes.ResponseDeliverTx{
+				Code: uint32(errors.CodeInternal),
+				Log:  core.ErrInvalidSender.Error()}
+		}
+	} else {
+		app.backend.DeleteCachedTxFrom(txHash)
+	}
+
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx, app.Receiver())
+	res := app.backend.DeliverTx(tx, from)
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
@@ -241,7 +269,6 @@ func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDel
 		return res
 	}
 	//app.CollectTx(tx)
-
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,
 	}
@@ -261,18 +288,19 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	app.strategy.CurrentHeightValData.Height = beginBlock.GetHeader().Height
 	//when we reach the upgrade height,we change the blockversion
-	heightArray := strings.Split(version.HeightString, ",")
-	versionArray := strings.Split(version.VersonString, ",")
-	for i := 0; i < len(heightArray); i++ {
-		if app.strategy.HFExpectedData.IsHarfForkPassed {
-			currHeight, _ := strconv.ParseInt(heightArray[i], 10, 64)
-			currVersion, _ := strconv.ParseUint(versionArray[i], 10, 64)
-			if app.strategy.HFExpectedData.Height >= currHeight {
-				app.strategy.HFExpectedData.BlockVersion = currVersion
+
+	if app.strategy.HFExpectedData.IsHarfForkPassed {
+		app.logger.Info("=========IsHarfForkPassed")
+		for i := len(version.HeightArray) - 1; i >= 0; i-- {
+			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
+				app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
+				fmt.Println(fmt.Sprintf("height %v blockversion %v",app.strategy.HFExpectedData.Height,app.strategy.HFExpectedData.BlockVersion, ))
+				break
 			}
 		}
-
 	}
+	app.logger.Info("=========block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
+
 	//if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
 	//	app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	//}
@@ -303,7 +331,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height, app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
 		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
 	}
-
+	//fmt.Println(fmt.Sprintf("===========txCacheFrom count %v", len(app.backend.CachedTxFrom())))
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
@@ -325,11 +353,19 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 	state.Finalise(true)
 	app.logger.Debug(fmt.Sprintf("After finalise Commit trie.root=%X",state.Trie().Hash()))*/
 	app.checkTxState = state.Copy() //commit里会做recheck，需要先重置checkState,通过recheck也正好将checkState恢复到正确的状态
-	blockHash, err := app.backend.Commit(app.Receiver())
+	blockHash, err := app.backend.Commit()
 	if err != nil {
 		// nolint: errcheck
 		app.logger.Error("Error getting latest ethereum state", "err", err)
 		return abciTypes.ResponseCommit{}
+	}
+
+	app.backend.Ethereum().TxPool().HandleCachedTxs()
+	if app.backend.Ethereum().TxPool().IsFlowControlOpen() {
+		memPool := app.backend.MemPool()
+		if memPool != nil { //when in replay, memPool has not been set, it is nil
+			app.backend.Ethereum().TxPool().SetFlowLimit(memPool.SizeSnapshot())
+		}
 	}
 
 	return abciTypes.ResponseCommit{
@@ -363,7 +399,7 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 
 // validateTx checks the validity of a tx against the blockchain's current state.
 // it duplicates the logic in ethereum's tx_pool
-func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.ResponseCheckTx {
+func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType abciTypes.CheckTxType) abciTypes.ResponseCheckTx {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
 	if tx.Size() > maxTransactionSize {
 		return abciTypes.ResponseCheckTx{
@@ -371,38 +407,63 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Log:  core.ErrOversizedData.Error()}
 	}
 
-	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
+	var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
 	if tx.Protected() {
 		signer = ethTypes.NewEIP155Signer(tx.ChainId())
 	}
 
-	// Make sure the transaction is signed properly
-	from, err := ethTypes.Sender(signer, tx)
-	if err != nil {
-		// TODO: Add errors.CodeTypeInvalidSignature ?
-		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInternal),
-			Log:  core.ErrInvalidSender.Error()}
+	var from common.Address
+	var cached bool
+	success := false
+	txHash := tx.Hash()
+	if checkType == abciTypes.CheckTxType_Local {
+		from = app.backend.LastFrom()
+	} else if checkType == abciTypes.CheckTxType_Recheck {
+		from, cached = app.backend.FetchCachedTxFrom(txHash)
+		if !cached {
+			var err error
+			// Make sure the transaction is signed properly
+			from, err = ethTypes.Sender(signer, tx)
+			if err != nil {
+				// TODO: Add errors.CodeTypeInvalidSignature ?
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(errors.CodeInternal),
+					Log:  core.ErrInvalidSender.Error()}
+			}
+		} else {
+			defer func() {
+				if !success {
+					app.backend.DeleteCachedTxFrom(txHash)
+				}
+			}()
+		}
+	} else {
+		var err error
+		// Make sure the transaction is signed properly
+		from, err = ethTypes.Sender(signer, tx)
+		if err != nil {
+			// TODO: Add errors.CodeTypeInvalidSignature ?
+			return abciTypes.ResponseCheckTx{
+				Code: uint32(errors.CodeInternal),
+				Log:  core.ErrInvalidSender.Error()}
+		}
 	}
 
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
 		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInvalidPubKey),
+			Code: uint32(errors.CodeInvalidCoins),
 			Log:  core.ErrNegativeValue.Error()}
 	}
 
 	currentState := app.checkTxState
 
 	// Make sure the account exist - cant send from non-existing account.
-	if !currentState.Exist(from) {
-		workState, _ := app.backend.Es().State()
-		if !workState.Exist(from) {
-			return abciTypes.ResponseCheckTx{
-				Code: uint32(errors.CodeUnknownAddress),
-				Log:  core.ErrInvalidSender.Error()}
-		}
+	if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
+		return abciTypes.ResponseCheckTx{
+			Code: uint32(errors.CodeUnknownAddress),
+			Log:  core.ErrInvalidSender.Error()}
 	}
 
 	// Check the transaction doesn't exceed the current block limit gas.
@@ -466,6 +527,10 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	}
 	currentState.SetNonce(from, tx.Nonce()+1)
 
+	if checkType != abciTypes.CheckTxType_Recheck || !cached {
+		app.backend.InsertCachedTxFrom(txHash, from)
+	}
+	success = true
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
 
