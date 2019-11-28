@@ -119,6 +119,14 @@ func ethermintCmd(ctx *cli.Context) error {
 	if strategy.CurrEpochValData.TotalBalance.Int64() == 0 {
 		panic("strategy.CurrEpochValData.TotalBalance==0")
 	}
+	selectCount := ctx.GlobalInt(emtUtils.SelectCount.Name)
+	fmt.Println("selectCount", selectCount)
+	strategy.CurrEpochValData.SelectCount = selectCount
+	selectBlockNumber := ctx.GlobalInt64(emtUtils.SelectBlockNumber.Name)
+	fmt.Println("selectBlockNumber", selectBlockNumber)
+	selectStrategy := ctx.GlobalBool(emtUtils.SelectStrategy.Name)
+	fmt.Println("selectStrategy", selectStrategy)
+
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make gelchain as self contained as possible.
 	// See Issue https://github.com/tendermint/ethermint/issues/244
@@ -165,15 +173,6 @@ func ethermintCmd(ctx *cli.Context) error {
 		}
 
 		rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
-
-		selectCount := ctx.GlobalInt(emtUtils.SelectCount.Name)
-		fmt.Println("selectCount", selectCount)
-		strategy.CurrEpochValData.SelectCount = selectCount
-		selectBlockNumber := ctx.GlobalInt64(emtUtils.SelectBlockNumber.Name)
-		fmt.Println("selectBlockNumber", selectBlockNumber)
-		selectStrategy := ctx.GlobalBool(emtUtils.SelectStrategy.Name)
-		fmt.Println("selectStrategy", selectStrategy)
-
 		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
 		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
