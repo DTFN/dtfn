@@ -109,8 +109,15 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 	height := currentBlock.Number()
 	hash := currentBlock.Header().Hash()
 	appVersion := uint64(1)
-
-	app.logger.Debug("Info", "height", height) // nolint: errcheck
+	if app.strategy.HFExpectedData.IsHarfForkPassed {
+		for i := len(version.HeightArray) - 1; i >= 0; i-- {
+			if height.Int64() >= version.HeightArray[i] {
+				appVersion = uint64(version.VersionArray[i])
+				break
+			}
+		}
+	}
+	app.logger.Info("Info", "height", height, "appVersion", appVersion) // nolint: errcheck
 
 	minerBonus := big.NewInt(1)
 	divisor := big.NewInt(1)
@@ -291,7 +298,6 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		for i := len(version.HeightArray) - 1; i >= 0; i-- {
 			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
 				app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
-				fmt.Println(fmt.Sprintf("height %v blockversion %v",app.strategy.HFExpectedData.Height,app.strategy.HFExpectedData.BlockVersion, ))
 				break
 			}
 		}
