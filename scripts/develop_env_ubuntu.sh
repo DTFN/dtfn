@@ -2,6 +2,9 @@
 installEthereum(){
     mkdir -p $GOPATH/src/github.com/ethereum  && cd $_
     git clone git@github.com:green-element-chain/go-ethereum.git
+    cd go-ethereum
+    git checkout PPChain
+    cd ..
 }
 
 
@@ -11,7 +14,7 @@ installTendermint(){
     git clone git@github.com:green-element-chain/tendermint.git
     cd tendermint
     #git checkout -b develop remotes/origin/develop
-    git checkout develop
+    git checkout PPChain
     make get_tools
     make get_vendor_deps
     if [ -d "$GOPATH/src/github.com/tendermint/tendermint/vendor/google.golang.org/grpc" ]; then
