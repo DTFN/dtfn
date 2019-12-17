@@ -11,3 +11,5 @@
 - 5.2 persist postable of specify height to get the relation of ethaccount and tmaccount
 
 #### 6. select strategy
+- 6.1 support multi-bet-tx
+- 6.2 change select strategy and support upgrade

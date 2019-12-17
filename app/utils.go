@@ -3,18 +3,18 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/types"
+	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	ethmintTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/green-element-chain/gelchain/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
-	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
 	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
-	"fmt"
-	"github.com/ethereum/go-ethereum/core/txfilter"
 	//_ "net/http/pprof"
 )
 
@@ -114,11 +114,19 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			var posItem txfilter.PosItem
 			if height == -1 {
 				//height=-1 表示 seed 存在，使用seed
-				signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
+				if app.strategy.HFExpectedData.BlockVersion >= 4{
+					signer, posItem = app.strategy.CurrEpochValData.PosTable.PPCSelectItemBySeedValue(seed, i)
+				}else{
+					signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
+				}
 			} else {
 				//seed 不存在，使用height
 				startIndex := height
-				signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
+				if app.strategy.HFExpectedData.BlockVersion >= 4 {
+					signer, posItem = app.strategy.CurrEpochValData.PosTable.PPCSelectItemByHeightValue(startIndex + int64(i))
+				} else {
+					signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
+				}
 			}
 			pubKey = posItem.PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
@@ -345,12 +353,11 @@ func (app *EthermintApplication) SetPersistenceData() {
 	wsState.SetState(currEpochDataAddress, keyHash, valueHash)
 	app.logger.Debug(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
 
-
 	//save specify postable into the statedb,wenbin add
 	specifyHeightDataAddress := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	if height == version.HeightArray[2] {
-		curBytes,_ := json.Marshal(app.strategy.CurrEpochValData)
-		wsState.SetCode(specifyHeightDataAddress,curBytes)
+		curBytes, _ := json.Marshal(app.strategy.CurrEpochValData)
+		wsState.SetCode(specifyHeightDataAddress, curBytes)
 	}
 
 	//extract data from code
