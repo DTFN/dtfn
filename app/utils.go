@@ -114,9 +114,9 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			var posItem txfilter.PosItem
 			if height == -1 {
 				//height=-1 表示 seed 存在，使用seed
-				if app.strategy.HFExpectedData.BlockVersion >= 4{
+				if app.strategy.HFExpectedData.BlockVersion >= 4 {
 					signer, posItem = app.strategy.CurrEpochValData.PosTable.PPCSelectItemBySeedValue(seed, i)
-				}else{
+				} else {
 					signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
 				}
 			} else {
