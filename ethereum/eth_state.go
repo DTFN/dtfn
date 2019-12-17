@@ -19,10 +19,10 @@ import (
 
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/green-element-chain/gelchain/types"
 	"time"
-	"encoding/hex"
 )
 
 const errorCode = 1
@@ -82,7 +82,7 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address, appVersion uint64) (abciTypes.ResponseDeliverTx) {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address, appVersion uint64) abciTypes.ResponseDeliverTx {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
@@ -312,20 +312,38 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, from *common.Address, appVersion uint64) (abciTypes.ResponseDeliverTx) {
+	tx *ethTypes.Transaction, from *common.Address, appVersion uint64) abciTypes.ResponseDeliverTx {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
-	receipt, msg, _, err := core.ApplyTransactionWithFrom(
-		chainConfig,
-		blockchain,
-		&ws.header.Coinbase, // defaults to address of the author of the header
-		ws.gp,
-		ws.state,
-		ws.header,
-		tx,
-		*from,
-		ws.totalUsedGas,
-		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
-	)
+	var err error
+	var msg core.Message
+	var receipt *ethTypes.Receipt
+	if appVersion >= 4 {
+		receipt, msg, _, err = core.PPCApplyTransactionWithFrom(
+			chainConfig,
+			blockchain,
+			&ws.header.Coinbase, // defaults to address of the author of the header
+			ws.gp,
+			ws.state,
+			ws.header,
+			tx,
+			*from,
+			ws.totalUsedGas,
+			vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
+		)
+	} else {
+		receipt, msg, _, err = core.ApplyTransactionWithFrom(
+			chainConfig,
+			blockchain,
+			&ws.header.Coinbase, // defaults to address of the author of the header
+			ws.gp,
+			ws.state,
+			ws.header,
+			tx,
+			*from,
+			ws.totalUsedGas,
+			vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
+		)
+	}
 
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
