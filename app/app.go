@@ -268,7 +268,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx, from)
+	res := app.backend.DeliverTx(tx, from, app.strategy.HFExpectedData.BlockVersion)
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,

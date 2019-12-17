@@ -119,8 +119,8 @@ func (b *Backend) CachedTxFrom() map[common.Hash]common.Address {
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address) (abciTypes.ResponseDeliverTx) {
-	return b.es.DeliverTx(tx, &from)
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address, appVerion uint64) abciTypes.ResponseDeliverTx {
+	return b.es.DeliverTx(tx, &from, appVerion)
 }
 
 // AccumulateRewards accumulates the rewards based on the given strategy
@@ -139,7 +139,7 @@ func (b *Backend) DeleteCachedTxFrom(txHash common.Hash) {
 }
 
 func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address) {
-	b.cachedTxFrom[txHash]=from
+	b.cachedTxFrom[txHash] = from
 }
 
 // Commit finalises the current block

@@ -82,14 +82,14 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address) (abciTypes.ResponseDeliverTx) {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address, appVersion uint64) (abciTypes.ResponseDeliverTx) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
-	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from)
+	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from, appVersion)
 }
 
 // Accumulate validator rewards.
@@ -97,7 +97,11 @@ func (es *EthState) AccumulateRewards(strategy *emtTypes.Strategy) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
-	es.work.accumulateRewards(strategy)
+	//cancel block rewards when blockversion >= 4
+	if strategy.HFExpectedData.BlockVersion >= 4 {
+	} else {
+		es.work.accumulateRewards(strategy)
+	}
 }
 
 // Commit and reset the work.
@@ -308,7 +312,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, from *common.Address) (abciTypes.ResponseDeliverTx) {
+	tx *ethTypes.Transaction, from *common.Address, appVersion uint64) (abciTypes.ResponseDeliverTx) {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, msg, _, err := core.ApplyTransactionWithFrom(
 		chainConfig,
