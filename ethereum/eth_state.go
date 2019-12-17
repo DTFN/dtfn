@@ -99,6 +99,7 @@ func (es *EthState) AccumulateRewards(strategy *emtTypes.Strategy) {
 
 	//cancel block rewards when blockversion >= 4
 	if strategy.HFExpectedData.BlockVersion >= 4 {
+		es.work.header.GasUsed = *es.work.totalUsedGas
 	} else {
 		es.work.accumulateRewards(strategy)
 	}
