@@ -269,7 +269,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		} else {
 			panic(fmt.Sprintf("address %v not exist in TmAddressToSignerMap", address))
 		}
-		if strategy.HFExpectedData.BlockVersion >= 3 {
+		if strategy.HFExpectedData.BlockVersion == 3 {
 			ws.state.AddBalance(beneficiary, bonusSpecify)
 		} else {
 			ws.state.AddBalance(beneficiary, bonusAverage)

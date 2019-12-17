@@ -16,7 +16,7 @@ const Fix = 0
 
 var (
 	// Version is the full version string
-	Version = "0.6.0"
+	Version = "1.5.0"
 
 	// GitCommit is set with --ldflags "-X main.gitCommit=$(git rev-parse --short HEAD)"
 	GitCommit string
@@ -45,13 +45,13 @@ const BeforeHardForkVersion = 0
 
 //If height < NextHardForkHeight,run currentHardForkVersion
 //else run NextHardForkVersion
-const PreHardForkHeight = 85000
-const PreHardForeVersion = 2
-const NextHardForkHeight = 1300000
-const NextHardForkVersion = 3
+//const PreHardForkHeight = 85000
+//const PreHardForeVersion = 2
+//const NextHardForkHeight = 1300000
+//const NextHardForkVersion = 3
 
-const HeightString = "85000,1300000"
-const VersionString = "2,3"
+const HeightString = "4,8,12"
+const VersionString = "2,3,4"
 
 //If we are in the version=4,we should remember all the
 //pre-version code and per-version height
