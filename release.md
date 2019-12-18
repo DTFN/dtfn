@@ -15,3 +15,4 @@
 - 6.2 change select strategy and support upgrade
 - 6.3 add ppc_filter, ignore solt judge
 - 6.4 forbid origin bet tx, only accept multi-bet-tx
+- 6.5 ignore txpool-isBlocked in go-ethereum for upgrade
