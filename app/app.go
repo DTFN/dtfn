@@ -180,7 +180,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 		}
 		signer := app.strategy.AccMapInitial.MapList[address].Signer
 		signerBalance := ethState.GetBalance(signer)
-		err := app.UpsertPosItemInit(
+		err := app.InsertPosItemInit(
 			signer,
 			signerBalance,
 			app.strategy.AccMapInitial.MapList[address].Beneficiary,
@@ -541,14 +541,14 @@ func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 	return app.strategy
 }
 
-func (app *EthermintApplication) UpsertPosItemInit(account common.Address, balance *big.Int, beneficiary common.Address,
+func (app *EthermintApplication) InsertPosItemInit(account common.Address, balance *big.Int, beneficiary common.Address,
 	pubKey abciTypes.PubKey, blsKeyString string) error {
 	if app.strategy != nil {
 		tmpSlot := big.NewInt(0)
 		tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		tmAddress := tmPubKey.Address().String()
-		return app.strategy.NextEpochValData.PosTable.UpsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
+		return app.strategy.NextEpochValData.PosTable.InsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
 	}
 	return nil
 }
