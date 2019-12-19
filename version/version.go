@@ -50,7 +50,7 @@ const BeforeHardForkVersion = 0
 //const NextHardForkHeight = 1300000
 //const NextHardForkVersion = 3
 
-const HeightString = "4,8,12"
+const HeightString = "10,20,30"
 const VersionString = "2,3,4"
 
 //If we are in the version=4,we should remember all the
