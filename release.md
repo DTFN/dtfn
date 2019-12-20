@@ -24,6 +24,9 @@
 #### 8 postalbe
 - 8.1 reset slots of positem and totlaSlots in nextEpochData and let `currentSlot = int(10)`
 
+#### 9 Bet
+- 9.1 create a new structure named PPCTxData
+
 #### testcase
 
 
