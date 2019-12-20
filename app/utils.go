@@ -114,19 +114,11 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 			var posItem txfilter.PosItem
 			if height == -1 {
 				//height=-1 表示 seed 存在，使用seed
-				if app.strategy.HFExpectedData.BlockVersion >= 4 {
-					signer, posItem = app.strategy.CurrEpochValData.PosTable.PPCSelectItemBySeedValue(seed, i)
-				} else {
-					signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
-				}
+				signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
 			} else {
 				//seed 不存在，使用height
 				startIndex := height
-				if app.strategy.HFExpectedData.BlockVersion >= 4 {
-					signer, posItem = app.strategy.CurrEpochValData.PosTable.PPCSelectItemByHeightValue(startIndex + int64(i))
-				} else {
-					signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
-				}
+				signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
 			}
 			pubKey = posItem.PubKey
 			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
@@ -331,6 +323,16 @@ func (app *EthermintApplication) SetPersistenceData() {
 	app.logger.Info(fmt.Sprintf("set persist data in height %v", height))
 	nextEpochDataAddress := common.HexToAddress("0x8888888888888888888888888888888888888888")
 	currEpochDataAddress := common.HexToAddress("0x7777777777777777777777777777777777777777")
+
+	if height == version.HeightArray[2] {
+		for index, value := range app.strategy.NextEpochValData.PosTable.PosItemMap {
+			fmt.Println(index)
+			(*value).Slots = 10
+			fmt.Println((*value).Slots)
+		}
+		app.strategy.NextEpochValData.PosTable.TotalSlots = int64(len(app.strategy.NextEpochValData.PosTable.PosItemMap)) * 10
+		app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
+	}
 
 	if app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock || height%txfilter.EpochBlocks == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
