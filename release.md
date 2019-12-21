@@ -19,7 +19,7 @@
 
 #### 7. relay
 - 7.1 support contract relay, usage is in contract_java_service
-
+- 7.2 support relay-tx not by contract
 
 #### 8 postalbe
 - 8.1 reset slots of positem and totlaSlots in nextEpochData and let `currentSlot = int(10)`
