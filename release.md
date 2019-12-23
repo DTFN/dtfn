@@ -27,7 +27,7 @@
 #### 9 Bet
 - 9.1 create a new structure named PPCTxData
 - 9.2 create a new structure named PPCSignature include PPCTxDataStr
-
+- 9.3 implement the PPChain
 #### testcase
 
 
