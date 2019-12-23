@@ -28,6 +28,9 @@
 - 9.1 create a new structure named PPCTxData
 - 9.2 create a new structure named PPCSignature include PPCTxDataStr
 - 9.3 implement the PPChain
+
+#### 10 merge
+- 10.1 merge develop and 0.31 branch
 #### testcase
 
 
