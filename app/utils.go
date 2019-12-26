@@ -326,9 +326,11 @@ func (app *EthermintApplication) SetPersistenceData() {
 	currEpochDataAddress := common.HexToAddress("0x7777777777777777777777777777777777777777")
 
 	if height == version.HeightArray[2] {
+		//height??
 		for index, value := range app.strategy.NextEpochValData.PosTable.PosItemMap {
 			fmt.Println(index)
 			(*value).Slots = 10
+			app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
 			fmt.Println((*value).Slots)
 		}
 		app.strategy.NextEpochValData.PosTable.TotalSlots = int64(len(app.strategy.NextEpochValData.PosTable.PosItemMap)) * 10
