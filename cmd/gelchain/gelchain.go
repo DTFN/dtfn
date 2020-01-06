@@ -27,13 +27,13 @@ import (
 	"github.com/green-element-chain/gelchain/utils"
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/mempool"
 	tmNode "github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
 	"math/big"
-	"github.com/tendermint/tendermint/mempool"
 )
 
 func ethermintCmd(ctx *cli.Context) error {

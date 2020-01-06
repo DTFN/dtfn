@@ -512,7 +512,15 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	}
 
 	if app.strategy.HFExpectedData.BlockVersion >= 4 {
-		err = txfilter.PPCIllegalForm(from, *to, currentBalance, tx.Data())
+		blockChain := app.backend.Ethereum().BlockChain()
+		currentBlock := blockChain.CurrentBlock()
+		height := currentBlock.Number()
+		nextHeight := height.Uint64() + 1
+		fmt.Println("-----------current height------------")
+		fmt.Println(nextHeight)
+		fmt.Println("-----------current height------------")
+		statedb, _ := app.getCurrentState()
+		err = core.PPCIllegalForm(from, *to, currentBalance, tx.Data(), nextHeight, statedb)
 	}
 	if err != nil {
 		return abciTypes.ResponseCheckTx{

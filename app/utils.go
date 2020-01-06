@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
@@ -242,6 +241,15 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
+
+	//init ppccatable first
+	ppcCATable := txfilter.NewPPCCATable()
+	state, _ := app.backend.Es().State()
+	ppcTableBytes := state.GetCode(txfilter.PPCCATableAccount)
+	json.Unmarshal(ppcTableBytes, &ppcCATable)
+	fmt.Println(string(ppcTableBytes))
+	txfilter.PPCCATableCopy = &ppcCATable
+
 	// marshal map to jsonBytes,is it sorted?
 	wsState, _ := app.backend.Es().State()
 
@@ -359,7 +367,7 @@ func (app *EthermintApplication) SetPersistenceData() {
 	app.logger.Debug(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
 
 	//save specify postable into the statedb,wenbin add
-	specifyHeightDataAddress := core.SpecifyHeightPosTableAccount
+	specifyHeightDataAddress := txfilter.SpecifyHeightPosTableAccount
 	if height == version.HeightArray[2] {
 		curBytes, _ := json.Marshal(app.strategy.CurrEpochValData)
 		wsState.SetCode(specifyHeightDataAddress, curBytes)
