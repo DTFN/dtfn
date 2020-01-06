@@ -31,6 +31,10 @@
 
 #### 10 merge
 - 10.1 merge develop and 0.31 branch
+
+#### 11 validateTx and returnErr
+- 11.1 add validatePPCTx interface in txpool.go
+
 #### testcase
 
 
