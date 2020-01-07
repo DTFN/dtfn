@@ -367,18 +367,4 @@ func (app *EthermintApplication) SetPersistenceData() {
 	valueHash := ethereumCrypto.Keccak256Hash(valBytes)
 	wsState.SetState(currEpochDataAddress, keyHash, valueHash)
 	app.logger.Debug(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
-
-	//save specify postable into the statedb,wenbin add
-	specifyHeightDataAddress := txfilter.SpecifyHeightPosTableAccount
-	if height == version.HeightArray[2] {
-		curBytes, _ := json.Marshal(app.strategy.CurrEpochValData)
-		wsState.SetCode(specifyHeightDataAddress, curBytes)
-	}
-
-	//extract data from code
-	//savedSpeifyHeightData := common.HexToAddress("0x1111111111111111111111111111111111111111")
-	//nextBytes := wsState.GetCode(savedSpeifyHeightData)
-	//fmt.Println("------------------speicfy height data------------------------")
-	//fmt.Println(string(nextBytes))
-	//fmt.Println("------------------speicfy height data------------------------")
 }

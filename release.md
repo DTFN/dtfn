@@ -38,8 +38,9 @@
 - 12.3 add implement in interface,verify relay-contract, bigguy-approved,bet-tx three types.
 - 12.4 replace txdata by txdatahash in ppccatable
 
-#### 13 config upgradeHeight and bigguyAddress
+#### 13 config upgradeHeight and bigguyAddress and others
 - 13.1 config upgradeHeight and bigguyAddress in gelchain
+- 13.2 remove specifyHeightPosTable data that we don't need to persist 
 #### testcase
 
 
