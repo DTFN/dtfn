@@ -53,6 +53,8 @@ const BeforeHardForkVersion = 0
 const HeightString = "10,20,30"
 const VersionString = "2,3,4"
 
+const BigGuy = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
+
 //If we are in the version=4,we should remember all the
 //pre-version code and per-version height
 //and run the corresponding login to get the same state

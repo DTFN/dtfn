@@ -37,6 +37,9 @@
 - 12.2 add validatePPCTX interface in gelchain checkTx
 - 12.3 add implement in interface,verify relay-contract, bigguy-approved,bet-tx three types.
 - 12.4 replace txdata by txdatahash in ppccatable
+
+#### 13 config upgradeHeight and bigguyAddress
+- 13.1 config upgradeHeight and bigguyAddress in gelchain
 #### testcase
 
 

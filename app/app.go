@@ -516,9 +516,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		currentBlock := blockChain.CurrentBlock()
 		height := currentBlock.Number()
 		nextHeight := height.Uint64() + 1
-		fmt.Println("-----------current height------------")
-		fmt.Println(nextHeight)
-		fmt.Println("-----------current height------------")
 		statedb, _ := app.getCurrentState()
 		err = core.PPCIllegalForm(from, *to, currentBalance, tx.Data(), nextHeight, statedb)
 	}

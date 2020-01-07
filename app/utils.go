@@ -249,6 +249,8 @@ func (app *EthermintApplication) InitPersistData() bool {
 	json.Unmarshal(ppcTableBytes, &ppcCATable)
 	fmt.Println(string(ppcTableBytes))
 	txfilter.PPCCATableCopy = &ppcCATable
+	txfilter.UpgradeHeight = &(version.HeightArray[2])
+	txfilter.Bigguy = common.HexToAddress(version.BigGuy)
 
 	// marshal map to jsonBytes,is it sorted?
 	wsState, _ := app.backend.Es().State()
