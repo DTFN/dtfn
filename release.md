@@ -44,6 +44,7 @@
 - 13.3 change upgradeHeight from *int64 to int64 in go-ethereum
 - 13.4 fix nonce bug in kickout tx of bigguy
 - 13.5 bigguy account may sent bet-tx and as relayer and deploy contract
+- 13.6 fix contract event bug when we don't want to relay
 #### testcase
 
 
