@@ -40,7 +40,9 @@
 
 #### 13 config upgradeHeight and bigguyAddress and others
 - 13.1 config upgradeHeight and bigguyAddress in gelchain
-- 13.2 remove specifyHeightPosTable data that we don't need to persist 
+- 13.2 remove specifyHeightPosTable data that we don't need to persist
+- 13.3 change upgradeHeight from *int64 to int64 in go-ethereum
+- 13.4 fix nonce bug in kickout tx of bigguy
 #### testcase
 
 
