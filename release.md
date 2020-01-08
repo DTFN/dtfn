@@ -43,6 +43,7 @@
 - 13.2 remove specifyHeightPosTable data that we don't need to persist
 - 13.3 change upgradeHeight from *int64 to int64 in go-ethereum
 - 13.4 fix nonce bug in kickout tx of bigguy
+- 13.5 bigguy account may sent bet-tx and as relayer and deploy contract
 #### testcase
 
 
