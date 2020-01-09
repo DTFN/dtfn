@@ -47,6 +47,7 @@
 - 13.6 fix contract event bug when we don't want to relay
 - 13.7 we didn't need reset the slots of postable because it it right now.
 - 13.8 add GetPPCCATABLE interface and fix persist ppcTableItem.User bug
+- 13.9 remove fmt.Println
 #### testcase
 
 
