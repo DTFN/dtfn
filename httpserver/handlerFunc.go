@@ -2,6 +2,8 @@ package httpserver
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/green-element-chain/gelchain/ethereum"
 	emtTypes "github.com/green-element-chain/gelchain/types"
 	tmTypes "github.com/tendermint/tendermint/types"
@@ -9,7 +11,6 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
-	"fmt"
 )
 
 type THandler struct {
@@ -47,6 +48,7 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetInitialValidator"] = tHandler.GetInitialValidator
 	tHandler.HandlersMap["/GetHeadEventSize"] = tHandler.GetTxPoolEventSize
+	tHandler.HandlersMap["/GetPPCCATABle"] = tHandler.GetPPCCATABle
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -319,6 +321,18 @@ func (tHandler *THandler) GetEncourage(w http.ResponseWriter, req *http.Request)
 func (tHandler *THandler) GetTxPoolEventSize(w http.ResponseWriter, req *http.Request) {
 	jsonStr, err := json.Marshal("unread txpool event size: " + strconv.Itoa(tHandler.
 		backend.Ethereum().TxPool().GetTxpoolChainHeadSize()))
+	if err != nil {
+		w.Write([]byte("error occured when marshal into json"))
+	} else {
+		w.Write(jsonStr)
+	}
+}
+
+func (tHandler *THandler) GetPPCCATABle(w http.ResponseWriter, req *http.Request) {
+	txfilter.PPCCATableCopy.Mtx.RLock()
+	defer txfilter.PPCCATableCopy.Mtx.RUnlock()
+
+	jsonStr, err := json.Marshal(*txfilter.PPCCATableCopy)
 	if err != nil {
 		w.Write([]byte("error occured when marshal into json"))
 	} else {
