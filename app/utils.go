@@ -335,17 +335,18 @@ func (app *EthermintApplication) SetPersistenceData() {
 	nextEpochDataAddress := common.HexToAddress("0x8888888888888888888888888888888888888888")
 	currEpochDataAddress := common.HexToAddress("0x7777777777777777777777777777777777777777")
 
-	if height == version.HeightArray[2] {
-		//height??
-		for index, value := range app.strategy.NextEpochValData.PosTable.PosItemMap {
-			fmt.Println(index)
-			(*value).Slots = 10
-			app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
-			fmt.Println((*value).Slots)
-		}
-		app.strategy.NextEpochValData.PosTable.TotalSlots = int64(len(app.strategy.NextEpochValData.PosTable.PosItemMap)) * 10
-		app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
-	}
+	// we didn't need reset the slots of postable because it it right now.
+	//if height == version.HeightArray[2] {
+	//	//height??
+	//	for index, value := range app.strategy.NextEpochValData.PosTable.PosItemMap {
+	//		fmt.Println(index)
+	//		(*value).Slots = 10
+	//		app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
+	//		fmt.Println((*value).Slots)
+	//	}
+	//	app.strategy.NextEpochValData.PosTable.TotalSlots = int64(len(app.strategy.NextEpochValData.PosTable.PosItemMap)) * 10
+	//	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
+	//}
 
 	if app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock || height%txfilter.EpochBlocks == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
