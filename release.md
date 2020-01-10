@@ -48,6 +48,7 @@
 - 13.7 we didn't need reset the slots of postable because it it right now.
 - 13.8 add GetPPCCATABLE interface and fix persist ppcTableItem.User bug
 - 13.9 remove fmt.Println
+- 13.10 handle error data in new-tx
 #### testcase
 
 
