@@ -50,6 +50,7 @@
 - 13.9 remove fmt.Println
 - 13.10 handle error data in new-tx
 - 13.11 add PPCCachedTx for performance
+- 13.12 add PPCIllegalRelayForm check
 #### testcase
 
 

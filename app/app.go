@@ -529,6 +529,19 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	}
 
 	if app.strategy.HFExpectedData.BlockVersion >= 4 {
+		statedb, _ := app.getCurrentState()
+		_, err = core.PPCIllegalRelayFrom(from, *to, currentBalance, tx.Data(), statedb)
+	}
+	if err != nil {
+		return abciTypes.ResponseCheckTx{
+			// TODO: Add errors.CodeIllegalPPCTX ?
+			Code: uint32(errors.CodeInsufficientFunds),
+			Log: fmt.Sprintf(
+				"PPC Tx is illegal: %v",
+				err)}
+	}
+
+	if app.strategy.HFExpectedData.BlockVersion >= 4 {
 		err = txfilter.PPCIsBlocked(from, *to, currentBalance, tx.Data())
 	} else {
 		err = txfilter.IsBlocked(from, *to, currentBalance, tx.Data())
