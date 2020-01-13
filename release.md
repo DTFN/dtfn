@@ -49,6 +49,7 @@
 - 13.8 add GetPPCCATABLE interface and fix persist ppcTableItem.User bug
 - 13.9 remove fmt.Println
 - 13.10 handle error data in new-tx
+- 13.11 add PPCCachedTx for performance
 #### testcase
 
 
