@@ -30,6 +30,10 @@ func (b *Backend) txBroadcastLoop() {
 	//for obj := range b.txSub.Chan() {
 	txCount := 0
 	for obj := range ch {
+		fmt.Println("----------------we are receive txpreevent from txpool------------------")
+		fmt.Println(obj.From.String())
+		fmt.Println("----------------we are receive txpreevent from txpool------------------")
+
 		b.lastFrom = obj.From
 		if err := b.BroadcastTx(obj.Tx); err != nil {
 			log.Error("Broadcast error", "err", err)
