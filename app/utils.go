@@ -242,6 +242,8 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 
+	fmt.Println("-----------try to find when this code is running------------------")
+
 	//init ppccatable first
 	ppcCATable := txfilter.NewPPCCATable()
 	state, _ := app.backend.Es().State()
@@ -249,9 +251,13 @@ func (app *EthermintApplication) InitPersistData() bool {
 	json.Unmarshal(ppcTableBytes, &ppcCATable)
 	fmt.Println(string(ppcTableBytes))
 	txfilter.PPCCATableCopy = &ppcCATable
-	txfilter.PPCTXCached = txfilter.NewPPCCachedTx()
+	if txfilter.PPCTXCached == nil {
+		txfilter.PPCTXCached = txfilter.NewPPCCachedTx()
+	}
 	txfilter.UpgradeHeight = version.HeightArray[2]
 	txfilter.Bigguy = common.HexToAddress(version.BigGuy)
+
+	fmt.Println("-----------try to find when this code is running------------------")
 
 	// marshal map to jsonBytes,is it sorted?
 	wsState, _ := app.backend.Es().State()
