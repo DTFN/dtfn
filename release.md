@@ -60,6 +60,7 @@
 - 13.19 reduce the times of verify signature
 - 13.20 remove check Nonce in deliverTx
 - 13.21 remove PPCCachedTx and check RelayNonce
+- 13.22 remove Redundant code
 #### testcase
 
 
