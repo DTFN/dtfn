@@ -43,7 +43,7 @@ type Backend struct {
 	//leilei add.  Use mempool to forward txs directly
 	memPool      mempl.Mempool
 	lastFrom     common.Address
-	cachedTxFrom map[common.Hash]common.Address
+	cachedTxFrom map[common.Hash]emtTypes.TxInfo
 }
 
 // NewBackend creates a new Backend
@@ -77,7 +77,7 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 		ethConfig:    ethConfig,
 		es:           es,
 		client:       client,
-		cachedTxFrom: make(map[common.Hash]common.Address),
+		cachedTxFrom: make(map[common.Hash]emtTypes.TxInfo),
 	}
 	return ethBackend, nil
 }
@@ -110,7 +110,7 @@ func (b *Backend) LastFrom() common.Address {
 	return b.lastFrom
 }
 
-func (b *Backend) CachedTxFrom() map[common.Hash]common.Address {
+func (b *Backend) CachedTxFrom() map[common.Hash]emtTypes.TxInfo {
 	return b.cachedTxFrom
 }
 
@@ -129,17 +129,23 @@ func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
 	b.es.AccumulateRewards(strategy)
 }
 
-func (b *Backend) FetchCachedTxFrom(txHash common.Hash) (common.Address, bool) {
-	from, ok := b.cachedTxFrom[txHash]
-	return from, ok
+func (b *Backend) FetchCachedTxFrom(txHash common.Hash) (emtTypes.TxInfo, bool) {
+	txInfo, ok := b.cachedTxFrom[txHash]
+	return txInfo, ok
 }
 
 func (b *Backend) DeleteCachedTxFrom(txHash common.Hash) {
 	delete(b.cachedTxFrom, txHash)
 }
 
-func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address) {
-	b.cachedTxFrom[txHash] = from
+func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address, isRelayTx bool, subFrom common.Address, subHash common.Hash) {
+	txInfo := emtTypes.TxInfo{
+		From:      from,
+		IsRelayTx: isRelayTx,
+		SubFrom:   subFrom,
+		SubHash:   subHash,
+	}
+	b.cachedTxFrom[txHash] = txInfo
 }
 
 // Commit finalises the current block

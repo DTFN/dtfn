@@ -248,7 +248,8 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		}
 	}
 	txHash := tx.Hash()
-	from, ok := app.backend.FetchCachedTxFrom(txHash)
+	txInfo, ok := app.backend.FetchCachedTxFrom(txHash)
+	from := txInfo.From
 	if !ok {
 		var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
 		if tx.Protected() {
@@ -416,13 +417,21 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	}
 
 	var from common.Address
+	var subFrom common.Address
+	var subHash common.Hash
 	var cached bool
+	var txInfo emtTypes.TxInfo
 	success := false
+	subFrom = common.Address{}
+	subHash = common.Hash{}
+	isRelayTx := false
 	txHash := tx.Hash()
+
 	if checkType == abciTypes.CheckTxType_Local {
 		from = app.backend.LastFrom()
 	} else if checkType == abciTypes.CheckTxType_Recheck {
-		from, cached = app.backend.FetchCachedTxFrom(txHash)
+		txInfo, cached = app.backend.FetchCachedTxFrom(txHash)
+		from = txInfo.From
 		if !cached {
 			var err error
 			// Make sure the transaction is signed properly
@@ -432,6 +441,32 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				return abciTypes.ResponseCheckTx{
 					Code: uint32(errors.CodeInternal),
 					Log:  core.ErrInvalidSender.Error()}
+			}
+
+			//check nonce of subFrom if it's relay contract
+			if tx.To() == nil {
+				// This is a deploy-contract
+			} else {
+				if txfilter.IsRelayAccount(*tx.To()) {
+					subTx, error := core.PPCDecodeTx(tx.Data())
+					subFrom, err = ethTypes.Sender(signer, subTx)
+					isRelayTx = true
+					subHash = subTx.Hash()
+					if error != nil {
+						return abciTypes.ResponseCheckTx{
+							Code: uint32(errors.CodeInternal),
+							Log:  core.ErrInvalidSender.Error()}
+					}
+
+					subNonce := app.checkTxState.GetNonce(subFrom)
+					if subNonce != subTx.Nonce() {
+						return abciTypes.ResponseCheckTx{
+							Code: uint32(errors.CodeInvalidSequence),
+							Log: fmt.Sprintf(
+								"SubNonce not strictly increasing. Expected %d Got %d",
+								subNonce, subTx.Nonce())}
+					}
+				}
 			}
 		} else {
 			defer func() {
@@ -444,12 +479,39 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		var err error
 		// Make sure the transaction is signed properly
 		from, err = ethTypes.Sender(signer, tx)
+
 		if err != nil {
 			// TODO: Add errors.CodeTypeInvalidSignature ?
 			return abciTypes.ResponseCheckTx{
 				Code: uint32(errors.CodeInternal),
 				Log:  core.ErrInvalidSender.Error()}
 		}
+
+		if tx.To() == nil {
+			// This is a deploy-contract
+		} else {
+			if txfilter.IsRelayAccount(*tx.To()) {
+				subTx, error := core.PPCDecodeTx(tx.Data())
+				subFrom, err = ethTypes.Sender(signer, subTx)
+				isRelayTx = true
+				subHash = subTx.Hash()
+				if error != nil {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInternal),
+						Log:  core.ErrInvalidSender.Error()}
+				}
+
+				subNonce := app.checkTxState.GetNonce(subFrom)
+				if subNonce != subTx.Nonce() {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"SubNonce not strictly increasing. Expected %d Got %d",
+							subNonce, subTx.Nonce())}
+				}
+			}
+		}
+
 	}
 
 	// Transactions can't be negative. This may never happen using RLP decoded
@@ -566,7 +628,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	currentState.SetNonce(from, tx.Nonce()+1)
 
 	if checkType != abciTypes.CheckTxType_Recheck || !cached {
-		app.backend.InsertCachedTxFrom(txHash, from)
+		app.backend.InsertCachedTxFrom(txHash, from, isRelayTx, subFrom, subHash)
 	}
 	success = true
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}

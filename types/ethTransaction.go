@@ -13,6 +13,13 @@ type EthTransaction struct {
 	From common.Address
 }
 
+type TxInfo struct {
+	From      common.Address
+	IsRelayTx bool
+	SubFrom   common.Address
+	SubHash   common.Hash
+}
+
 type EthTransactionRLP struct {
 	AccountNonce uint64          `json:"nonce"    gencodec:"required"`
 	Price        *big.Int        `json:"gasPrice" gencodec:"required"`

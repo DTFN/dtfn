@@ -55,6 +55,7 @@
 - 13.14 for restart error when some-tx was in tx-pool
 - 13.15 remove print-log
 - 13.16 rename pendingTxPreEvents to currentTxPreEvent
+- 13.17 change the cacheTx strategy for not-local tx
 #### testcase
 
 
