@@ -250,9 +250,6 @@ func (app *EthermintApplication) InitPersistData() bool {
 	json.Unmarshal(ppcTableBytes, &ppcCATable)
 	fmt.Println(string(ppcTableBytes))
 	txfilter.PPCCATableCopy = &ppcCATable
-	if txfilter.PPCTXCached == nil {
-		txfilter.PPCTXCached = txfilter.NewPPCCachedTx()
-	}
 	txfilter.UpgradeHeight = version.HeightArray[2]
 	txfilter.Bigguy = common.HexToAddress(version.BigGuy)
 
