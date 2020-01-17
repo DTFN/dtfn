@@ -286,15 +286,6 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 						Code: uint32(errors.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
-
-				subNonce := app.checkTxState.GetNonce(subFrom)
-				if subNonce != subTx.Nonce() {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"SubNonce not strictly increasing. Expected %d Got %d",
-							subNonce, subTx.Nonce())}
-				}
 			}
 		}
 
