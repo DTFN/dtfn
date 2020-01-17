@@ -417,6 +417,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	}
 
 	var from common.Address
+	var subTx *ethTypes.Transaction
 	var subFrom common.Address
 	var subHash common.Hash
 	var cached bool
@@ -448,11 +449,16 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				// This is a deploy-contract
 			} else {
 				if txfilter.IsRelayAccount(*tx.To()) {
-					subTx, error := core.PPCDecodeTx(tx.Data())
+					subTx, err = core.PPCDecodeTx(tx.Data())
+					if err != nil {
+						return abciTypes.ResponseCheckTx{
+							Code: uint32(errors.CodeInternal),
+							Log:  core.ErrInvalidSender.Error()}
+					}
 					subFrom, err = ethTypes.Sender(signer, subTx)
 					isRelayTx = true
 					subHash = subTx.Hash()
-					if error != nil {
+					if err != nil {
 						return abciTypes.ResponseCheckTx{
 							Code: uint32(errors.CodeInternal),
 							Log:  core.ErrInvalidSender.Error()}
@@ -491,11 +497,17 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			// This is a deploy-contract
 		} else {
 			if txfilter.IsRelayAccount(*tx.To()) {
-				subTx, error := core.PPCDecodeTx(tx.Data())
+				subTx, err = core.PPCDecodeTx(tx.Data())
+				if err != nil {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInternal),
+						Log:  core.ErrInvalidSender.Error()}
+				}
 				subFrom, err = ethTypes.Sender(signer, subTx)
 				isRelayTx = true
 				subHash = subTx.Hash()
-				if error != nil {
+
+				if err != nil {
 					return abciTypes.ResponseCheckTx{
 						Code: uint32(errors.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
@@ -626,6 +638,9 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		currentState.AddBalance(*to, tx.Value())
 	}
 	currentState.SetNonce(from, tx.Nonce()+1)
+	if isRelayTx {
+		currentState.SetNonce(subFrom, subTx.Nonce()+1)
+	}
 
 	if checkType != abciTypes.CheckTxType_Recheck || !cached {
 		app.backend.InsertCachedTxFrom(txHash, from, isRelayTx, subFrom, subHash)
