@@ -82,14 +82,14 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address, appVersion uint64) abciTypes.ResponseDeliverTx {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address, appVersion uint64, isRelayTx bool, subFrom common.Address) abciTypes.ResponseDeliverTx {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
-	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from, appVersion)
+	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from, appVersion, isRelayTx, subFrom)
 }
 
 // Accumulate validator rewards.
@@ -313,7 +313,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, from *common.Address, appVersion uint64) abciTypes.ResponseDeliverTx {
+	tx *ethTypes.Transaction, from *common.Address, appVersion uint64, isRelayTx bool, subFrom common.Address) abciTypes.ResponseDeliverTx {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	var err error
 	var msg core.Message
@@ -330,6 +330,8 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 			*from,
 			ws.totalUsedGas,
 			vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
+			isRelayTx,
+			subFrom,
 		)
 	} else {
 		receipt, msg, _, err = core.ApplyTransactionWithFrom(

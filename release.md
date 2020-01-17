@@ -56,6 +56,8 @@
 - 13.15 remove print-log
 - 13.16 rename pendingTxPreEvents to currentTxPreEvent
 - 13.17 change the cacheTx strategy for not-local tx
+- 13.18 add setSubFromNonce in validateTx
+- 13.19 reduce the times of verify signature
 #### testcase
 
 

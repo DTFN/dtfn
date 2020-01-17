@@ -119,8 +119,8 @@ func (b *Backend) CachedTxFrom() map[common.Hash]emtTypes.TxInfo {
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address, appVerion uint64) abciTypes.ResponseDeliverTx {
-	return b.es.DeliverTx(tx, &from, appVerion)
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address, appVerion uint64, isRelayTx bool, subFrom common.Address) abciTypes.ResponseDeliverTx {
+	return b.es.DeliverTx(tx, &from, appVerion, isRelayTx, subFrom)
 }
 
 // AccumulateRewards accumulates the rewards based on the given strategy

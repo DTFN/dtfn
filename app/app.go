@@ -247,6 +247,10 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 			Log:  err.Error(),
 		}
 	}
+	var subTx *ethTypes.Transaction
+	var subFrom common.Address
+	isRelayTx := false
+
 	txHash := tx.Hash()
 	txInfo, ok := app.backend.FetchCachedTxFrom(txHash)
 	from := txInfo.From
@@ -263,13 +267,44 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 				Code: uint32(errors.CodeInternal),
 				Log:  core.ErrInvalidSender.Error()}
 		}
+
+		if tx.To() == nil {
+			// This is a deploy-contract
+		} else {
+			if txfilter.IsRelayAccount(*tx.To()) {
+				subTx, err = core.PPCDecodeTx(tx.Data())
+				if err != nil {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInternal),
+						Log:  core.ErrInvalidSender.Error()}
+				}
+				subFrom, err = ethTypes.Sender(signer, subTx)
+				isRelayTx = true
+
+				if err != nil {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInternal),
+						Log:  core.ErrInvalidSender.Error()}
+				}
+
+				subNonce := app.checkTxState.GetNonce(subFrom)
+				if subNonce != subTx.Nonce() {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"SubNonce not strictly increasing. Expected %d Got %d",
+							subNonce, subTx.Nonce())}
+				}
+			}
+		}
+
 	} else {
 		app.backend.DeleteCachedTxFrom(txHash)
 	}
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx, from, app.strategy.HFExpectedData.BlockVersion)
+	res := app.backend.DeliverTx(tx, from, app.strategy.HFExpectedData.BlockVersion, isRelayTx, subFrom)
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
