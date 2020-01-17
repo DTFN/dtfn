@@ -61,6 +61,7 @@
 - 13.20 remove check Nonce in deliverTx
 - 13.21 remove PPCCachedTx and check RelayNonce
 - 13.22 remove Redundant code
+- 13.23 fix DeliverTx bug
 #### testcase
 
 

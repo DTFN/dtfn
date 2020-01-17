@@ -349,6 +349,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	}
 
 	if err != nil {
+		fmt.Println("----------------print error----------------------")
+		fmt.Println(err)
+		fmt.Println("----------------print error----------------------")
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
 	log.Debug(fmt.Sprintf("deliver a tx from %X tx %v", msg.From(), tx))

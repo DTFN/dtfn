@@ -279,21 +279,29 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 						Log:  core.ErrInvalidSender.Error()}
 				}
 				subFrom, err = ethTypes.Sender(signer, subTx)
-				isRelayTx = true
 
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
 						Code: uint32(errors.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
+				isRelayTx = true
 			}
 		}
 
 	} else {
+		if tx.To() == nil {
+		} else {
+			if txfilter.IsRelayAccount(*tx.To()) {
+				isRelayTx = true
+				subFrom = txInfo.SubFrom
+			}
+		}
 		app.backend.DeleteCachedTxFrom(txHash)
 	}
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
+
 
 	res := app.backend.DeliverTx(tx, from, app.strategy.HFExpectedData.BlockVersion, isRelayTx, subFrom)
 	if res.IsErr() {
@@ -456,6 +464,22 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 
 	if checkType == abciTypes.CheckTxType_Local {
 		from = app.backend.LastFrom()
+		//mock code ,will replaced by the txpool logic
+		if tx.To() == nil {
+
+		} else {
+			if txfilter.IsRelayAccount(*tx.To()) {
+				var err error
+				subTx, err = core.PPCDecodeTx(tx.Data())
+				if err != nil {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInternal),
+						Log:  core.ErrInvalidSender.Error()}
+				}
+				subFrom, err = ethTypes.Sender(signer, subTx)
+				isRelayTx = true
+			}
+		}
 	} else if checkType == abciTypes.CheckTxType_Recheck {
 		txInfo, cached = app.backend.FetchCachedTxFrom(txHash)
 		from = txInfo.From
