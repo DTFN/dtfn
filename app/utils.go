@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
 	ethmintTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/green-element-chain/gelchain/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
@@ -23,16 +22,6 @@ type jsonRequest struct {
 	Method string          `json:"method"`
 	ID     json.RawMessage `json:"id,omitempty"`
 	Params []interface{}   `json:"params,omitempty"`
-}
-
-// rlp decode an etherum transaction
-func decodeTx(txBytes []byte) (*types.Transaction, error) {
-	tx := new(types.Transaction)
-	rlpStream := rlp.NewStream(bytes.NewBuffer(txBytes), 0)
-	if err := tx.DecodeRLP(rlpStream); err != nil {
-		return nil, err
-	}
-	return tx, nil
 }
 
 //-------------------------------------------------------

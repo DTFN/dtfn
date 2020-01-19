@@ -9,6 +9,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmTypes "github.com/tendermint/tendermint/types"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	emtTypes "github.com/green-element-chain/gelchain/types"
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"fmt"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -34,7 +35,7 @@ func (b *Backend) txBroadcastLoop() {
 		fmt.Println(obj.From.String())
 		fmt.Println("----------------we are receive txpreevent from txpool------------------")
 
-		b.lastFrom = obj.From
+		b.lastTxInfo = emtTypes.TxInfo{From: obj.From, SubTx: obj.SubTx, SubFrom: obj.SubFrom}
 		if err := b.BroadcastTx(obj.Tx); err != nil {
 			log.Error("Broadcast error", "err", err)
 			obj.Result <- err
