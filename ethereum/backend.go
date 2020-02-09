@@ -138,12 +138,11 @@ func (b *Backend) DeleteCachedTxFrom(txHash common.Hash) {
 	delete(b.cachedTxFrom, txHash)
 }
 
-func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address, isRelayTx bool, subFrom common.Address, subHash common.Hash) {
+func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address, isRelayTx bool, relayFrom common.Address) {
 	txInfo := emtTypes.TxInfo{
 		From:      from,
 		IsRelayTx: isRelayTx,
-		SubFrom:   subFrom,
-		SubHash:   subHash,
+		RelayFrom: relayFrom,
 	}
 	b.cachedTxFrom[txHash] = txInfo
 }

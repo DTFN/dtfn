@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -248,7 +249,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		}
 	}
 	var subTx *ethTypes.Transaction
-	var subFrom common.Address
+	var relayFrom common.Address
 	isRelayTx := false
 
 	txHash := tx.Hash()
@@ -278,7 +279,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 						Code: uint32(errors.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
-				subFrom, err = ethTypes.Sender(signer, subTx)
+				relayFrom, err = ethTypes.Sender(signer, subTx)
 
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
@@ -294,7 +295,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		} else {
 			if txfilter.IsRelayAccount(*tx.To()) {
 				isRelayTx = true
-				subFrom = txInfo.SubFrom
+				relayFrom = txInfo.RelayFrom
 			}
 		}
 		app.backend.DeleteCachedTxFrom(txHash)
@@ -302,8 +303,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-
-	res := app.backend.DeliverTx(tx, from, app.strategy.HFExpectedData.BlockVersion, isRelayTx, subFrom)
+	res := app.backend.DeliverTx(tx, from, app.strategy.HFExpectedData.BlockVersion, isRelayTx, relayFrom)
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
@@ -453,12 +453,10 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	var from common.Address
 	var subTx *ethTypes.Transaction
 	var subFrom common.Address
-	var subHash common.Hash
 	var cached bool
 	var txInfo emtTypes.TxInfo
 	success := false
 	subFrom = common.Address{}
-	subHash = common.Hash{}
 	isRelayTx := false
 	txHash := tx.Hash()
 
@@ -466,8 +464,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		from = app.backend.LastFrom()
 		//mock code ,will replaced by the txpool logic
 		if tx.To() == nil {
-
-		} else {
+		} else if bytes.Equal(tx.To().Bytes(),txfilter.NewRelayAddress.Bytes()){
+		} else{
 			if txfilter.IsRelayAccount(*tx.To()) {
 				var err error
 				subTx, err = core.PPCDecodeTx(tx.Data())
@@ -516,7 +514,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				}
 				subFrom, err = ethTypes.Sender(signer, subTx)
 				isRelayTx = true
-				subHash = subTx.Hash()
 
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
@@ -548,11 +545,11 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	currentState := app.checkTxState
 
 	// Make sure the account exist - cant send from non-existing account.
-	if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
-		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeUnknownAddress),
-			Log:  core.ErrInvalidSender.Error()}
-	}
+	//if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
+	//	return abciTypes.ResponseCheckTx{
+	//		Code: uint32(errors.CodeUnknownAddress),
+	//		Log:  core.ErrInvalidSender.Error()}
+	//}
 
 	// Check the transaction doesn't exceed the current block limit gas.
 	gasLimit := app.backend.GasLimit()
@@ -574,15 +571,52 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
-	currentBalance := currentState.GetBalance(from)
-	if currentBalance.Cmp(tx.Cost()) < 0 {
-		return abciTypes.ResponseCheckTx{
-			// TODO: Add errors.CodeTypeInsufficientFunds ?
-			Code: uint32(errors.CodeInsufficientFunds),
-			Log: fmt.Sprintf(
-				"Current balance: %s, tx cost: %s",
-				currentBalance, tx.Cost())}
+	var currentBalance *big.Int
+
+	if tx.To()== nil{
+		currentBalance = currentState.GetBalance(from)
+		if currentBalance.Cmp(tx.Cost()) < 0 {
+			return abciTypes.ResponseCheckTx{
+				// TODO: Add errors.CodeTypeInsufficientFunds ?
+				Code: uint32(errors.CodeInsufficientFunds),
+				Log: fmt.Sprintf(
+					"Current balance: %s, tx cost: %s",
+					currentBalance, tx.Cost())}
+		}
+	}else{
+		if bytes.Equal(tx.To().Bytes(), txfilter.NewRelayAddress.Bytes()){
+			relayTxData, err := txfilter.RelayUnMarshalTxData(tx.Data())
+			if err == nil {
+				relayAddress := common.HexToAddress(relayTxData.RelayerAddress)
+				currentBalance = currentState.GetBalance(relayAddress)
+				if currentBalance.Cmp(tx.Cost()) < 0 {
+					return abciTypes.ResponseCheckTx{
+						// TODO: Add errors.CodeTypeInsufficientFunds ?
+						Code: uint32(errors.CodeInsufficientFunds),
+						Log: fmt.Sprintf(
+							"Current balance: %s, tx cost: %s",
+							currentBalance, tx.Cost())}
+				}
+			} else {
+				return abciTypes.ResponseCheckTx{
+					// TODO: Add errors.CodeTypeInsufficientFunds ?
+					Code: uint32(errors.CodeInsufficientFunds),
+					Log: fmt.Sprintf(
+						"Unlegal transaction")}
+			}
+		} else {
+			currentBalance = currentState.GetBalance(from)
+			if currentBalance.Cmp(tx.Cost()) < 0 {
+				return abciTypes.ResponseCheckTx{
+					// TODO: Add errors.CodeTypeInsufficientFunds ?
+					Code: uint32(errors.CodeInsufficientFunds),
+					Log: fmt.Sprintf(
+						"Current balance: %s, tx cost: %s",
+						currentBalance, tx.Cost())}
+			}
+		}
 	}
+
 
 	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
 
@@ -641,7 +675,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	}
 
 	if !cached {
-		app.backend.InsertCachedTxFrom(txHash, from, isRelayTx, subFrom, subHash)
+		app.backend.InsertCachedTxFrom(txHash, from, isRelayTx, subFrom)
 	}
 	success = true
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
