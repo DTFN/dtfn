@@ -1,17 +1,18 @@
 package ethereum
 
 import (
+	"github.com/green-element-chain/gelchain/types"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/log"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	abciTypes "github.com/tendermint/tendermint/abci/types"
-	tmTypes "github.com/tendermint/tendermint/types"
-	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
+	tmTypes "github.com/tendermint/tendermint/types"
 )
 
 //----------------------------------------------------------------------
@@ -34,7 +35,15 @@ func (b *Backend) txBroadcastLoop() {
 		fmt.Println(obj.From.String())
 		fmt.Println("----------------we are receive txpreevent from txpool------------------")
 
-		b.lastFrom = obj.From
+		b.txInfo = types.TxInfo{
+			From:      obj.From,
+			IsRelayTx: obj.RelayTxFlag,
+			RelayFrom: obj.RelayAddress,
+		}
+		fmt.Println("---------------TxInfo-------------------")
+		fmt.Println(b.txInfo)
+		fmt.Println("---------------TxInfo-------------------")
+
 		if err := b.BroadcastTx(obj.Tx); err != nil {
 			log.Error("Broadcast error", "err", err)
 			obj.Result <- err
@@ -82,8 +91,8 @@ func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) error {
 			return err
 		}*/
 	/*	params := map[string]interface{}{
-			"tx": buf.Bytes(),
-		}*/
+		"tx": buf.Bytes(),
+	}*/
 	tmTx := tmTypes.Tx(txBytes)
 	result, err := b.BroadcastTxSync(tmTx)
 	//result, err := b.client.Call("broadcast_tx_sync", params, &result)

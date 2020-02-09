@@ -64,7 +64,7 @@
 - 13.23 fix DeliverTx bug
 #### new relay
 - 14.1 add new relay
-
+- 14.2 remove old relay
 
 #### testcase
 
