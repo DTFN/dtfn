@@ -326,7 +326,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 				}
 				//verify client address of relayer signature
 				clientAddress := common.HexToAddress(relayerSignedData.ClientAddress)
-				if bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
+				if !bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
 					return abciTypes.ResponseDeliverTx{
 						Code: uint32(errors.CodeInvalidSequence),
 						Log: fmt.Sprintf(
@@ -615,7 +615,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				}
 				//verify client address of relayer signature
 				clientAddress := common.HexToAddress(relayerSignedData.ClientAddress)
-				if bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
+				if !bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
 					return abciTypes.ResponseCheckTx{
 						Code: uint32(errors.CodeInvalidSequence),
 						Log: fmt.Sprintf(
