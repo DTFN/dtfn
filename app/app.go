@@ -272,16 +272,67 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 			// This is a deploy-contract
 		} else {
 			if txfilter.IsRelayAccount(*tx.To()) {
-
-				relayTxData, err := txfilter.RelayUnMarshalTxData(tx.Data())
+				originTxData, err := txfilter.ClientUnMarshalTxData(tx.Data())
 				if err == nil {
-					relayFrom = common.HexToAddress(relayTxData.RelayerAddress)
-				}else{
+					relayFrom = common.HexToAddress(originTxData.RelayerAddress)
+				} else {
 					return abciTypes.ResponseDeliverTx{
 						Code: uint32(errors.CodeInternal),
 						Log: fmt.Sprintf(
 							"Unlegal data for relay transaction")}
 				}
+
+				var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
+				if tx.Protected() {
+					signer = ethTypes.NewEIP155Signer(tx.ChainId())
+				}
+
+				encodeRelayerBytes, _ := hex.DecodeString(originTxData.RelayerSignedMessage[2:])
+				relayerTx, err := core.PPCDecodeTx(encodeRelayerBytes)
+				if err != nil {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				relayerAddressFromSig, err := ethTypes.Sender(signer, relayerTx)
+				if err != nil {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				//verify the relayer address is right
+				if !bytes.Equal(relayerAddressFromSig.Bytes(), relayFrom.Bytes()) {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				//make sure the signed data is legal json
+				relayerSignedData, err := txfilter.RelayUnMarshalSignedTxData([]byte(string(relayerTx.Data())))
+				if err != nil {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				//verify client nonce of relayer signature
+				if relayerSignedData.Nonce != tx.Nonce() {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				//verify client address of relayer signature
+				clientAddress := common.HexToAddress(relayerSignedData.ClientAddress)
+				if bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				fmt.Println(string(relayerTx.Data()))
 				isRelayTx = true
 			}
 		}
@@ -501,10 +552,10 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		} else {
 			if txfilter.IsRelayAccount(*tx.To()) {
 				isRelayTx = true
-				relayTxData, err := txfilter.RelayUnMarshalTxData(tx.Data())
+				originTxData, err := txfilter.ClientUnMarshalTxData(tx.Data())
 				if err == nil {
-					relayAddress = common.HexToAddress(relayTxData.RelayerAddress)
-				}else{
+					relayAddress = common.HexToAddress(originTxData.RelayerAddress)
+				} else {
 					return abciTypes.ResponseCheckTx{
 						Code: uint32(errors.CodeInvalidSequence),
 						Log: fmt.Sprintf(
@@ -519,6 +570,58 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 							"SubNonce not strictly increasing. Expected %d Got %d",
 							nonce, tx.Nonce())}
 				}
+
+				var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
+				if tx.Protected() {
+					signer = ethTypes.NewEIP155Signer(tx.ChainId())
+				}
+
+				encodeRelayerBytes, _ := hex.DecodeString(originTxData.RelayerSignedMessage[2:])
+				relayerTx, err := core.PPCDecodeTx(encodeRelayerBytes)
+				if err != nil {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				relayerAddressFromSig, err := ethTypes.Sender(signer, relayerTx)
+				if err != nil {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				//verify the relayer address is right
+				if !bytes.Equal(relayerAddressFromSig.Bytes(), relayAddress.Bytes()) {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				//make sure the signed data is legal json
+				relayerSignedData, err := txfilter.RelayUnMarshalSignedTxData([]byte(string(relayerTx.Data())))
+				if err != nil {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				//verify client nonce of relayer signature
+				if relayerSignedData.Nonce != tx.Nonce() {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				//verify client address of relayer signature
+				clientAddress := common.HexToAddress(relayerSignedData.ClientAddress)
+				if bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				fmt.Println(string(relayerTx.Data()))
 			}
 		}
 

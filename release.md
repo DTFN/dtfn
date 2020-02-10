@@ -66,6 +66,7 @@
 - 14.1 add new relay
 - 14.2 remove old relay
 - 14.5 change relay address
+- 14.9 add validate relay signature logic
 
 #### testcase
 
