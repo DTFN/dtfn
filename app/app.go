@@ -574,7 +574,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 					currentBalance, tx.Cost())}
 		}
 	} else {
-		if bytes.Equal(tx.To().Bytes(), txfilter.NewRelayAddress.Bytes()) {
+		if bytes.Equal(tx.To().Bytes(), txfilter.RelayAddress.Bytes()) {
 			currentBalance = currentState.GetBalance(relayAddress)
 			if currentBalance.Cmp(tx.Cost()) < 0 {
 				return abciTypes.ResponseCheckTx{
