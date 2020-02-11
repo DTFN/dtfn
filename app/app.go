@@ -281,6 +281,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 						Log: fmt.Sprintf(
 							"Unlegal data for relay transaction")}
 				}
+				originContractAddress := common.HexToAddress(originTxData.ContractAddress)
 
 				var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
 				if tx.Protected() {
@@ -326,7 +327,14 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 				}
 				//verify client address of relayer signature
 				clientAddress := common.HexToAddress(relayerSignedData.ClientAddress)
+				contractAddress := common.HexToAddress(relayerSignedData.ContractAddress)
 				if !bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
+					return abciTypes.ResponseDeliverTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				if !bytes.Equal(contractAddress.Bytes(), originContractAddress.Bytes()) {
 					return abciTypes.ResponseDeliverTx{
 						Code: uint32(errors.CodeInvalidSequence),
 						Log: fmt.Sprintf(
@@ -561,6 +569,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 						Log: fmt.Sprintf(
 							"Unlegal data for relay transaction")}
 				}
+				originContractAddress := common.HexToAddress(originTxData.ContractAddress)
 
 				nonce := app.checkTxState.GetNonce(from)
 				if nonce != tx.Nonce() {
@@ -615,7 +624,14 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				}
 				//verify client address of relayer signature
 				clientAddress := common.HexToAddress(relayerSignedData.ClientAddress)
+				contractAddress := common.HexToAddress(relayerSignedData.ContractAddress)
 				if !bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"invalid signature for relayer")}
+				}
+				if !bytes.Equal(contractAddress.Bytes(), originContractAddress.Bytes()) {
 					return abciTypes.ResponseCheckTx{
 						Code: uint32(errors.CodeInvalidSequence),
 						Log: fmt.Sprintf(
