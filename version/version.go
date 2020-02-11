@@ -50,7 +50,7 @@ const BeforeHardForkVersion = 0
 //const NextHardForkHeight = 1300000
 //const NextHardForkVersion = 3
 
-const HeightString = "10,20,30"
+const HeightString = "8000,8100,8200"
 const VersionString = "2,3,4"
 
 const BigGuy = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
