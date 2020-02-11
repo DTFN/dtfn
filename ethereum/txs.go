@@ -31,18 +31,11 @@ func (b *Backend) txBroadcastLoop() {
 	//for obj := range b.txSub.Chan() {
 	txCount := 0
 	for obj := range ch {
-		fmt.Println("----------------we are receive txpreevent from txpool------------------")
-		fmt.Println(obj.From.String())
-		fmt.Println("----------------we are receive txpreevent from txpool------------------")
-
 		b.txInfo = types.TxInfo{
 			From:      obj.From,
 			IsRelayTx: obj.RelayTxFlag,
 			RelayFrom: obj.RelayAddress,
 		}
-		fmt.Println("---------------TxInfo-------------------")
-		fmt.Println(b.txInfo)
-		fmt.Println("---------------TxInfo-------------------")
 
 		if err := b.BroadcastTx(obj.Tx); err != nil {
 			log.Error("Broadcast error", "err", err)
