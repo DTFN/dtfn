@@ -761,7 +761,11 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 
 	// Update ether balances
 	// amount + gasprice * gaslimit
-	currentState.SubBalance(from, tx.Cost())
+	if isRelayTx {
+		currentState.SubBalance(from, tx.Cost())
+	} else {
+		currentState.SubBalance(relayAddress, tx.Cost())
+	}
 	// tx.To() returns a pointer to a common address. It returns nil
 	// if it is a contract creation transaction.
 	if to := tx.To(); to != nil {

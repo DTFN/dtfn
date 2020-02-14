@@ -251,7 +251,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 	fmt.Println(string(ppcTableBytes))
 	txfilter.PPCCATableCopy = &ppcCATable
 	txfilter.UpgradeHeight = version.HeightArray[2]
-	txfilter.Bigguy = common.HexToAddress(version.BigGuy)
+	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
 
 
 	// marshal map to jsonBytes,is it sorted?
