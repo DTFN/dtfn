@@ -1,8 +1,8 @@
 package version
 
 import (
-	"strings"
 	"strconv"
+	"strings"
 )
 
 // Major version component of the current release
@@ -54,6 +54,8 @@ const HeightString = "8000,8100,8200"
 const VersionString = "2,3,4"
 
 const PPChainAdmin = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
+
+const Bigguy = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
 
 //If we are in the version=4,we should remember all the
 //pre-version code and per-version height
