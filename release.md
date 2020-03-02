@@ -62,6 +62,17 @@
 - 13.21 remove PPCCachedTx and check RelayNonce
 - 13.22 remove Redundant code
 - 13.23 fix DeliverTx bug
+#### new relay
+- 14.1 add new relay
+- 14.2 remove old relay
+- 14.5 change relay address
+- 14.9 add validate relay signature logic
+- 14.10 fix validate relay signature bug
+- 14.12 add contractaddress in relayersigned data
+- 14.13 remove fmt.Println
+- 14.14 fix checkTx subBalance when it's a relay transaction
+- 14.15 renate bigguy to ppchainadmin
+- 14.16 add bigguy account
 #### testcase
 
 

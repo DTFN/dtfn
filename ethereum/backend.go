@@ -42,7 +42,7 @@ type Backend struct {
 
 	//leilei add.  Use mempool to forward txs directly
 	memPool      mempl.Mempool
-	lastFrom     common.Address
+	txInfo       emtTypes.TxInfo
 	cachedTxFrom map[common.Hash]emtTypes.TxInfo
 }
 
@@ -106,8 +106,8 @@ func (b *Backend) MemPool() mempl.Mempool {
 	return b.memPool
 }
 
-func (b *Backend) LastFrom() common.Address {
-	return b.lastFrom
+func (b *Backend) LastTxInfo() emtTypes.TxInfo {
+	return b.txInfo
 }
 
 func (b *Backend) CachedTxFrom() map[common.Hash]emtTypes.TxInfo {
@@ -119,8 +119,8 @@ func (b *Backend) CachedTxFrom() map[common.Hash]emtTypes.TxInfo {
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address, appVerion uint64, isRelayTx bool, subFrom common.Address) abciTypes.ResponseDeliverTx {
-	return b.es.DeliverTx(tx, &from, appVerion, isRelayTx, subFrom)
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address, appVerion uint64, isRelayTx bool, relayFrom common.Address) abciTypes.ResponseDeliverTx {
+	return b.es.DeliverTx(tx, &from, appVerion, isRelayTx, relayFrom)
 }
 
 // AccumulateRewards accumulates the rewards based on the given strategy
@@ -138,12 +138,11 @@ func (b *Backend) DeleteCachedTxFrom(txHash common.Hash) {
 	delete(b.cachedTxFrom, txHash)
 }
 
-func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address, isRelayTx bool, subFrom common.Address, subHash common.Hash) {
+func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address, isRelayTx bool, relayFrom common.Address) {
 	txInfo := emtTypes.TxInfo{
 		From:      from,
 		IsRelayTx: isRelayTx,
-		SubFrom:   subFrom,
-		SubHash:   subHash,
+		RelayFrom: relayFrom,
 	}
 	b.cachedTxFrom[txHash] = txInfo
 }

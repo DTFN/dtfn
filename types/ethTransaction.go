@@ -16,8 +16,7 @@ type EthTransaction struct {
 type TxInfo struct {
 	From      common.Address
 	IsRelayTx bool
-	SubFrom   common.Address
-	SubHash   common.Hash
+	RelayFrom common.Address
 }
 
 type EthTransactionRLP struct {
