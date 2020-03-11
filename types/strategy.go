@@ -47,12 +47,14 @@ type Strategy struct {
 	// need persist when epoch changes or changed this block
 	NextEpochValData NextEpochValData
 
+	PermitTable *txfilter.PermitTable
+
 	// add for hard fork
 	HFExpectedData HardForkExpectedData
 }
 
 type NextEpochValData struct {
-	//deepcopy from NextEpochValData to CurrEpochValData each epoch
+	// will be changed by addValidatorTx and removeValidatorTx.
 	PosTable *txfilter.PosTable
 }
 
@@ -79,13 +81,13 @@ type HardForkExpectedData struct {
 }
 
 type CurrEpochValData struct {
-	// will be changed by addValidatorTx and removeValidatorTx.
+	//deepcopy from NextEpochValData each epoch
 	PosTable *txfilter.PosTable `json:"pos_table"`
 
 	TotalBalance *big.Int `json:"total_balance"`
 	MinorBonus   *big.Int `json:"-"` //all voted validators share this bonus per block.
 
-	SelectCount int	`json:"-"`	//select count of each height
+	SelectCount int `json:"-"` //select count of each height
 }
 
 type Validator struct {

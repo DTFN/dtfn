@@ -242,27 +242,15 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 
-	//init ppccatable first
-	ppcCATable := txfilter.NewPPCCATable()
-	state, _ := app.backend.Es().State()
-	ppcTableBytes := state.GetCode(txfilter.PPCCATableAccount)
-	json.Unmarshal(ppcTableBytes, &ppcCATable)
-	fmt.Println(string(ppcTableBytes))
-	txfilter.PPCCATableCopy = &ppcCATable
 	txfilter.UpgradeHeight = version.HeightArray[2]
 	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
 	txfilter.Bigguy = common.HexToAddress(version.Bigguy)
 
-	// marshal map to jsonBytes,is it sorted?
 	wsState, _ := app.backend.Es().State()
 
-	//nextEpochDataAddress := common.HexToAddress("0x8888888888888888888888888888888888888888")
-	currEpochDataAddress := common.HexToAddress("0x7777777777777777777777777777777777777777")
+	currEpochDataAddress := txfilter.SendToLock
 
 	trie := wsState.StorageTrie(currEpochDataAddress)
-
-	/*	app.logger.Info("Read NextEpochValData")
-		nextBytes := wsState.GetCode(nextEpochDataAddress)*/
 
 	app.logger.Info("Read CurrEpochValData")
 	currBytes := wsState.GetCode(currEpochDataAddress)
@@ -273,6 +261,8 @@ func (app *EthermintApplication) InitPersistData() bool {
 	valueHash := wsState.GetState(currEpochDataAddress, keyHash)
 	if bytes.Equal(valueHash.Bytes(), common.Hash{}.Bytes()) {
 		app.logger.Info("no pre CurrentHeightData")
+		app.strategy.NextEpochValData.PosTable = txfilter.CreatePosTable()
+		app.strategy.PermitTable = txfilter.CreatePermitTable()
 		return false
 	} else {
 		currentHeightData, err := trie.TryGet(key)
@@ -291,19 +281,6 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 	}
 
-	/*	if len(nextBytes) == 0 {
-			// no predata existed
-			app.logger.Info("no pre NextEpochValData")
-		} else {
-			app.logger.Info("NextEpochValData Not nil")
-			err := json.Unmarshal(nextBytes, &app.strategy.NextEpochValData)
-			if err != nil {
-				panic(fmt.Sprintf("initialize NextEpochValData error %v", err))
-			} else {
-				initFlag = true
-			}
-		}*/
-
 	if len(currBytes) == 0 {
 		// no predata existed
 		panic("no pre CurrEpochValData")
@@ -320,11 +297,10 @@ func (app *EthermintApplication) InitPersistData() bool {
 
 	app.logger.Info("Read PosTable")
 	app.strategy.NextEpochValData.PosTable = wsState.InitPosTable()
-	if app.strategy.NextEpochValData.PosTable == nil {
-		panic("no pre NextEpochValData.PosTable")
-	} else {
-		app.strategy.NextEpochValData.PosTable.InitStruct()
-	}
+	app.strategy.NextEpochValData.PosTable.InitStruct()
+
+	app.logger.Info("Read PermitTable")
+	app.strategy.PermitTable = wsState.InitPermitTable()
 
 	return true
 }
@@ -333,8 +309,8 @@ func (app *EthermintApplication) SetPersistenceData() {
 	wsState, _ := app.getCurrentState()
 	height := app.strategy.CurrentHeightValData.Height
 	app.logger.Info(fmt.Sprintf("set persist data in height %v", height))
-	nextEpochDataAddress := common.HexToAddress("0x8888888888888888888888888888888888888888")
-	currEpochDataAddress := common.HexToAddress("0x7777777777777777777777777777777777777777")
+	nextEpochDataAddress := txfilter.SendToUnlock
+	currEpochDataAddress := txfilter.SendToLock
 
 	// we didn't need reset the slots of postable because it it right now.
 	//if height == version.HeightArray[2] {
@@ -353,6 +329,12 @@ func (app *EthermintApplication) SetPersistenceData() {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
 		wsState.SetCode(nextEpochDataAddress, nextBytes)
 		app.logger.Info(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
+	}
+
+	if app.strategy.PermitTable.ChangedFlagThisBlock {
+		nextBytes, _ := json.Marshal(app.strategy.PermitTable)
+		wsState.SetCode(txfilter.SendToAuth, nextBytes)
+		app.logger.Info(fmt.Sprintf("PermitTable %v", app.strategy.NextEpochValData.PosTable))
 	}
 
 	if height%txfilter.EpochBlocks == 0 {

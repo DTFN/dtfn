@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"github.com/green-element-chain/gelchain/types"
 	"time"
 
 	"fmt"
@@ -31,10 +30,11 @@ func (b *Backend) txBroadcastLoop() {
 	//for obj := range b.txSub.Chan() {
 	txCount := 0
 	for obj := range ch {
-		b.txInfo = types.TxInfo{
+		b.currentTxInfo = ethTypes.TxInfo{
+			Tx:        obj.Tx,
 			From:      obj.From,
-			IsRelayTx: obj.RelayTxFlag,
-			RelayFrom: obj.RelayAddress,
+			RelayFrom: obj.Relayer,
+			SubTx:     obj.SubTx,
 		}
 
 		if err := b.BroadcastTx(obj.Tx); err != nil {

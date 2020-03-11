@@ -82,14 +82,14 @@ func (es *EthState) SetEthConfig(ethConfig *eth.Config) {
 }
 
 // Execute the transaction.
-func (es *EthState) DeliverTx(tx *ethTypes.Transaction, from *common.Address, appVersion uint64, isRelayTx bool, relayFrom common.Address) abciTypes.ResponseDeliverTx {
+func (es *EthState) DeliverTx(tx *ethTypes.Transaction, appVersion uint64, txInfo ethTypes.TxInfo) abciTypes.ResponseDeliverTx {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
-	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, from, appVersion, isRelayTx, relayFrom)
+	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, appVersion, txInfo)
 }
 
 // Accumulate validator rewards.
@@ -149,6 +149,7 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 	es.work = workState{
 		header:       ethHeader,
 		parent:       currentBlock,
+		height:       blockchain.PendingBlock().Number().Int64(),
 		state:        state,
 		txIndex:      0,
 		totalUsedGas: new(uint64),
@@ -204,6 +205,7 @@ func (es *EthState) Pending() (*ethTypes.Block, *state.StateDB) {
 type workState struct {
 	header *ethTypes.Header
 	parent *ethTypes.Block
+	height int64
 	state  *state.StateDB
 	bstart time.Time //leilei add for gcproc
 
@@ -218,6 +220,10 @@ type workState struct {
 
 func (ws *workState) State() *state.StateDB {
 	return ws.state
+}
+
+func (ws workState) Height() int64 {
+	return ws.height
 }
 
 // nolint: unparam
@@ -313,40 +319,24 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, from *common.Address, appVersion uint64, isRelayTx bool, relayFrom common.Address) abciTypes.ResponseDeliverTx {
+	tx *ethTypes.Transaction, appVersion uint64, txInfo ethTypes.TxInfo) abciTypes.ResponseDeliverTx {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	var err error
 	var msg core.Message
 	var receipt *ethTypes.Receipt
-	if appVersion >= 4 {
-		receipt, msg, _, err = core.PPCApplyTransactionWithFrom(
-			chainConfig,
-			blockchain,
-			&ws.header.Coinbase, // defaults to address of the author of the header
-			ws.gp,
-			ws.state,
-			ws.header,
-			tx,
-			*from,
-			ws.totalUsedGas,
-			vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
-			isRelayTx,
-			relayFrom,
-		)
-	} else {
-		receipt, msg, _, err = core.ApplyTransactionWithFrom(
-			chainConfig,
-			blockchain,
-			&ws.header.Coinbase, // defaults to address of the author of the header
-			ws.gp,
-			ws.state,
-			ws.header,
-			tx,
-			*from,
-			ws.totalUsedGas,
-			vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
-		)
-	}
+	receipt, msg, _, err = core.ApplyTransactionWithInfo(
+		chainConfig,
+		blockchain,
+		&ws.header.Coinbase, // defaults to address of the author of the header
+		ws.gp,
+		ws.state,
+		ws.header,
+		tx,
+		appVersion,
+		txInfo,
+		ws.totalUsedGas,
+		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
+	)
 
 	if err != nil {
 		fmt.Println("----------------print error----------------------")

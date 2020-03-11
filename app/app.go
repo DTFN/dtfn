@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -156,21 +155,12 @@ func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) abciT
 // InitChain initializes the validator set
 // #stable - 0.4.0
 func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciTypes.ResponseInitChain {
-
 	app.logger.Info("InitChain", "len(req.Validators)", len(req.Validators)) // nolint: errcheck
 	app.SetValidators(req.Validators)                                        //old code
 	ethState, _ := app.getCurrentState()
 	app.strategy.InitialValidators = []abciTypes.ValidatorUpdate{}
-
-	if app.strategy.CurrEpochValData.PosTable != nil {
-		panic("InitChain, app.strategy.CurrEpochValData.PosTable!=nil")
-	}
-	if app.strategy.NextEpochValData.PosTable != nil {
-		panic("InitChain, app.strategy.NextEpochValData.PosTable!=nil")
-	} else {
-		app.strategy.NextEpochValData.PosTable = txfilter.CreatePosTable()
-	}
 	app.SetPosTableThreshold()
+
 	for _, validator := range req.Validators {
 		pubKey := validator.PubKey
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
@@ -206,7 +196,6 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", initialValidatorsLen,
 		"validators", app.strategy.InitialValidators)
 	if initialValidatorsLen != 0 {
-		app.strategy.NextEpochValData.PosTable.InitFlag = true
 		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
 		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
 	} else {
@@ -221,16 +210,22 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 // CheckTx checks a transaction is valid but does not mutate the state
 // #stable - 0.4.0
 func (app *EthermintApplication) CheckTx(req abciTypes.RequestCheckTx) abciTypes.ResponseCheckTx {
-	txBytes := req.Tx
-	tx, err := decodeTx(txBytes)
-	if err != nil {
-		// nolint: errcheck
-		app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx)
-		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInternal),
-			Log:  err.Error(),
+	var tx *ethTypes.Transaction
+	if req.Type == abciTypes.CheckTxType_Local {
+		tx = app.backend.CurrentTxInfo().Tx
+	} else {
+		txBytes := req.Tx
+		tx, err := decodeTx(txBytes)
+		if err != nil {
+			// nolint: errcheck
+			app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx)
+			return abciTypes.ResponseCheckTx{
+				Code: uint32(errors.CodeInternal),
+				Log:  err.Error(),
+			}
 		}
 	}
+
 	app.logger.Debug("CheckTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
 	return app.validateTx(tx, req.Type)
@@ -248,117 +243,45 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 			Log:  err.Error(),
 		}
 	}
-	var relayFrom common.Address
-	isRelayTx := false
 
 	txHash := tx.Hash()
-	txInfo, ok := app.backend.FetchCachedTxFrom(txHash)
-	from := txInfo.From
+	txInfo, ok := app.backend.FetchCachedTxInfo(txHash)
 	if !ok {
 		var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
 		if tx.Protected() {
 			signer = ethTypes.NewEIP155Signer(tx.ChainId())
 		}
-		var err error
 		// Make sure the transaction is signed properly
-		from, err = ethTypes.Sender(signer, tx)
+		from, err := ethTypes.Sender(signer, tx)
 		if err != nil {
 			return abciTypes.ResponseDeliverTx{
 				Code: uint32(errors.CodeInternal),
 				Log:  core.ErrInvalidSender.Error()}
 		}
-
-		if tx.To() == nil {
-			// This is a deploy-contract
-		} else {
-			if txfilter.IsRelayAccount(*tx.To()) {
-				originTxData, err := txfilter.ClientUnMarshalTxData(tx.Data())
-				if err == nil {
-					relayFrom = common.HexToAddress(originTxData.RelayerAddress)
-				} else {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInternal),
-						Log: fmt.Sprintf(
-							"Unlegal data for relay transaction")}
-				}
-				originContractAddress := common.HexToAddress(originTxData.ContractAddress)
-
-				var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
-				if tx.Protected() {
-					signer = ethTypes.NewEIP155Signer(tx.ChainId())
-				}
-
-				encodeRelayerBytes, _ := hex.DecodeString(originTxData.RelayerSignedMessage[2:])
-				relayerTx, err := core.PPCDecodeTx(encodeRelayerBytes)
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				relayerAddressFromSig, err := ethTypes.Sender(signer, relayerTx)
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				//verify the relayer address is right
-				if !bytes.Equal(relayerAddressFromSig.Bytes(), relayFrom.Bytes()) {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				//make sure the signed data is legal json
-				relayerSignedData, err := txfilter.RelayUnMarshalSignedTxData([]byte(string(relayerTx.Data())))
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				//verify client nonce of relayer signature
-				if relayerSignedData.Nonce != tx.Nonce() {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				//verify client address of relayer signature
-				clientAddress := common.HexToAddress(relayerSignedData.ClientAddress)
-				contractAddress := common.HexToAddress(relayerSignedData.ContractAddress)
-				if !bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				if !bytes.Equal(contractAddress.Bytes(), originContractAddress.Bytes()) {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				fmt.Println(string(relayerTx.Data()))
-				isRelayTx = true
+		txInfo = ethTypes.TxInfo{Tx: tx, From: from}
+		if tx.To() != nil && txfilter.IsRelayTx(*tx.To()) {
+			txInfo.SubTx, txInfo.RelayFrom, err = ethTypes.DeriveRelayer(from, tx.Data())
+			if err != nil {
+				return abciTypes.ResponseDeliverTx{
+					Code: uint32(errors.CodeInternal),
+					Log: fmt.Sprintf("relayer signature verified failed. %v",
+						core.ErrInvalidSender.Error())}
+			}
+			err := ethTypes.CheckRelayerTx(tx, txInfo.SubTx)
+			if err != nil {
+				return abciTypes.ResponseDeliverTx{
+					Code: uint32(errors.CodeInvalidSequence),
+					Log: fmt.Sprintf(
+						"Relayer tx not match with main tx, please check, %v", err)}
 			}
 		}
-
 	} else {
-		if tx.To() == nil {
-		} else {
-			if txfilter.IsRelayAccount(*tx.To()) {
-				isRelayTx = true
-				relayFrom = txInfo.RelayFrom
-			}
-		}
-		app.backend.DeleteCachedTxFrom(txHash)
+		app.backend.DeleteCachedTxInfo(txHash)
 	}
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
-	res := app.backend.DeliverTx(tx, from, app.strategy.HFExpectedData.BlockVersion, isRelayTx, relayFrom)
+	res := app.backend.DeliverTx(tx, app.strategy.HFExpectedData.BlockVersion, txInfo)
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
@@ -376,6 +299,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
+	app.strategy.PermitTable.ChangedFlagThisBlock = false
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!breaking!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
@@ -505,44 +429,41 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		signer = ethTypes.NewEIP155Signer(tx.ChainId())
 	}
 
-	var from common.Address
-	var txInfo emtTypes.TxInfo
-	var relayAddress common.Address
+	var from, relayer common.Address
+	var txInfo ethTypes.TxInfo
 	var cached bool
 	success := false
-	relayAddress = common.Address{}
 	isRelayTx := false
 	txHash := tx.Hash()
-
 	if checkType == abciTypes.CheckTxType_Local {
-		txInfo = app.backend.LastTxInfo()
+		txInfo = app.backend.CurrentTxInfo()
 		from = txInfo.From
-		//mock code ,will replaced by the txpool logic
-		if tx.To() == nil {
-		} else {
-			if txfilter.IsRelayAccount(*tx.To()) {
-				relayAddress = txInfo.RelayFrom
-				isRelayTx = true
+		if txInfo.SubTx != nil {
+			err := ethTypes.CheckRelayerTx(tx, txInfo.SubTx)
+			if err != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(errors.CodeInvalidSequence),
+					Log: fmt.Sprintf(
+						"Relayer tx not match with main tx, please check, %v", err)}
 			}
+			relayer = txInfo.RelayFrom
+			isRelayTx = true
 		}
 	} else if checkType == abciTypes.CheckTxType_Recheck {
-		txInfo, cached = app.backend.FetchCachedTxFrom(txHash)
-		from = txInfo.From
-		if tx.To() == nil {
-		} else {
-			if txfilter.IsRelayAccount(*tx.To()) {
-				relayAddress = txInfo.RelayFrom
-				isRelayTx = true
-			}
-		}
+		txInfo, cached = app.backend.FetchCachedTxInfo(txHash)
 		if !cached {
 			panic(fmt.Sprintf("The from address of tx should stay in cached"))
 		} else {
 			defer func() {
 				if !success {
-					app.backend.DeleteCachedTxFrom(txHash)
+					app.backend.DeleteCachedTxInfo(txHash)
 				}
 			}()
+		}
+		from = txInfo.From
+		isRelayTx = txInfo.SubTx != nil
+		if isRelayTx {
+			relayer = txInfo.RelayFrom
 		}
 	} else {
 		var err error
@@ -554,93 +475,24 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				Code: uint32(errors.CodeInternal),
 				Log:  core.ErrInvalidSender.Error()}
 		}
-
-		if tx.To() == nil {
-			// This is a deploy-contract
-		} else {
-			if txfilter.IsRelayAccount(*tx.To()) {
-				isRelayTx = true
-				originTxData, err := txfilter.ClientUnMarshalTxData(tx.Data())
-				if err == nil {
-					relayAddress = common.HexToAddress(originTxData.RelayerAddress)
-				} else {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"Unlegal data for relay transaction")}
-				}
-				originContractAddress := common.HexToAddress(originTxData.ContractAddress)
-
-				nonce := app.checkTxState.GetNonce(from)
-				if nonce != tx.Nonce() {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"SubNonce not strictly increasing. Expected %d Got %d",
-							nonce, tx.Nonce())}
-				}
-
-				var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
-				if tx.Protected() {
-					signer = ethTypes.NewEIP155Signer(tx.ChainId())
-				}
-
-				encodeRelayerBytes, _ := hex.DecodeString(originTxData.RelayerSignedMessage[2:])
-				relayerTx, err := core.PPCDecodeTx(encodeRelayerBytes)
-				if err != nil {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				relayerAddressFromSig, err := ethTypes.Sender(signer, relayerTx)
-				if err != nil {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				//verify the relayer address is right
-				if !bytes.Equal(relayerAddressFromSig.Bytes(), relayAddress.Bytes()) {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				//make sure the signed data is legal json
-				relayerSignedData, err := txfilter.RelayUnMarshalSignedTxData([]byte(string(relayerTx.Data())))
-				if err != nil {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				//verify client nonce of relayer signature
-				if relayerSignedData.Nonce != tx.Nonce() {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				//verify client address of relayer signature
-				clientAddress := common.HexToAddress(relayerSignedData.ClientAddress)
-				contractAddress := common.HexToAddress(relayerSignedData.ContractAddress)
-				if !bytes.Equal(clientAddress.Bytes(), from.Bytes()) {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				if !bytes.Equal(contractAddress.Bytes(), originContractAddress.Bytes()) {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"invalid signature for relayer")}
-				}
-				fmt.Println(string(relayerTx.Data()))
+		var subTx *ethTypes.Transaction
+		if tx.To() != nil && txfilter.IsRelayTx(*tx.To()) {
+			subTx, relayer, err = ethTypes.DeriveRelayer(from, tx.Data())
+			if err != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(errors.CodeInternal),
+					Log: fmt.Sprintf("relayer signature verified failed. %v",
+						core.ErrInvalidSender.Error())}
+			}
+			err = ethTypes.CheckRelayerTx(tx, subTx)
+			if err != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(errors.CodeInvalidSequence),
+					Log: fmt.Sprintf(
+						"Relayer tx not match with main tx, please check, %v", err)}
 			}
 		}
-
+		txInfo = ethTypes.TxInfo{Tx: tx, From: from, SubTx: subTx, RelayFrom: relayer}
 	}
 
 	// Transactions can't be negative. This may never happen using RLP decoded
@@ -654,11 +506,12 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	currentState := app.checkTxState
 
 	// Make sure the account exist - cant send from non-existing account.
-	//if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
-	//	return abciTypes.ResponseCheckTx{
-	//		Code: uint32(errors.CodeUnknownAddress),
-	//		Log:  core.ErrInvalidSender.Error()}
-	//}
+	// The first tx of the account created at other nodes should be received through block
+	if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
+		return abciTypes.ResponseCheckTx{
+			Code: uint32(errors.CodeUnknownAddress),
+			Log:  core.ErrInvalidSender.Error()}
+	}
 
 	// Check the transaction doesn't exceed the current block limit gas.
 	gasLimit := app.backend.GasLimit()
@@ -681,39 +534,20 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
 	var currentBalance *big.Int
-
-	if tx.To() == nil {
-		currentBalance = currentState.GetBalance(from)
-		if currentBalance.Cmp(tx.Cost()) < 0 {
-			return abciTypes.ResponseCheckTx{
-				// TODO: Add errors.CodeTypeInsufficientFunds ?
-				Code: uint32(errors.CodeInsufficientFunds),
-				Log: fmt.Sprintf(
-					"Current balance: %s, tx cost: %s",
-					currentBalance, tx.Cost())}
-		}
+	if isRelayTx {
+		currentBalance = currentState.GetBalance(relayer)
+		fmt.Printf("checkTx, using relayer %X balance", relayer)
 	} else {
-		if bytes.Equal(tx.To().Bytes(), txfilter.RelayAddress.Bytes()) {
-			currentBalance = currentState.GetBalance(relayAddress)
-			if currentBalance.Cmp(tx.Cost()) < 0 {
-				return abciTypes.ResponseCheckTx{
-					// TODO: Add errors.CodeTypeInsufficientFunds ?
-					Code: uint32(errors.CodeInsufficientFunds),
-					Log: fmt.Sprintf(
-						"Current balance: %s, tx cost: %s",
-						currentBalance, tx.Cost())}
-			}
-		} else {
-			currentBalance = currentState.GetBalance(from)
-			if currentBalance.Cmp(tx.Cost()) < 0 {
-				return abciTypes.ResponseCheckTx{
-					// TODO: Add errors.CodeTypeInsufficientFunds ?
-					Code: uint32(errors.CodeInsufficientFunds),
-					Log: fmt.Sprintf(
-						"Current balance: %s, tx cost: %s",
-						currentBalance, tx.Cost())}
-			}
-		}
+		currentBalance = currentState.GetBalance(from)
+	}
+
+	if currentBalance.Cmp(tx.Cost()) < 0 {
+		return abciTypes.ResponseCheckTx{
+			// TODO: Add errors.CodeTypeInsufficientFunds ?
+			Code: uint32(errors.CodeInsufficientFunds),
+			Log: fmt.Sprintf(
+				"Current balance: %s, tx cost: %s",
+				currentBalance, tx.Cost())}
 	}
 
 	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
@@ -723,33 +557,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			Code: uint32(errors.CodeInsufficientCoins),
 			Log:  err.Error()}
 	}
-	to := tx.To()
-	if to == nil {
-		to = &common.Address{}
-	}
-
-	if app.strategy.HFExpectedData.BlockVersion >= 4 {
-		blockChain := app.backend.Ethereum().BlockChain()
-		currentBlock := blockChain.CurrentBlock()
-		height := currentBlock.Number()
-		nextHeight := height.Uint64() + 1
-		statedb, _ := app.getCurrentState()
-		err = core.PPCIllegalForm(from, *to, currentBalance, tx.Data(), nextHeight, statedb)
-	}
-	if err != nil {
-		return abciTypes.ResponseCheckTx{
-			// TODO: Add errors.CodeIllegalPPCTX ?
-			Code: uint32(errors.CodeInsufficientFunds),
-			Log: fmt.Sprintf(
-				"PPC Tx is illegal: %v",
-				err)}
-	}
-
-	if app.strategy.HFExpectedData.BlockVersion >= 4 {
-		err = txfilter.PPCIsBlocked(from, *to, currentBalance, tx.Data())
-	} else {
-		err = txfilter.IsBlocked(from, *to, currentBalance, tx.Data())
-	}
+	height := app.backend.Es().WorkState().Height()
+	err = txfilter.IsBetBlocked(from, tx.To(), currentBalance, tx.Data(), height)
 	if err != nil {
 		return abciTypes.ResponseCheckTx{
 			// TODO: Add errors.CodeTypeTxIsBlocked ?
@@ -762,19 +571,36 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	// Update ether balances
 	// amount + gasprice * gaslimit
 	if isRelayTx {
-		currentState.SubBalance(from, tx.Cost())
+		currentState.SubBalance(relayer, tx.Cost())
 	} else {
-		currentState.SubBalance(relayAddress, tx.Cost())
+		if txfilter.IsMintTx(*tx.To()) {
+			err := txfilter.IsMintBlocked(from)
+			if err != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(errors.CodeInvalidSequence),
+					Log: fmt.Sprintf(
+						"Mint tx failed, %v", err)}
+			}
+		} else if txfilter.IsAuthTx(*tx.To()) {
+			err := txfilter.IsAuthBlocked(from, tx.Data(), height)
+			if err != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(errors.CodeInvalidSequence),
+					Log: fmt.Sprintf(
+						"Mint tx failed, %v", err)}
+			}
+			currentState.SubBalance(from, tx.Cost())
+		}
 	}
 	// tx.To() returns a pointer to a common address. It returns nil
 	// if it is a contract creation transaction.
-	if to := tx.To(); to != nil {
+	if to := tx.To(); to != nil && !txfilter.IsMintTx(*tx.To()) {
 		currentState.AddBalance(*to, tx.Value())
 	}
 	currentState.SetNonce(from, tx.Nonce()+1)
 
 	if !cached {
-		app.backend.InsertCachedTxFrom(txHash, from, isRelayTx, relayAddress)
+		app.backend.InsertCachedTxInfo(txHash, txInfo)
 	}
 	success = true
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}

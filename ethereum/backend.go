@@ -41,9 +41,9 @@ type Backend struct {
 	client rpcClient.HTTPClient
 
 	//leilei add.  Use mempool to forward txs directly
-	memPool      mempl.Mempool
-	txInfo       emtTypes.TxInfo
-	cachedTxFrom map[common.Hash]emtTypes.TxInfo
+	memPool       mempl.Mempool
+	currentTxInfo ethTypes.TxInfo
+	cachedTxInfo  map[common.Hash]ethTypes.TxInfo
 }
 
 // NewBackend creates a new Backend
@@ -77,7 +77,7 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 		ethConfig:    ethConfig,
 		es:           es,
 		client:       client,
-		cachedTxFrom: make(map[common.Hash]emtTypes.TxInfo),
+		cachedTxInfo: make(map[common.Hash]ethTypes.TxInfo),
 	}
 	return ethBackend, nil
 }
@@ -106,12 +106,12 @@ func (b *Backend) MemPool() mempl.Mempool {
 	return b.memPool
 }
 
-func (b *Backend) LastTxInfo() emtTypes.TxInfo {
-	return b.txInfo
+func (b *Backend) CurrentTxInfo() ethTypes.TxInfo {
+	return b.currentTxInfo
 }
 
-func (b *Backend) CachedTxFrom() map[common.Hash]emtTypes.TxInfo {
-	return b.cachedTxFrom
+func (b *Backend) CachedTxInfo() map[common.Hash]ethTypes.TxInfo {
+	return b.cachedTxInfo
 }
 
 //----------------------------------------------------------------------
@@ -119,8 +119,8 @@ func (b *Backend) CachedTxFrom() map[common.Hash]emtTypes.TxInfo {
 
 // DeliverTx appends a transaction to the current block
 // #stable
-func (b *Backend) DeliverTx(tx *ethTypes.Transaction, from common.Address, appVerion uint64, isRelayTx bool, relayFrom common.Address) abciTypes.ResponseDeliverTx {
-	return b.es.DeliverTx(tx, &from, appVerion, isRelayTx, relayFrom)
+func (b *Backend) DeliverTx(tx *ethTypes.Transaction, appVerion uint64, txInfo ethTypes.TxInfo) abciTypes.ResponseDeliverTx {
+	return b.es.DeliverTx(tx, appVerion, txInfo)
 }
 
 // AccumulateRewards accumulates the rewards based on the given strategy
@@ -129,22 +129,17 @@ func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
 	b.es.AccumulateRewards(strategy)
 }
 
-func (b *Backend) FetchCachedTxFrom(txHash common.Hash) (emtTypes.TxInfo, bool) {
-	txInfo, ok := b.cachedTxFrom[txHash]
+func (b *Backend) FetchCachedTxInfo(txHash common.Hash) (ethTypes.TxInfo, bool) {
+	txInfo, ok := b.cachedTxInfo[txHash]
 	return txInfo, ok
 }
 
-func (b *Backend) DeleteCachedTxFrom(txHash common.Hash) {
-	delete(b.cachedTxFrom, txHash)
+func (b *Backend) DeleteCachedTxInfo(txHash common.Hash) {
+	delete(b.cachedTxInfo, txHash)
 }
 
-func (b *Backend) InsertCachedTxFrom(txHash common.Hash, from common.Address, isRelayTx bool, relayFrom common.Address) {
-	txInfo := emtTypes.TxInfo{
-		From:      from,
-		IsRelayTx: isRelayTx,
-		RelayFrom: relayFrom,
-	}
-	b.cachedTxFrom[txHash] = txInfo
+func (b *Backend) InsertCachedTxInfo(txHash common.Hash, txInfo ethTypes.TxInfo) {
+	b.cachedTxInfo[txHash] = txInfo
 }
 
 // Commit finalises the current block
