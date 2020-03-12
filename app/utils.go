@@ -262,6 +262,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 	if bytes.Equal(valueHash.Bytes(), common.Hash{}.Bytes()) {
 		app.logger.Info("no pre CurrentHeightData")
 		app.strategy.NextEpochValData.PosTable = txfilter.CreatePosTable()
+		app.strategy.NextEpochValData.PosTable.InitStruct()
 		app.strategy.AuthTable = txfilter.CreateAuthTable()
 		return false
 	} else {
