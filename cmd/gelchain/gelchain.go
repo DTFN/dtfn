@@ -44,7 +44,6 @@ func ethermintCmd(ctx *cli.Context) error {
 	// Setup the ABCI server and start it
 	addr := ctx.GlobalString(emtUtils.ABCIAddrFlag.Name)
 	abci := ctx.GlobalString(emtUtils.ABCIProtocolFlag.Name)
-	blsSelectStrategy := ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
 
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
@@ -61,7 +60,12 @@ func ethermintCmd(ctx *cli.Context) error {
 	// Create the ABCI app
 	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy())
 	strategy := ethApp.GetStrategy()
-	strategy.BlsSelectStrategy = blsSelectStrategy
+	strategy.BlsSelectStrategy = ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
+	priceBarrier := ctx.GlobalInt64(emtUtils.TxpoolPriceLimit.Name)
+	if priceBarrier > 0 {
+		strategy.PriceBarrier.SetInt64(priceBarrier)
+	}
+
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -193,19 +197,19 @@ func ethermintCmd(ctx *cli.Context) error {
 			}
 		})
 
-	/*	h := new(memsizeui.Handler)
-		s := &http.Server{Addr: "0.0.0.0:7070", Handler: h}
-		txs := clist_mempool.Txs()
-		sMap := clist_mempool.TxsMap()
-		state, _ := backend.Es().State()
-		work:=backend.Es().WorkState()
-		txPool := backend.Ethereum().TxPool()
-		h.Add("syncMap", &sMap)
-		h.Add("txsList", txs)
-		h.Add("esState", state)
-		h.Add("workState", &work)
-		txPool.DebugMeomory(h)
-		go s.ListenAndServe()*/
+		/*	h := new(memsizeui.Handler)
+			s := &http.Server{Addr: "0.0.0.0:7070", Handler: h}
+			txs := clist_mempool.Txs()
+			sMap := clist_mempool.TxsMap()
+			state, _ := backend.Es().State()
+			work:=backend.Es().WorkState()
+			txPool := backend.Ethereum().TxPool()
+			h.Add("syncMap", &sMap)
+			h.Add("txsList", txs)
+			h.Add("esState", state)
+			h.Add("workState", &work)
+			txPool.DebugMeomory(h)
+			go s.ListenAndServe()*/
 
 		// Run forever.
 		select {}

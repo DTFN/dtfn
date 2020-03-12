@@ -262,7 +262,6 @@ func (app *EthermintApplication) InitPersistData() bool {
 	if bytes.Equal(valueHash.Bytes(), common.Hash{}.Bytes()) {
 		app.logger.Info("no pre CurrentHeightData")
 		app.strategy.NextEpochValData.PosTable = txfilter.CreatePosTable()
-		app.strategy.NextEpochValData.PosTable.InitStruct()
 		app.strategy.AuthTable = txfilter.CreateAuthTable()
 		return false
 	} else {
@@ -329,10 +328,10 @@ func (app *EthermintApplication) SetPersistenceData() {
 	if app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock || height%txfilter.EpochBlocks == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
 		wsState.SetCode(nextEpochDataAddress, nextBytes)
-		app.logger.Info(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
+		app.logger.Debug(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
 		nextBytes, _ = json.Marshal(app.strategy.AuthTable)
 		wsState.SetCode(txfilter.SendToAuth, nextBytes)
-		app.logger.Info(fmt.Sprintf("AuthTable %v", app.strategy.NextEpochValData.PosTable))
+		app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
 	}
 
 	if height%txfilter.EpochBlocks == 0 {

@@ -160,7 +160,9 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	ethState, _ := app.getCurrentState()
 	app.strategy.InitialValidators = []abciTypes.ValidatorUpdate{}
 	app.SetPosTableThreshold()
-
+	if app.strategy.NextEpochValData.PosTable == nil {
+		panic("InitChain, app.strategy.NextEpochValData.PosTable==nil. check InitPersistentData")
+	}
 	for _, validator := range req.Validators {
 		pubKey := validator.PubKey
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
@@ -196,6 +198,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", initialValidatorsLen,
 		"validators", app.strategy.InitialValidators)
 	if initialValidatorsLen != 0 {
+		app.strategy.NextEpochValData.PosTable.InitStruct()
 		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
 		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
 	} else {
@@ -215,7 +218,8 @@ func (app *EthermintApplication) CheckTx(req abciTypes.RequestCheckTx) abciTypes
 		tx = app.backend.CurrentTxInfo().Tx
 	} else {
 		txBytes := req.Tx
-		tx, err := decodeTx(txBytes)
+		var err error
+		tx, err = decodeTx(txBytes)
 		if err != nil {
 			// nolint: errcheck
 			app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx)
@@ -277,6 +281,14 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		}
 	} else {
 		app.backend.DeleteCachedTxInfo(txHash)
+	}
+
+	if tx.GasPrice().Cmp(app.strategy.PriceBarrier) < 0 {
+		app.logger.Error("DeliverTx: price too low %v , required %v", tx.GasPrice(), app.strategy.PriceBarrier)
+		return abciTypes.ResponseDeliverTx{
+			Code: uint32(errors.CodeInvalidCoins),
+			Log: fmt.Sprintf(
+				"DeliverTx: price too low %v , required %v", tx.GasPrice(), app.strategy.PriceBarrier)}
 	}
 
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
@@ -535,7 +547,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	var currentBalance *big.Int
 	if isRelayTx {
 		currentBalance = currentState.GetBalance(relayer)
-		fmt.Printf("checkTx, using relayer %X balance", relayer)
+		fmt.Printf("checkTx, using relayer %X balance \n", relayer)
 	} else {
 		currentBalance = currentState.GetBalance(from)
 	}
@@ -572,22 +584,26 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	if isRelayTx {
 		currentState.SubBalance(relayer, tx.Cost())
 	} else {
-		if txfilter.IsMintTx(*tx.To()) {
-			err := txfilter.IsMintBlocked(from)
-			if err != nil {
-				return abciTypes.ResponseCheckTx{
-					Code: uint32(errors.CodeInvalidSequence),
-					Log: fmt.Sprintf(
-						"Mint tx failed, %v", err)}
+		if tx.To() != nil {
+			if txfilter.IsMintTx(*tx.To()) {
+				err := txfilter.IsMintBlocked(from)
+				if err != nil {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"Mint tx failed, %v", err)}
+				}
+			} else if txfilter.IsAuthTx(*tx.To()) {
+				err := txfilter.IsAuthBlocked(from, tx.Data(), height)
+				if err != nil {
+					return abciTypes.ResponseCheckTx{
+						Code: uint32(errors.CodeInvalidSequence),
+						Log: fmt.Sprintf(
+							"Auth tx failed, %v", err)}
+				}
+				currentState.SubBalance(from, tx.Cost())
 			}
-		} else if txfilter.IsAuthTx(*tx.To()) {
-			err := txfilter.IsAuthBlocked(from, tx.Data(), height)
-			if err != nil {
-				return abciTypes.ResponseCheckTx{
-					Code: uint32(errors.CodeInvalidSequence),
-					Log: fmt.Sprintf(
-						"Mint tx failed, %v", err)}
-			}
+		} else {
 			currentState.SubBalance(from, tx.Cost())
 		}
 	}
