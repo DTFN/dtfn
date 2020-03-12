@@ -47,7 +47,7 @@ type Strategy struct {
 	// need persist when epoch changes or changed this block
 	NextEpochValData NextEpochValData
 
-	PermitTable *txfilter.PermitTable
+	AuthTable *txfilter.AuthTable
 
 	// add for hard fork
 	HFExpectedData HardForkExpectedData

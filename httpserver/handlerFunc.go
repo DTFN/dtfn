@@ -48,7 +48,7 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetInitialValidator"] = tHandler.GetInitialValidator
 	tHandler.HandlersMap["/GetHeadEventSize"] = tHandler.GetTxPoolEventSize
-	tHandler.HandlersMap["/GetPermitTable"] = tHandler.GetPermitTable
+	tHandler.HandlersMap["/GetAuthTable"] = tHandler.GetAuthTable
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -328,11 +328,11 @@ func (tHandler *THandler) GetTxPoolEventSize(w http.ResponseWriter, req *http.Re
 	}
 }
 
-func (tHandler *THandler) GetPermitTable(w http.ResponseWriter, req *http.Request) {
-	txfilter.EthPermitTable.Mtx.RLock()
-	defer txfilter.EthPermitTable.Mtx.RUnlock()
+func (tHandler *THandler) GetAuthTable(w http.ResponseWriter, req *http.Request) {
+	txfilter.EthPosTable.Mtx.RLock()
+	defer txfilter.EthPosTable.Mtx.RUnlock()
 
-	jsonStr, err := json.Marshal(*txfilter.EthPermitTable)
+	jsonStr, err := json.Marshal(*txfilter.EthAuthTable)
 	if err != nil {
 		w.Write([]byte("error occurred when marshal into json"))
 	} else {

@@ -299,7 +299,6 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
-	app.strategy.PermitTable.ChangedFlagThisBlock = false
 	header := beginBlock.GetHeader()
 	// update the eth header with the tendermint header!breaking!!
 	app.backend.UpdateHeaderWithTimeInfo(&header)
