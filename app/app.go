@@ -569,23 +569,59 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			Log:  err.Error()}
 	}
 	height := app.backend.Es().WorkState().Height()
-	err = txfilter.IsBetBlocked(from, tx.To(), currentBalance, tx.Data(), height)
-	if err != nil {
+	if txfilter.EthPosTable == nil {
 		return abciTypes.ResponseCheckTx{
 			// TODO: Add errors.CodeTypeTxIsBlocked ?
-			Code: uint32(errors.CodeInsufficientFunds),
+			Code: uint32(errors.CodeInternal),
+			Log: fmt.Sprintf(
+				"Tx is blocked: %v",
+				txfilter.ErrPosTableNotCreate)}
+	}
+	if txfilter.EthAuthTable == nil {
+		return abciTypes.ResponseCheckTx{
+			// TODO: Add errors.CodeTypeTxIsBlocked ?
+			Code: uint32(errors.CodeInternal),
+			Log: fmt.Sprintf(
+				"Tx is blocked: %v",
+				txfilter.ErrAuthTableNotCreate)}
+	}
+	if !txfilter.EthPosTable.InitFlag {
+		return abciTypes.ResponseCheckTx{
+			// TODO: Add errors.CodeTypeTxIsBlocked ?
+			Code: uint32(errors.CodeInternal),
+			Log: fmt.Sprintf(
+				"Tx is blocked: %v",
+				txfilter.ErrPosTableNotInit)}
+	}
+	txfilter.EthPosTable.Mtx.RLock()
+	err = txfilter.IsBetBlocked(from, tx.To(), currentBalance, tx.Data(), height)
+	if err != nil {
+		txfilter.EthPosTable.Mtx.RUnlock()
+		return abciTypes.ResponseCheckTx{
+			// TODO: Add errors.CodeTypeTxIsBlocked ?
+			Code: uint32(errors.CodeInvalidAddress),
 			Log: fmt.Sprintf(
 				"Tx is blocked: %v",
 				err)}
 	}
 
-	// Update ether balances
-	// amount + gasprice * gaslimit
-	if isRelayTx {
-		currentState.SubBalance(relayer, tx.Cost())
-	} else {
-		if tx.To() != nil {
-			if txfilter.IsMintTx(*tx.To()) {
+	if tx.To() != nil {
+		if txfilter.IsAuthTx(*tx.To()) {
+			err := txfilter.IsAuthBlocked(from, tx.Data(), height)
+			txfilter.EthPosTable.Mtx.RUnlock()
+			if err != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(errors.CodeInvalidSequence),
+					Log: fmt.Sprintf(
+						"Auth tx failed, %v", err)}
+			}
+			currentState.SubBalance(from, tx.Cost())
+		} else {
+			txfilter.EthPosTable.Mtx.RUnlock()
+			if isRelayTx {
+				txfilter.EthPosTable.Mtx.RUnlock()
+				currentState.SubBalance(relayer, tx.Cost())
+			} else if txfilter.IsMintTx(*tx.To()) {
 				err := txfilter.IsMintBlocked(from)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
@@ -593,20 +629,15 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 						Log: fmt.Sprintf(
 							"Mint tx failed, %v", err)}
 				}
-			} else if txfilter.IsAuthTx(*tx.To()) {
-				err := txfilter.IsAuthBlocked(from, tx.Data(), height)
-				if err != nil {
-					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"Auth tx failed, %v", err)}
-				}
 				currentState.SubBalance(from, tx.Cost())
 			}
-		} else {
-			currentState.SubBalance(from, tx.Cost())
 		}
+	} else {
+		txfilter.EthPosTable.Mtx.RUnlock()
 	}
+	// Update ether balances
+	// amount + gasprice * gaslimit
+
 	// tx.To() returns a pointer to a common address. It returns nil
 	// if it is a contract creation transaction.
 	if to := tx.To(); to != nil && !txfilter.IsMintTx(*tx.To()) {
@@ -618,7 +649,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		app.backend.InsertCachedTxInfo(txHash, txInfo)
 	}
 	success = true
-	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
+	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK, GasWanted: int64(intrGas)}
 }
 
 func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {

@@ -338,13 +338,11 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
 
+	log.Debug(fmt.Sprintf("deliver a tx from %X tx %v", msg.From(), tx))
 	if err != nil {
-		fmt.Println("----------------print error----------------------")
-		fmt.Println(err)
-		fmt.Println("----------------print error----------------------")
+		log.Error(fmt.Sprintf("Deliver Tx err %v", err))
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
-	log.Debug(fmt.Sprintf("deliver a tx from %X tx %v", msg.From(), tx))
 
 	logs := ws.state.GetLogs(tx.Hash())
 
