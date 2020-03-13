@@ -299,7 +299,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 	app.strategy.NextEpochValData.PosTable = wsState.InitPosTable()
 	app.strategy.NextEpochValData.PosTable.InitStruct()
 
-	app.logger.Info("Read PermitTable")
+	app.logger.Info("Read AuthTable")
 	app.strategy.AuthTable = wsState.InitAuthTable()
 
 	return true

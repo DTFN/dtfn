@@ -538,8 +538,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		return abciTypes.ResponseCheckTx{
 			Code: uint32(errors.CodeInvalidSequence),
 			Log: fmt.Sprintf(
-				"Nonce not strictly increasing. Expected %d Got %d",
-				nonce, tx.Nonce())}
+				"Nonce for %X not strictly increasing. Expected %d Got %d .",
+				from, nonce, tx.Nonce())}
 	}
 
 	// Transactor should have enough funds to cover the costs
@@ -619,7 +619,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		} else {
 			txfilter.EthPosTable.Mtx.RUnlock()
 			if isRelayTx {
-				txfilter.EthPosTable.Mtx.RUnlock()
 				currentState.SubBalance(relayer, tx.Cost())
 			} else if txfilter.IsMintTx(*tx.To()) {
 				err := txfilter.IsMintBlocked(from)
