@@ -329,9 +329,11 @@ func (app *EthermintApplication) SetPersistenceData() {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
 		wsState.SetCode(nextEpochDataAddress, nextBytes)
 		app.logger.Debug(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
-		nextBytes, _ = json.Marshal(app.strategy.AuthTable)
-		wsState.SetCode(txfilter.SendToAuth, nextBytes)
-		app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
+		if app.strategy.HFExpectedData.BlockVersion >= 4 {
+			nextBytes, _ = json.Marshal(app.strategy.AuthTable)
+			wsState.SetCode(txfilter.SendToAuth, nextBytes)
+			app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
+		}
 	}
 
 	if height%txfilter.EpochBlocks == 0 {
