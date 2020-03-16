@@ -37,7 +37,6 @@ type Strategy struct {
 
 	//needn't to be persisted
 	BlsSelectStrategy bool
-	PriceBarrier      *big.Int
 
 	// need persist every height
 	CurrentHeightValData CurrentHeightValData
@@ -112,7 +111,6 @@ func NewStrategy() *Strategy {
 	//threshold := big.NewInt(1)
 	hfExpectedData := HardForkExpectedData{Height: 0, IsHarfForkPassed: true, StatisticsVersion: 0, BlockVersion: 0}
 	return &Strategy{
-		PriceBarrier: big.NewInt(0),
 		CurrEpochValData: CurrEpochValData{
 			PosTable: nil, //later assigned in InitPersistData
 		},

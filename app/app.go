@@ -283,14 +283,6 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		app.backend.DeleteCachedTxInfo(txHash)
 	}
 
-	if app.strategy.HFExpectedData.BlockVersion >= 4 && tx.GasPrice().Cmp(app.strategy.PriceBarrier) < 0 {
-		app.logger.Error("DeliverTx: price too low %v , required %v", tx.GasPrice(), app.strategy.PriceBarrier)
-		return abciTypes.ResponseDeliverTx{
-			Code: uint32(errors.CodeInvalidCoins),
-			Log: fmt.Sprintf(
-				"DeliverTx: price too low %v , required %v", tx.GasPrice(), app.strategy.PriceBarrier)}
-	}
-
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
 	res := app.backend.DeliverTx(tx, app.strategy.HFExpectedData.BlockVersion, txInfo)

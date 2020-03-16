@@ -59,17 +59,13 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	// Create the ABCI app
 	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy())
-	strategy := ethApp.GetStrategy()
-	strategy.BlsSelectStrategy = ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
-	priceBarrier := ctx.GlobalInt64(emtUtils.TxpoolPriceLimit.Name)
-	if priceBarrier > 0 {
-		strategy.PriceBarrier.SetInt64(priceBarrier)
-	}
-
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	strategy := ethApp.GetStrategy()
+	strategy.BlsSelectStrategy = ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
 
 	ethApp.StartHttpServer()
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")

@@ -228,7 +228,7 @@ var (
 
 	TxpoolPriceLimit = cli.IntFlag{
 		Name:  "price_limit",
-		Value: 10,
+		Value: 20000000000,
 		Usage: "the threshold of ethereum txpool for remote broadcasted tx",
 	}
 
