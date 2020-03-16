@@ -519,9 +519,10 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	// Make sure the account exist - cant send from non-existing account.
 	// The first tx of the account created at other nodes should be received through block
 	if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
-		return abciTypes.ResponseCheckTx{
+		app.logger.Info(fmt.Sprintf("receive a remote tx with not existed from %X", from))
+		/*return abciTypes.ResponseCheckTx{
 			Code: uint32(errors.CodeUnknownAddress),
-			Log:  core.ErrInvalidSender.Error()}
+			Log:  core.ErrInvalidSender.Error()}*/
 	}
 
 	// Check the transaction doesn't exceed the current block limit gas.
