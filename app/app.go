@@ -502,6 +502,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 					Log: fmt.Sprintf(
 						"Relayer tx not match with main tx, please check, %v", err)}
 			}
+			isRelayTx = true
 		}
 		txInfo = ethTypes.TxInfo{Tx: tx, From: from, SubTx: subTx, RelayFrom: relayer}
 	}
@@ -517,7 +518,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	currentState := app.checkTxState
 
 	// Make sure the account exist - cant send from non-existing account.
-	// The first tx of the account created at other nodes should be received through block
 	if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
 		app.logger.Info(fmt.Sprintf("receive a remote tx with not existed from %X", from))
 		/*return abciTypes.ResponseCheckTx{
