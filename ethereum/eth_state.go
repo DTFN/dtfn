@@ -3,7 +3,6 @@ package ethereum
 import (
 	"fmt"
 	"math/big"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -239,8 +238,8 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		minerBonus.Div(strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
 	} else {
 		ws.state.AddBalance(ws.CurrentHeader().Coinbase, minerBonus)
-		log.Info(fmt.Sprintf("proposer %v , Beneficiary address: %v, get money: %v",
-			strategy.CurrentHeightValData.ProposerAddress, ws.CurrentHeader().Coinbase.String(), minerBonus))
+		//log.Info(fmt.Sprintf("proposer %v , Beneficiary address: %v, get money: %v",
+		//	strategy.CurrentHeightValData.ProposerAddress, ws.CurrentHeader().Coinbase.String(), minerBonus))
 	}
 
 	weightSum := int64(0)
@@ -286,9 +285,9 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 			ws.state.AddBalance(beneficiary, bonusAverage)   //bug
 		}
 
-		log.Info(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
-			strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),
-			voteInfo.Validator.Power, address))
+		//log.Info(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
+		//	strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),
+		//	voteInfo.Validator.Power, address))
 	}
 
 	//This is no statistic data
