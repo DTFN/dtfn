@@ -12,7 +12,7 @@ import (
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/green-element-chain/gelchain/cmd/utils"
 
@@ -84,8 +84,8 @@ func initCmd(ctx *cli.Context) error {
 
 	}
 
-	chainDb, err := ethdb.NewLDBDatabase(filepath.Join(ethermintDataDir,
-		"gelchain/chaindata"), 0, 0)
+	chainDb, err := rawdb.NewLevelDBDatabase(filepath.Join(ethermintDataDir,
+		"gelchain/chaindata"), 0, 0,"")
 	if err != nil {
 		ethUtils.Fatalf("could not open database: %v", err)
 	}

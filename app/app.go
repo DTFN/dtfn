@@ -553,7 +553,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				"Current balance: %s, tx cost: %s",
 				currentBalance, tx.Cost())}
 	}
-
+	height := app.backend.Es().WorkState().Height()
 	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
 
 	if err != nil && tx.Gas() < intrGas {
@@ -561,7 +561,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			Code: uint32(errors.CodeInsufficientCoins),
 			Log:  err.Error()}
 	}
-	height := app.backend.Es().WorkState().Height()
+
 	if txfilter.EthPosTable == nil {
 		return abciTypes.ResponseCheckTx{
 			// TODO: Add errors.CodeTypeTxIsBlocked ?
