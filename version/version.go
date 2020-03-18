@@ -50,12 +50,12 @@ const BeforeHardForkVersion = 0
 //const NextHardForkHeight = 1300000
 //const NextHardForkVersion = 3
 
-const HeightString = "10,20,30"
+const HeightString = "85000,1300000,3623000"
 const VersionString = "2,3,4"
 
 const PPChainAdmin = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
 
-const Bigguy = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
+const Bigguy = "0x63859f245ba7c3c407a603a6007490b217b3ec5d"
 
 //If we are in the version=4,we should remember all the
 //pre-version code and per-version height
