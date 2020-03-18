@@ -86,7 +86,7 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction, appVersion uint64, txInf
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
-	chainConfig := es.ethereum.ApiBackend.ChainConfig()
+	chainConfig := blockchain.Config()
 	blockHash := common.Hash{}
 	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, txInfo)
 }
@@ -282,7 +282,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		if strategy.HFExpectedData.BlockVersion >= 3 {
 			ws.state.AddBalance(beneficiary, bonusSpecify)
 		} else {
-			ws.state.AddBalance(beneficiary, bonusAverage)   //bug
+			ws.state.AddBalance(beneficiary, bonusAverage) //bug
 		}
 
 		//log.Info(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
@@ -384,31 +384,31 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
-	proctime := time.Since(ws.bstart)
-	blockchain.AddGcproc(proctime)
-	stat, err := blockchain.WriteBlockWithState(block, ws.receipts, ws.state)
+	//proctime := time.Since(ws.bstart)
+	//blockchain.AddGcproc(proctime)
+	stat, err := blockchain.WriteBlockWithState(block, ws.receipts, ws.allLogs, ws.state, true)
 	if err != nil {
 		log.Error("Failed writing block to chain", "err", err)
 		return common.Hash{}, err
 	}
 	// check if canon block and write transactions
-	var (
-		events []interface{}
-		//logs   = work.state.Logs()
-	)
-	events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: ws.allLogs})
-	if stat == core.CanonStatTy {
-		events = append(events, core.ChainHeadEvent{Block: block}) //此事件更新txPool
-	} else {
-		err = chainError(1, "WriteBlockWithState return stat not CanonStatTy")
-		log.Error("stat not core.CanonStatTy", "workState", ws)
-	}
+	/*	var (
+			events []interface{}
+			//logs   = work.state.Logs()
+		)
+		events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: ws.allLogs})
+		if stat == core.CanonStatTy {
+			events = append(events, core.ChainHeadEvent{Block: block}) //此事件更新txPool
+		} else {
+			err = chainError(1, "WriteBlockWithState return stat not CanonStatTy")
+			log.Error("stat not core.CanonStatTy", "workState", ws)
+		}*/
 	/*blockchain.mux.Post(core.NewMinedBlockEvent{Block: block})
 	交易通过tendermint广播，此事件不用发
 	*/
-	blockchain.PostChainEvents(events, ws.allLogs)
+	//blockchain.PostChainEvents(events, ws.allLogs)
 	// Save the block to disk.
-	// log.Info("Committing block", "stateHash", hashArray, "blockHash", blockHash)
+	log.Info("Committing block", "stateHash", hashArray, "blockHash", blockHash, "stat", stat)
 	/*	_, err = blockchain.InsertChain([]*ethTypes.Block{block})
 		if err != nil {
 			// log.Info("Error inserting ethereum block in chain", "err", err)
@@ -430,7 +430,7 @@ func (ws *workState) updateHeaderWithTimeInfo(
 		Number:     lastBlock.Number(),
 		Time:       lastBlock.Time(),
 	}
-	ws.header.Time = new(big.Int).SetUint64(parentTime)
+	ws.header.Time = parentTime
 	ws.bstart = time.Now()
 	ws.header.Difficulty = ethash.CalcDifficulty(config, parentTime, parentHeader)
 	ws.transactions = make([]*ethTypes.Transaction, 0, numTx)

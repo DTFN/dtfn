@@ -106,7 +106,7 @@ func SetEthermintEthConfig(ctx *cli.Context, cfg *eth.Config) {
 	/*cfg.MaxPeers = 0
 	cfg.PowFake = true*/
 	cfg.Ethash.PowMode = ethash.ModeNil
-	cfg.MinerThreads = 0
+	cfg.Miner.GasCeil = 0 //disable the miner
 	trieTimeLimit := ctx.GlobalInt(TrieTimeLimitFlag.Name)
 	if trieTimeLimit > 0 {
 		trieTimeout := int64(trieTimeLimit) * int64(time.Second)

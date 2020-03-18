@@ -165,7 +165,7 @@ func (b *Backend) InitReceiver() string {
 // UpdateHeaderWithTimeInfo uses the tendermint header to update the ethereum header
 // #unstable
 func (b *Backend) UpdateHeaderWithTimeInfo(tmHeader *abciTypes.Header) {
-	b.es.UpdateHeaderWithTimeInfo(b.ethereum.ApiBackend.ChainConfig(), uint64(tmHeader.Time.Unix()),
+	b.es.UpdateHeaderWithTimeInfo(b.ethereum.BlockChain().Config(), uint64(tmHeader.Time.Unix()),
 		uint64(tmHeader.GetNumTxs()))
 }
 

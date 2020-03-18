@@ -321,12 +321,14 @@ func startNode(ctx *cli.Context, stack *ethereum.Node) {
 		}
 		stateReader := ethclient.NewClient(rpcClient)
 
+		paths := make([]accounts.DerivationPath, 0)
+		paths = append(paths, accounts.DefaultBaseDerivationPath)
 		// Open and self derive any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {
 			if err := wallet.Open(""); err != nil {
 				log.Warn("Failed to open wallet", "url", wallet.URL(), "err", err)
 			} else {
-				wallet.SelfDerive(accounts.DefaultBaseDerivationPath, stateReader)
+				wallet.SelfDerive(paths, stateReader)
 			}
 		}
 		// Listen for wallet event till termination
@@ -341,9 +343,10 @@ func startNode(ctx *cli.Context, stack *ethereum.Node) {
 				log.Info("New wallet appeared", "url", event.Wallet.URL(), "status", status)
 
 				if event.Wallet.URL().Scheme == "ledger" {
-					event.Wallet.SelfDerive(accounts.DefaultLedgerBaseDerivationPath, stateReader)
+					paths = append(paths, accounts.LegacyLedgerBaseDerivationPath)
+					event.Wallet.SelfDerive(paths, stateReader)
 				} else {
-					event.Wallet.SelfDerive(accounts.DefaultBaseDerivationPath, stateReader)
+					event.Wallet.SelfDerive(paths, stateReader)
 				}
 
 			case accounts.WalletDropped:
@@ -450,11 +453,11 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, appBackend *ethereum.Backend) {
 	if rollbackFlag {
 		fmt.Println("you are rollbacking")
-		appBackend.Ethereum().BlockChain().RewindTo(uint64(rollbackHeight))
+		appBackend.Ethereum().BlockChain().SetHead(uint64(rollbackHeight))
 		fmt.Println(appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64())
 		os.Exit(1)
 	} else {
-		fmt.Println(appBackend.GasLimit())
-		fmt.Println("You are not rollbacking")
+		/*fmt.Println(appBackend.GasLimit())
+		fmt.Println("You are not rollbacking")*/
 	}
 }
