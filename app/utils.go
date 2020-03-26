@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
@@ -243,6 +244,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 
 	txfilter.UpgradeHeight = version.HeightArray[2]
+	core.EvmErrHardForkHeight = version.EvmErrHardForkHeight
 	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
 	txfilter.Bigguy = common.HexToAddress(version.Bigguy)
 
