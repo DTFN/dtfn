@@ -88,6 +88,29 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 	}
 }
 
+func (app *EthermintApplication) GetAuthTmItem(height int64) []abciTypes.ValidatorUpdate {
+	if app.strategy.HFExpectedData.BlockVersion >= 5 {
+		var valUpdates []abciTypes.ValidatorUpdate
+		for _, value := range app.strategy.AuthTable.ThisBlockChangedMap {
+			if value.Type == "add" {
+				valUpdates = append(valUpdates, abciTypes.ValidatorUpdate{
+					PubKey: value.ApprovedTxData.PubKey,
+					Power:  int64(-1),
+				})
+			} else if value.Type == "remove" {
+				valUpdates = append(valUpdates, abciTypes.ValidatorUpdate{
+					PubKey: value.ApprovedTxData.PubKey,
+					Power:  int64(-2),
+				})
+			}
+		}
+		//reset every end of block
+		app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
+		return valUpdates
+	}
+	return nil
+}
+
 func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64) abciTypes.ResponseEndBlock {
 	/*if app.strategy.BlsSelectStrategy {
 	} else {
@@ -194,6 +217,9 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		}
 	}
 
+	authVals := app.GetAuthTmItem(height)
+	validatorsSlice = append(validatorsSlice, authVals...)
+
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
 
@@ -227,6 +253,18 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 		}
 	}
 	app.strategy.CurrentHeightValData.Validators = currentValidators
+
+	authVals := app.GetAuthTmItem(height)
+	//get all validators and init tm-auth-table
+	if height == version.HeightArray[3] {
+		for _, value := range validatorsSlice {
+			authVals = append(authVals, abciTypes.ValidatorUpdate{
+				PubKey: value.PubKey,
+				Power:  -1,
+			})
+		}
+	}
+	validatorsSlice = append(validatorsSlice, authVals...)
 
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
