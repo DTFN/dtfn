@@ -104,10 +104,13 @@ func (app *EthermintApplication) GetAuthTmItem(height int64) []abciTypes.Validat
 				})
 			}
 		}
-		//reset every end of block
+		//reset at the end of block
 		app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
 		return valUpdates
 	}
+
+	//reset and ignore all the auth-tx of version=4
+	app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
 	return nil
 }
 
