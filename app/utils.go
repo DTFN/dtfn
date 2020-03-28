@@ -89,6 +89,7 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 }
 
 func (app *EthermintApplication) GetAuthTmItem(height int64) []abciTypes.ValidatorUpdate {
+	txfilter.EthPosTable.Mtx.Lock()
 	if app.strategy.HFExpectedData.BlockVersion >= 5 {
 		var valUpdates []abciTypes.ValidatorUpdate
 		for _, value := range app.strategy.AuthTable.ThisBlockChangedMap {
@@ -106,11 +107,13 @@ func (app *EthermintApplication) GetAuthTmItem(height int64) []abciTypes.Validat
 		}
 		//reset at the end of block
 		app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
+		txfilter.EthPosTable.Mtx.Unlock()
 		return valUpdates
 	}
 
 	//reset and ignore all the auth-tx of version=4
 	app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
+	txfilter.EthPosTable.Mtx.Unlock()
 	return nil
 }
 
