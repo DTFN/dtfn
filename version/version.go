@@ -50,10 +50,13 @@ const BeforeHardForkVersion = 0
 //const NextHardForkHeight = 1300000
 //const NextHardForkVersion = 3
 
+// HeightArray[3]%txfilter.EpochBlocks must equal 0,because we will use this to construct tm-auth-table
 const HeightString = "10,20,30,200"
 const VersionString = "2,3,4,5"
 
 const PPChainAdmin = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
+
+const PPChainPrivateAdmin = "0x121f5ef0aba86e258bfd9d6063b52774c1598adf"
 
 const Bigguy = "0x63859f245ba7c3c407a603a6007490b217b3ec5d"
 
