@@ -88,8 +88,7 @@ func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
 	}
 }
 
-func (app *EthermintApplication) GetAuthTmItem(height int64) []abciTypes.ValidatorUpdate {
-	txfilter.EthPosTable.Mtx.Lock()
+func (app *EthermintApplication) GetAuthTmItems(height int64) []abciTypes.ValidatorUpdate {
 	if app.strategy.HFExpectedData.BlockVersion >= 5 {
 		var valUpdates []abciTypes.ValidatorUpdate
 		for _, value := range app.strategy.AuthTable.ThisBlockChangedMap {
@@ -107,13 +106,11 @@ func (app *EthermintApplication) GetAuthTmItem(height int64) []abciTypes.Validat
 		}
 		//reset at the end of block
 		app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
-		txfilter.EthPosTable.Mtx.Unlock()
 		return valUpdates
 	}
 
-	//reset and ignore all the auth-tx of version=4
+	//return an empty auth map on version<=4
 	app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
-	txfilter.EthPosTable.Mtx.Unlock()
 	return nil
 }
 
@@ -223,7 +220,7 @@ func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64
 		}
 	}
 
-	authVals := app.GetAuthTmItem(height)
+	authVals := app.GetAuthTmItems(height)
 	validatorsSlice = append(validatorsSlice, authVals...)
 
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
@@ -260,7 +257,7 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 	}
 	app.strategy.CurrentHeightValData.Validators = currentValidators
 
-	authVals := app.GetAuthTmItem(height)
+	authVals := app.GetAuthTmItems(height)
 	//get all validators and init tm-auth-table
 	if height == version.HeightArray[3] {
 		for _, value := range validatorsSlice {

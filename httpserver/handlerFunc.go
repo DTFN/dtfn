@@ -42,13 +42,13 @@ func (tHandler *THandler) RegisterFunc() {
 	tHandler.HandlersMap["/GetEncourage"] = tHandler.GetEncourage
 
 	tHandler.HandlersMap["/GetPosTable"] = tHandler.GetPosTableData
-	tHandler.HandlersMap["/GetNextPosTable"] = tHandler.GetNextPosTableData
+	//tHandler.HandlersMap["/GetNextPosTable"] = tHandler.GetNextPosTableData
 	tHandler.HandlersMap["/GetAccountMap"] = tHandler.GetAccountMapData
-	tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
-	tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
+	//tHandler.HandlersMap["/GetNextAccountMap"] = tHandler.GetNextAccountMapData
+	//tHandler.HandlersMap["/GetNextAllCandidateValidators"] = tHandler.GetNextAllCandidateValidatorPool
 	tHandler.HandlersMap["/GetInitialValidator"] = tHandler.GetInitialValidator
 	tHandler.HandlersMap["/GetHeadEventSize"] = tHandler.GetTxPoolEventSize
-	tHandler.HandlersMap["/GetAuthTable"] = tHandler.GetAuthTable
+	//tHandler.HandlersMap["/GetAuthTable"] = tHandler.GetAuthTable
 }
 
 func (tHandler *THandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -92,8 +92,6 @@ func (tHandler *THandler) Hello(w http.ResponseWriter, req *http.Request) {
 
 // This function will return the used data structure
 func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Request) {
-	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
-	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
 	PosTable := &PosItemMapData{
 		PosItemMap: tHandler.strategy.CurrEpochValData.PosTable.PosItemMap,
 		Threshold:  tHandler.strategy.CurrEpochValData.PosTable.Threshold,
@@ -109,8 +107,6 @@ func (tHandler *THandler) GetPosTableData(w http.ResponseWriter, req *http.Reque
 
 // This function will return the used data structure
 func (tHandler *THandler) GetNextPosTableData(w http.ResponseWriter, req *http.Request) {
-	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
-	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
 	PosTable := &PosItemMapData{
 		PosItemMap: tHandler.strategy.NextEpochValData.PosTable.PosItemMap,
 		Threshold:  tHandler.strategy.NextEpochValData.PosTable.Threshold,
@@ -155,8 +151,6 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 	AccountMap := &AccountMapData{
 		MapList: make(map[string]AccountBean),
 	}
-	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
-	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
 	for tmAddress, signer := range tHandler.strategy.NextEpochValData.PosTable.TmAddressToSignerMap {
 		posItem, ok := tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer]
 		if !ok {
@@ -182,8 +176,6 @@ func (tHandler *THandler) GetNextAccountMapData(w http.ResponseWriter, req *http
 // This function will return the used data structure
 func (tHandler *THandler) GetPreBlockUpdateValidators(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
-	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
 	for tmAddressStr, v := range tHandler.strategy.CurrentHeightValData.Validators {
 		//pubKey := tHandler.strategy.CurrentHeightValData.UpdateValidators[i].PubKey
 		//tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
@@ -208,8 +200,6 @@ func (tHandler *THandler) GetPreBlockUpdateValidators(w http.ResponseWriter, req
 // This function will return the used data structure
 func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.Request) {
 	proposer := tHandler.strategy.CurrentHeightValData.ProposerAddress
-	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
-	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
 	signer := tHandler.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[proposer]
 	PreBlockProposer := &PreBlockProposer{
 		PreBlockProposer: proposer,
@@ -226,8 +216,6 @@ func (tHandler *THandler) GetPreBlockProposer(w http.ResponseWriter, req *http.R
 
 func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	tHandler.strategy.CurrEpochValData.PosTable.Mtx.RLock()
-	defer tHandler.strategy.CurrEpochValData.PosTable.Mtx.RUnlock()
 	for signer, posItem := range tHandler.strategy.CurrEpochValData.PosTable.PosItemMap {
 		pubKey := posItem.PubKey
 		//tmPubKey, _ := tmTypes.PB2TM.PubKey(pubKey)
@@ -254,8 +242,6 @@ func (tHandler *THandler) GetAllCandidateValidatorPool(w http.ResponseWriter, re
 
 func (tHandler *THandler) GetNextAllCandidateValidatorPool(w http.ResponseWriter, req *http.Request) {
 	var preValidators []*Validator
-	tHandler.strategy.NextEpochValData.PosTable.Mtx.RLock()
-	defer tHandler.strategy.NextEpochValData.PosTable.Mtx.RUnlock()
 	topKSigners := tHandler.strategy.NextEpochValData.PosTable.TopKSigners(100)
 	for _, signer := range topKSigners {
 		posItem := tHandler.strategy.NextEpochValData.PosTable.PosItemMap[signer]
@@ -329,9 +315,6 @@ func (tHandler *THandler) GetTxPoolEventSize(w http.ResponseWriter, req *http.Re
 }
 
 func (tHandler *THandler) GetAuthTable(w http.ResponseWriter, req *http.Request) {
-	txfilter.EthPosTable.Mtx.RLock()
-	defer txfilter.EthPosTable.Mtx.RUnlock()
-
 	jsonStr, err := json.Marshal(*txfilter.EthAuthTable)
 	if err != nil {
 		w.Write([]byte("error occurred when marshal into json"))

@@ -128,8 +128,8 @@ func NewStrategy() *Strategy {
 
 // Receiver returns which address should receive the mining reward
 func (strategy *Strategy) Receiver() common.Address {
-	if strategy.HFExpectedData.BlockVersion >= 4 {
-		return txfilter.Bigguy		//force collect to bigguy
+	if strategy.HFExpectedData.BlockVersion == 4 {
+		return txfilter.Bigguy		//not good, all the coinbases in the headers are bigguy
 	}
 	if strategy.CurrentHeightValData.ProposerAddress == "" || len(strategy.CurrEpochValData.PosTable.TmAddressToSignerMap) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
