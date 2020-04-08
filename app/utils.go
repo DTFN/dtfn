@@ -266,6 +266,8 @@ func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseE
 				Power:  -1,
 			})
 		}
+		// Private PPChain Admin account
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
 	}
 	validatorsSlice = append(validatorsSlice, authVals...)
 
