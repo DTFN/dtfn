@@ -274,11 +274,11 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 						Log: fmt.Sprintf(
 							"Relayer tx not match with main tx, please check, %v", err)}
 				}
-				txForVerify, err := txInfo.SubTx.WithRSV(tx.RawSignatureValues())
+				txForVerify, err := txInfo.SubTx.WithVRS(tx.RawSignatureValues())
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
 						Code: uint32(errors.CodeInternal),
-						Log: fmt.Sprintf("relayer sub tx WithRSV failed. %v",
+						Log: fmt.Sprintf("relayer sub tx WithVRS failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
 				txInfo.From, err = ethTypes.Sender(signer, txForVerify)
@@ -590,11 +590,11 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 						Log: fmt.Sprintf(
 							"Relayer tx not match with main tx, please check, %v", err)}
 				}
-				txForVerify, err := subTx.WithRSV(tx.RawSignatureValues())
+				txForVerify, err := subTx.WithVRS(tx.RawSignatureValues())
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
 						Code: uint32(errors.CodeInternal),
-						Log: fmt.Sprintf("relayer sub tx WithRSV failed. %v",
+						Log: fmt.Sprintf("relayer sub tx WithVRS failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
 				from, err = ethTypes.Sender(signer, txForVerify)
@@ -733,6 +733,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				currentState.SubBalance(from, tx.Cost())
 			}
 		}
+	} else {
+		currentState.SubBalance(from, tx.Cost())
 	}
 	// Update ether balances
 	// amount + gasprice * gaslimit
