@@ -379,7 +379,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		}
 	}
 	app.logger.Info("block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
-
+	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
 	//if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
 	//	app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	//}
@@ -465,7 +465,7 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 	}
 	var result interface{}
 	if index := strings.Index(query.Path, "PosTable"); index >= 0 {
-		if query.Path== "PosTable/GetCurrentPosTable" {
+		if query.Path == "PosTable/GetCurrentPosTable" {
 			result = app.strategy.CurrEpochValData.PosTable.PosItemMap
 		} else if query.Path == "PosTable/GetNextPosTable" {
 			result = app.strategy.NextEpochValData.PosTable.PosItemMap
@@ -473,7 +473,7 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 			result = app.strategy.NextEpochValData.PosTable.PosItemMap
 		}
 	} else if index := strings.Index(query.Path, "AuthTable"); index >= 0 {
-		if query.Path== "AuthTable/GetAuthTable" {
+		if query.Path == "AuthTable/GetAuthTable" {
 			result = txfilter.EthAuthTable.AuthItemMap
 		} else { //default
 			result = txfilter.EthAuthTable.AuthItemMap

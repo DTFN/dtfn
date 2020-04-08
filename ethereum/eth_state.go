@@ -88,7 +88,7 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction, appVersion uint64, txInf
 	blockchain := es.ethereum.BlockChain()
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
-	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, appVersion, txInfo)
+	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx, txInfo)
 }
 
 // Accumulate validator rewards.
@@ -318,7 +318,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 // and appends the tx, receipt, and logs.
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
-	tx *ethTypes.Transaction, appVersion uint64, txInfo ethTypes.TxInfo) abciTypes.ResponseDeliverTx {
+	tx *ethTypes.Transaction, txInfo ethTypes.TxInfo) abciTypes.ResponseDeliverTx {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	var err error
 	var msg core.Message
@@ -331,7 +331,6 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		ws.state,
 		ws.header,
 		tx,
-		appVersion,
 		txInfo,
 		ws.totalUsedGas,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
