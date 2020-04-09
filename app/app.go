@@ -287,6 +287,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 						Code: uint32(errors.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
+				tx.SetFrom(signer, txInfo.From)
 				txInfo.RelayFrom, err = ethTypes.DeriveSigner(txInfo.From, txInfo.SubTx)
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
@@ -603,6 +604,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 						Code: uint32(errors.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
+				tx.SetFrom(signer, from)
 				relayer, err = ethTypes.DeriveSigner(from, subTx)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
