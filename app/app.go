@@ -156,9 +156,8 @@ func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) abciT
 // #stable - 0.4.0
 func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciTypes.ResponseInitChain {
 	app.logger.Info("InitChain", "len(req.Validators)", len(req.Validators)) // nolint: errcheck
-	app.SetValidators(req.Validators)                                        //old code
 	ethState, _ := app.getCurrentState()
-	app.strategy.InitialValidators = []abciTypes.ValidatorUpdate{}
+	initialValidators := []abciTypes.ValidatorUpdate{}
 	app.SetPosTableThreshold()
 	if app.strategy.NextEpochValData.PosTable == nil {
 		panic("InitChain, app.strategy.NextEpochValData.PosTable==nil. check InitPersistentData")
@@ -180,7 +179,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			validator.PubKey,
 			app.strategy.AccMapInitial.MapList[address].BlsKeyString)
 		if err == nil {
-			app.strategy.InitialValidators = append(app.strategy.InitialValidators, validator)
+			initialValidators = append(app.strategy.InitialValidators, validator)
 			app.strategy.CurrentHeightValData.Validators[address] = emtTypes.Validator{
 				validator,
 				signer,
@@ -194,7 +193,8 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 			app.GetLogger().Error(fmt.Sprintf("remove not enough balance validator %v.  err %v", app.strategy.AccMapInitial.MapList[address], err))
 		}
 	}
-	initialValidatorsLen := len(app.strategy.InitialValidators)
+	initialValidatorsLen := len(initialValidators)
+	app.strategy.SetInitialValidators(initialValidators)
 	app.logger.Info("InitialValidators", "len(app.strategy.InitialValidators)", initialValidatorsLen,
 		"validators", app.strategy.InitialValidators)
 	if initialValidatorsLen != 0 {
@@ -255,7 +255,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 	if !ok {
 		var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
 		if tx.Protected() {
-			signer = ethTypes.NewEIP155Signer(tx.ChainId())
+			signer = app.strategy.Signer()
 		}
 		if tx.To() != nil {
 			if txfilter.IsRelayTxFromRelayer(*tx.To()) {
@@ -508,7 +508,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 
 	var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
 	if tx.Protected() {
-		signer = ethTypes.NewEIP155Signer(tx.ChainId())
+		signer = app.strategy.Signer()
 	}
 
 	var from, relayer common.Address
@@ -763,7 +763,11 @@ func (app *EthermintApplication) InsertPosItemInit(account common.Address, balan
 	pubKey abciTypes.PubKey, blsKeyString string) error {
 	if app.strategy != nil {
 		tmpSlot := big.NewInt(0)
-		tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
+		if app.strategy.HFExpectedData.BlockVersion>=4{
+			tmpSlot = big.NewInt(10)
+		}else{
+			tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
+		}
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		tmAddress := tmPubKey.Address().String()
 		return app.strategy.NextEpochValData.PosTable.InsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))

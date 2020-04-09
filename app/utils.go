@@ -10,11 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	ethmintTypes "github.com/green-element-chain/gelchain/types"
 	"github.com/green-element-chain/gelchain/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
 	//_ "net/http/pprof"
 )
@@ -48,14 +45,6 @@ func (app *EthermintApplication) Receiver() common.Address {
 	return common.Address{}
 }
 
-// SetValidators sets new validators on the strategy
-// #unstable
-func (app *EthermintApplication) SetValidators(validators []abciTypes.ValidatorUpdate) {
-	if app.strategy != nil {
-		app.strategy.SetValidators(validators)
-	}
-}
-
 func (app *EthermintApplication) StartHttpServer() {
 	go app.httpServer.HttpServer.ListenAndServe()
 	//go http.ListenAndServe("0.0.0.0:6060", nil)
@@ -65,214 +54,11 @@ func (app *EthermintApplication) StartHttpServer() {
 // #unstable
 func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
 	if app.strategy != nil {
-		if height%txfilter.EpochBlocks != 0 {
-			if seed != nil {
-				//seed 存在的时，优先seed
-				return app.enterSelectValidators(seed, -1)
-			} else {
-				//seed 不存在，选取height
-				return app.enterSelectValidators(nil, height)
-			}
-		} else {
-			return app.blsValidators(height)
-		}
+		return app.strategy.GetUpdatedValidators(height, seed)
 	}
 	return abciTypes.ResponseEndBlock{AppVersion: app.strategy.HFExpectedData.BlockVersion}
 }
 
-// CollectTx invokes CollectTx on the strategy
-// #unstable
-func (app *EthermintApplication) CollectTx(tx *types.Transaction) {
-	if app.strategy != nil {
-		app.strategy.CollectTx(tx)
-	}
-}
-
-func (app *EthermintApplication) GetAuthTmItems(height int64) []abciTypes.ValidatorUpdate {
-	if app.strategy.HFExpectedData.BlockVersion >= 5 {
-		var valUpdates []abciTypes.ValidatorUpdate
-		for _, value := range app.strategy.AuthTable.ThisBlockChangedMap {
-			if value.Type == "add" {
-				valUpdates = append(valUpdates, abciTypes.ValidatorUpdate{
-					PubKey: value.ApprovedTxData.PubKey,
-					Power:  int64(-1),
-				})
-			} else if value.Type == "remove" {
-				valUpdates = append(valUpdates, abciTypes.ValidatorUpdate{
-					PubKey: value.ApprovedTxData.PubKey,
-					Power:  int64(-2),
-				})
-			}
-		}
-		//reset at the end of block
-		app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
-		return valUpdates
-	}
-
-	//return an empty auth map on version<=4
-	app.strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
-	return nil
-}
-
-func (app *EthermintApplication) enterSelectValidators(seed []byte, height int64) abciTypes.ResponseEndBlock {
-	/*if app.strategy.BlsSelectStrategy {
-	} else {
-	}*/
-	validatorsSlice := []abciTypes.ValidatorUpdate{}
-
-	selectCount := app.strategy.CurrEpochValData.SelectCount //currently fixed
-	poolLen := len(app.strategy.CurrEpochValData.PosTable.PosItemMap)
-	if poolLen < 7 {
-		app.GetLogger().Info(fmt.Sprintf("PosTable.PosItemMap len < 7, current len %v", poolLen))
-	}
-	if selectCount == 0 { //0 means return full set each height
-		selectCount = poolLen
-	}
-
-	// we use map to remember which validators selected has put into validatorSlice
-	selectedValidators := make(map[string]int)
-
-	if app.strategy.HFExpectedData.BlockVersion >= 2 {
-		for i := 0; len(validatorsSlice) != selectCount; i++ {
-			var tmPubKey crypto.PubKey
-			var validator ethmintTypes.Validator
-			var signer common.Address
-			var pubKey abciTypes.PubKey
-			var posItem txfilter.PosItem
-			if height == -1 {
-				//height=-1 表示 seed 存在，使用seed
-				signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
-			} else {
-				//seed 不存在，使用height
-				startIndex := height
-				signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
-			}
-			pubKey = posItem.PubKey
-			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
-			tmAddress := tmPubKey.Address().String()
-			if index, ok := selectedValidators[tmAddress]; ok {
-				validatorsSlice[index].Power++
-			} else {
-				validatorUpdate := abciTypes.ValidatorUpdate{
-					PubKey: pubKey,
-					Power:  1000,
-				}
-				validator = ethmintTypes.Validator{
-					validatorUpdate,
-					signer,
-				}
-				//Remember tmPubKey.Address 's index in the currentValidators Array
-				selectedValidators[tmAddress] = len(validatorsSlice)
-				validatorsSlice = append(validatorsSlice, validatorUpdate)
-				app.strategy.CurrentHeightValData.Validators[tmAddress] = validator
-			}
-		}
-	} else {
-		//select validators from posTable
-		for i := 0; i < selectCount; i++ {
-			var tmPubKey crypto.PubKey
-			var validator ethmintTypes.Validator
-			var signer common.Address
-			var pubKey abciTypes.PubKey
-			var posItem txfilter.PosItem
-			if height == -1 {
-				//height=-1 表示 seed 存在，使用seed
-				signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
-			} else {
-				//seed 不存在，使用height
-				startIndex := height
-				signer, posItem = app.strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
-			}
-			pubKey = posItem.PubKey
-			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
-			tmAddress := tmPubKey.Address().String()
-			if index, ok := selectedValidators[tmAddress]; ok {
-				validatorsSlice[index].Power++
-			} else {
-				validatorUpdate := abciTypes.ValidatorUpdate{
-					PubKey: pubKey,
-					Power:  1000,
-				}
-				validator = ethmintTypes.Validator{
-					validatorUpdate,
-					signer,
-				}
-				//Remember tmPubKey.Address 's index in the currentValidators Array
-				selectedValidators[tmAddress] = len(validatorsSlice)
-				validatorsSlice = append(validatorsSlice, validatorUpdate)
-				app.strategy.CurrentHeightValData.Validators[tmAddress] = validator
-			}
-		}
-	}
-
-	//append the validators which will be deleted
-	for address, v := range app.strategy.CurrentHeightValData.Validators {
-		//tmPubKey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
-		index, selected := selectedValidators[address]
-		if selected {
-			v.Power = validatorsSlice[index].Power
-		} else {
-			validatorsSlice = append(validatorsSlice, abciTypes.ValidatorUpdate{
-				PubKey: v.PubKey,
-				Power:  0,
-			})
-			delete(app.strategy.CurrentHeightValData.Validators, address)
-		}
-	}
-
-	authVals := app.GetAuthTmItems(height)
-	validatorsSlice = append(validatorsSlice, authVals...)
-
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
-}
-
-func (app *EthermintApplication) blsValidators(height int64) abciTypes.ResponseEndBlock {
-	blsPubkeySlice := []string{}
-	validatorsSlice := []abciTypes.ValidatorUpdate{}
-	topKSigners := app.strategy.CurrEpochValData.PosTable.TopKSigners(100)
-	currentValidators := map[string]ethmintTypes.Validator{}
-
-	for _, signer := range topKSigners {
-		posItem := app.strategy.CurrEpochValData.PosTable.PosItemMap[signer]
-		tmAddress := posItem.TmAddress
-		updateValidator := abciTypes.ValidatorUpdate{
-			PubKey: posItem.PubKey,
-			Power:  posItem.Slots,
-		}
-		emtValidator := ethmintTypes.Validator{updateValidator, signer}
-		currentValidators[tmAddress] = emtValidator
-		validatorsSlice = append(validatorsSlice, updateValidator)
-		blsPubkeySlice = append(blsPubkeySlice, posItem.BlsKeyString)
-	}
-
-	for tmAddress, v := range app.strategy.CurrentHeightValData.Validators {
-		_, ok := currentValidators[tmAddress]
-		if !ok {
-			validatorsSlice = append(validatorsSlice,
-				abciTypes.ValidatorUpdate{
-					PubKey: v.PubKey,
-					Power:  int64(0),
-				})
-		}
-	}
-	app.strategy.CurrentHeightValData.Validators = currentValidators
-
-	authVals := app.GetAuthTmItems(height)
-	//get all validators and init tm-auth-table
-	if height == version.HeightArray[3] {
-		for _, value := range validatorsSlice {
-			authVals = append(authVals, abciTypes.ValidatorUpdate{
-				PubKey: value.PubKey,
-				Power:  -1,
-			})
-		}
-		// Private PPChain Admin account
-		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
-	}
-	validatorsSlice = append(validatorsSlice, authVals...)
-
-	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: app.strategy.HFExpectedData.BlockVersion}
-}
 func (app *EthermintApplication) SetPosTableThreshold() {
 	if app.strategy.CurrEpochValData.TotalBalance.Int64() == 0 {
 		panic("strategy.CurrEpochValData.TotalBalance==0")
@@ -286,7 +72,7 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 
-	app.strategy.HFExpectedData.Height=app.strategy.CurrentHeightValData.Height
+	app.strategy.HFExpectedData.Height = app.strategy.CurrentHeightValData.Height
 	if app.strategy.HFExpectedData.IsHarfForkPassed {
 		for i := len(version.HeightArray) - 1; i >= 0; i-- {
 			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {

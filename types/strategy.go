@@ -6,9 +6,11 @@ import (
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/log"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	tmTypes "github.com/tendermint/tendermint/types"
 	"math/big"
-	"reflect"
 	"fmt"
+	"github.com/green-element-chain/gelchain/version"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 // MinerRewardStrategy is a mining strategy
@@ -18,10 +20,11 @@ type MinerRewardStrategy interface {
 
 // ValidatorsStrategy is a validator strategy
 type ValidatorsStrategy interface {
-	SetValidators(validators []*abciTypes.Validator)
-	CollectTx(tx *ethTypes.Transaction)
-	GetUpdatedValidators() []*abciTypes.Validator
+	SetInitialValidators(validators []abciTypes.ValidatorUpdate)
+	//CollectTx(tx *ethTypes.Transaction)
+	GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock
 	Receiver() common.Address
+	Signer() ethTypes.Signer
 }
 
 // Strategy encompasses all available strategies
@@ -29,8 +32,6 @@ type Strategy struct {
 	ValidatorsStrategy
 
 	InitialValidators []abciTypes.ValidatorUpdate
-
-	currentValidators []abciTypes.ValidatorUpdate //old code use. We don't use this
 
 	//initial bond accounts
 	AccMapInitial *AccountMap
@@ -51,6 +52,8 @@ type Strategy struct {
 
 	// add for hard fork
 	HFExpectedData HardForkExpectedData
+
+	signer ethTypes.Signer
 }
 
 type NextEpochValData struct {
@@ -126,10 +129,210 @@ func NewStrategy() *Strategy {
 	}
 }
 
+func (strategy *Strategy) GetUpdatedValidators(height int64, seed []byte) abciTypes.ResponseEndBlock {
+	if height%txfilter.EpochBlocks != 0 {
+		if seed != nil {
+			//seed 存在的时，优先seed
+			return strategy.enterSelectValidators(seed, -1)
+		} else {
+			//seed 不存在，选取height
+			return strategy.enterSelectValidators(nil, height)
+		}
+	} else {
+		return strategy.blsValidators(height)
+	}
+}
+
+func (strategy *Strategy) enterSelectValidators(seed []byte, height int64) abciTypes.ResponseEndBlock {
+	/*if app.strategy.BlsSelectStrategy {
+	} else {
+	}*/
+	validatorsSlice := []abciTypes.ValidatorUpdate{}
+
+	selectCount := strategy.CurrEpochValData.SelectCount //currently fixed
+	poolLen := len(strategy.CurrEpochValData.PosTable.PosItemMap)
+	if poolLen < 7 {
+		fmt.Printf("PosTable.PosItemMap len < 7, current len %v \n", poolLen)
+	}
+	if selectCount == 0 { //0 means return full set each height
+		selectCount = poolLen
+	}
+
+	// we use map to remember which validators selected has put into validatorSlice
+	selectedValidators := make(map[string]int)
+
+	if strategy.HFExpectedData.BlockVersion >= 2 {
+		for i := 0; len(validatorsSlice) != selectCount; i++ {
+			var tmPubKey crypto.PubKey
+			var validator Validator
+			var signer common.Address
+			var pubKey abciTypes.PubKey
+			var posItem txfilter.PosItem
+			if height == -1 {
+				//height=-1 表示 seed 存在，使用seed
+				signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
+			} else {
+				//seed 不存在，使用height
+				startIndex := height
+				signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
+			}
+			pubKey = posItem.PubKey
+			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
+			tmAddress := tmPubKey.Address().String()
+			if index, ok := selectedValidators[tmAddress]; ok {
+				validatorsSlice[index].Power++
+			} else {
+				validatorUpdate := abciTypes.ValidatorUpdate{
+					PubKey: pubKey,
+					Power:  1000,
+				}
+				validator = Validator{
+					validatorUpdate,
+					signer,
+				}
+				//Remember tmPubKey.Address 's index in the currentValidators Array
+				selectedValidators[tmAddress] = len(validatorsSlice)
+				validatorsSlice = append(validatorsSlice, validatorUpdate)
+				strategy.CurrentHeightValData.Validators[tmAddress] = validator
+			}
+		}
+	} else {
+		//select validators from posTable
+		for i := 0; i < selectCount; i++ {
+			var tmPubKey crypto.PubKey
+			var validator Validator
+			var signer common.Address
+			var pubKey abciTypes.PubKey
+			var posItem txfilter.PosItem
+			if height == -1 {
+				//height=-1 表示 seed 存在，使用seed
+				signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
+			} else {
+				//seed 不存在，使用height
+				startIndex := height
+				signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
+			}
+			pubKey = posItem.PubKey
+			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
+			tmAddress := tmPubKey.Address().String()
+			if index, ok := selectedValidators[tmAddress]; ok {
+				validatorsSlice[index].Power++
+			} else {
+				validatorUpdate := abciTypes.ValidatorUpdate{
+					PubKey: pubKey,
+					Power:  1000,
+				}
+				validator = Validator{
+					validatorUpdate,
+					signer,
+				}
+				//Remember tmPubKey.Address 's index in the currentValidators Array
+				selectedValidators[tmAddress] = len(validatorsSlice)
+				validatorsSlice = append(validatorsSlice, validatorUpdate)
+				strategy.CurrentHeightValData.Validators[tmAddress] = validator
+			}
+		}
+	}
+
+	//append the validators which will be deleted
+	for address, v := range strategy.CurrentHeightValData.Validators {
+		//tmPubKey, _ := tmTypes.PB2TM.PubKey(v.PubKey)
+		index, selected := selectedValidators[address]
+		if selected {
+			v.Power = validatorsSlice[index].Power
+		} else {
+			validatorsSlice = append(validatorsSlice, abciTypes.ValidatorUpdate{
+				PubKey: v.PubKey,
+				Power:  0,
+			})
+			delete(strategy.CurrentHeightValData.Validators, address)
+		}
+	}
+
+	authVals := strategy.getAuthTmItems(height)
+	validatorsSlice = append(validatorsSlice, authVals...)
+
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: strategy.HFExpectedData.BlockVersion}
+}
+
+func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock {
+	blsPubkeySlice := []string{}
+	validatorsSlice := []abciTypes.ValidatorUpdate{}
+	topKSigners := strategy.CurrEpochValData.PosTable.TopKSigners(100)
+	currentValidators := map[string]Validator{}
+
+	for _, signer := range topKSigners {
+		posItem := strategy.CurrEpochValData.PosTable.PosItemMap[signer]
+		tmAddress := posItem.TmAddress
+		updateValidator := abciTypes.ValidatorUpdate{
+			PubKey: posItem.PubKey,
+			Power:  posItem.Slots,
+		}
+		emtValidator := Validator{updateValidator, signer}
+		currentValidators[tmAddress] = emtValidator
+		validatorsSlice = append(validatorsSlice, updateValidator)
+		blsPubkeySlice = append(blsPubkeySlice, posItem.BlsKeyString)
+	}
+
+	for tmAddress, v := range strategy.CurrentHeightValData.Validators {
+		_, ok := currentValidators[tmAddress]
+		if !ok {
+			validatorsSlice = append(validatorsSlice,
+				abciTypes.ValidatorUpdate{
+					PubKey: v.PubKey,
+					Power:  int64(0),
+				})
+		}
+	}
+	strategy.CurrentHeightValData.Validators = currentValidators
+
+	authVals := strategy.getAuthTmItems(height)
+	//get all validators and init tm-auth-table
+	if height == version.HeightArray[3] {
+		for _, value := range validatorsSlice {
+			authVals = append(authVals, abciTypes.ValidatorUpdate{
+				PubKey: value.PubKey,
+				Power:  -1,
+			})
+		}
+		// Private PPChain Admin account
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
+	}
+	validatorsSlice = append(validatorsSlice, authVals...)
+
+	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: strategy.HFExpectedData.BlockVersion}
+}
+
+func (strategy *Strategy) getAuthTmItems(height int64) []abciTypes.ValidatorUpdate {
+	if strategy.HFExpectedData.BlockVersion >= 5 {
+		var valUpdates []abciTypes.ValidatorUpdate
+		for _, value := range strategy.AuthTable.ThisBlockChangedMap {
+			if value.Type == "add" {
+				valUpdates = append(valUpdates, abciTypes.ValidatorUpdate{
+					PubKey: value.ApprovedTxData.PubKey,
+					Power:  int64(-1),
+				})
+			} else if value.Type == "remove" {
+				valUpdates = append(valUpdates, abciTypes.ValidatorUpdate{
+					PubKey: value.ApprovedTxData.PubKey,
+					Power:  int64(-2),
+				})
+			}
+		}
+		//reset at the end of block
+		strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
+		return valUpdates
+	}
+
+	//return an empty auth map on version<=4
+	strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
+	return nil
+}
+
 // Receiver returns which address should receive the mining reward
 func (strategy *Strategy) Receiver() common.Address {
 	if strategy.HFExpectedData.BlockVersion == 4 {
-		return txfilter.Bigguy		//not good, all the coinbases in the headers are bigguy
+		return txfilter.Bigguy //not good, all the coinbases in the headers are bigguy
 	}
 	if strategy.CurrentHeightValData.ProposerAddress == "" || len(strategy.CurrEpochValData.PosTable.TmAddressToSignerMap) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
@@ -145,13 +348,17 @@ func (strategy *Strategy) Receiver() common.Address {
 	return common.HexToAddress("0000000000000000000000000000000000000002")
 }
 
-// SetValidators updates the current validators
-func (strategy *Strategy) SetValidators(validators []abciTypes.ValidatorUpdate) {
-	strategy.currentValidators = validators
+// SetValidators the initial validators
+func (strategy *Strategy) SetInitialValidators(validators []abciTypes.ValidatorUpdate) {
+	strategy.InitialValidators = validators
+}
+
+func (strategy *Strategy) Signer() ethTypes.Signer {
+	return strategy.signer
 }
 
 // CollectTx collects the rewards for a transaction
-func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
+/*func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
 	if reflect.DeepEqual(tx.To(), common.HexToAddress("0000000000000000000000000000000000000001")) {
 		log.Info("Adding validator", "data", tx.Data())
 		pubKey := abciTypes.PubKey{Data: tx.Data()}
@@ -163,11 +370,10 @@ func (strategy *Strategy) CollectTx(tx *ethTypes.Transaction) {
 			},
 		)
 	}
-}
+}*/
 
-// GetUpdatedValidators returns the current validators,  old code
-func (strategy *Strategy) GetUpdatedValidators() []abciTypes.ValidatorUpdate {
-	return strategy.currentValidators
+func (strategy *Strategy) SetSigner(chainId *big.Int) {
+	strategy.signer = ethTypes.NewEIP155Signer(chainId)
 }
 
 func (strategy *Strategy) SetInitialAccountMap(accountMapList *AccountMap) {
