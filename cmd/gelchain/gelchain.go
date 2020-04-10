@@ -66,7 +66,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	strategy := ethApp.GetStrategy()
 	strategy.BlsSelectStrategy = ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
-	strategy.SetSigner(backend.Ethereum().BlockChain().Config().ChainId)
+	strategy.SetSigner(backend.Ethereum().BlockChain().Config().ChainID)
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
 	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
