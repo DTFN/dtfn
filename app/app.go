@@ -320,7 +320,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 							Log: fmt.Sprintf(
 								"Relayer tx not match with main tx, please check, %v", err)}
 					}
-					txInfo.RelayFrom, err = ethTypes.DeriveSigner(from, txInfo.SubTx)
+					txInfo.RelayFrom, err = ethTypes.DeriveRelayer(from, txInfo.SubTx)
 					if err != nil {
 						return abciTypes.ResponseDeliverTx{
 							Code: uint32(errors.CodeInternal),
@@ -560,7 +560,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 						Log: fmt.Sprintf("relayer sub tx decode failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
-				relayer, err = ethTypes.DeriveSigner(from, subTx)
+				relayer, err = ethTypes.DeriveRelayer(from, subTx)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
 						Code: uint32(errors.CodeInternal),
