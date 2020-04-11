@@ -384,8 +384,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
-	//proctime := time.Since(ws.bstart)
-	//blockchain.AddGcproc(proctime)
+	proctime := time.Since(ws.bstart)
+	blockchain.AddGcproc(proctime)
 	stat, err := blockchain.WriteBlockWithState(block, ws.receipts, ws.allLogs, ws.state, true)
 	if err != nil {
 		log.Error("Failed writing block to chain", "err", err)
