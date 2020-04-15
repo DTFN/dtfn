@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	errors "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -226,7 +225,7 @@ func (app *EthermintApplication) CheckTx(req abciTypes.RequestCheckTx) abciTypes
 			// nolint: errcheck
 			app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx)
 			return abciTypes.ResponseCheckTx{
-				Code: uint32(errors.CodeInternal),
+				Code: uint32(emtTypes.CodeInternal),
 				Log:  err.Error(),
 			}
 		}
@@ -245,7 +244,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		// nolint: errcheck
 		app.logger.Debug("DelivexTx: Received invalid transaction", "tx", tx, "err", err)
 		return abciTypes.ResponseDeliverTx{
-			Code: uint32(errors.CodeInternal),
+			Code: uint32(emtTypes.CodeInternal),
 			Log:  err.Error(),
 		}
 	}
@@ -263,35 +262,35 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 				txInfo.SubTx, err = ethTypes.DecodeTxFromHexBytes(tx.Data())
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log: fmt.Sprintf("relayer sub tx decode failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
 				err = ethTypes.CheckRelayerTx(tx, txInfo.SubTx)
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInvalidSequence),
+						Code: uint32(emtTypes.CodeInvalidSequence),
 						Log: fmt.Sprintf(
 							"Relayer tx not match with main tx, please check, %v", err)}
 				}
 				txForVerify, err := txInfo.SubTx.WithVRS(tx.RawSignatureValues())
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log: fmt.Sprintf("relayer sub tx WithVRS failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
 				txInfo.From, err = ethTypes.Sender(signer, txForVerify)
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
 				tx.SetFrom(signer, txInfo.From)
 				txInfo.RelayFrom, err = ethTypes.DeriveRelayer(txInfo.From, txInfo.SubTx)
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log: fmt.Sprintf("relayer signature verified failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
@@ -300,7 +299,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 				from, err := ethTypes.Sender(signer, tx)
 				if err != nil {
 					return abciTypes.ResponseDeliverTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
 				txInfo = ethTypes.TxInfo{Tx: tx, From: from}
@@ -309,21 +308,21 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 					txInfo.SubTx, err = ethTypes.DecodeTxFromHexBytes(tx.Data())
 					if err != nil {
 						return abciTypes.ResponseDeliverTx{
-							Code: uint32(errors.CodeInternal),
+							Code: uint32(emtTypes.CodeInternal),
 							Log: fmt.Sprintf("relayer sub tx decode failed. %v",
 								core.ErrInvalidSender.Error())}
 					}
 					err = ethTypes.CheckRelayerTx(tx, txInfo.SubTx)
 					if err != nil {
 						return abciTypes.ResponseDeliverTx{
-							Code: uint32(errors.CodeInvalidSequence),
+							Code: uint32(emtTypes.CodeInvalidSequence),
 							Log: fmt.Sprintf(
 								"Relayer tx not match with main tx, please check, %v", err)}
 					}
 					txInfo.RelayFrom, err = ethTypes.DeriveRelayer(from, txInfo.SubTx)
 					if err != nil {
 						return abciTypes.ResponseDeliverTx{
-							Code: uint32(errors.CodeInternal),
+							Code: uint32(emtTypes.CodeInternal),
 							Log: fmt.Sprintf("relayer signature verified failed. %v",
 								core.ErrInvalidSender.Error())}
 					}
@@ -334,7 +333,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 			from, err := ethTypes.Sender(signer, tx)
 			if err != nil {
 				return abciTypes.ResponseDeliverTx{
-					Code: uint32(errors.CodeInternal),
+					Code: uint32(emtTypes.CodeInternal),
 					Log:  core.ErrInvalidSender.Error()}
 			}
 			txInfo = ethTypes.TxInfo{Tx: tx, From: from}
@@ -461,7 +460,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.ResponseQuery {
 	var in jsonRequest
 	if err := json.Unmarshal(query.Data, &in); err != nil {
-		return abciTypes.ResponseQuery{Code: uint32(errors.CodeInternal),
+		return abciTypes.ResponseQuery{Code: uint32(emtTypes.CodeInternal),
 			Log: err.Error()}
 	}
 	var result interface{}
@@ -481,14 +480,14 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 		}
 	} else {
 		if err := app.rpcClient.Call(&result, in.Method, in.Params...); err != nil {
-			return abciTypes.ResponseQuery{Code: uint32(errors.CodeInternal),
+			return abciTypes.ResponseQuery{Code: uint32(emtTypes.CodeInternal),
 				Log: err.Error()}
 		}
 	}
 
 	bytes, err := json.Marshal(result)
 	if err != nil {
-		return abciTypes.ResponseQuery{Code: uint32(errors.CodeInternal),
+		return abciTypes.ResponseQuery{Code: uint32(emtTypes.CodeInternal),
 			Log: err.Error()}
 	}
 	return abciTypes.ResponseQuery{Code: abciTypes.CodeTypeOK, Value: bytes, Info: string(bytes)}
@@ -502,7 +501,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
 	if tx.Size() > maxTransactionSize {
 		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInternal),
+			Code: uint32(emtTypes.CodeInternal),
 			Log:  core.ErrOversizedData.Error()}
 	}
 
@@ -548,29 +547,29 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				// Make sure the transaction is signed properly
 				from, err = ethTypes.Sender(signer, tx)
 				if err != nil {
-					// TODO: Add errors.CodeTypeInvalidSignature ?
+					// TODO: Add emtTypes.CodeTypeInvalidSignature ?
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
 				subTx, err = ethTypes.DecodeTxFromHexBytes(tx.Data())
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log: fmt.Sprintf("relayer sub tx decode failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
 				relayer, err = ethTypes.DeriveRelayer(from, subTx)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log: fmt.Sprintf("relayer signature verified failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
 				err = ethTypes.CheckRelayerTx(tx, subTx)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
+						Code: uint32(emtTypes.CodeInvalidSequence),
 						Log: fmt.Sprintf(
 							"Relayer tx not match with main tx, please check, %v", err)}
 				}
@@ -580,35 +579,35 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				subTx, err = ethTypes.DecodeTxFromHexBytes(tx.Data())
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log: fmt.Sprintf("relayer sub tx decode failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
 				err = ethTypes.CheckRelayerTx(tx, subTx)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
+						Code: uint32(emtTypes.CodeInvalidSequence),
 						Log: fmt.Sprintf(
 							"Relayer tx not match with main tx, please check, %v", err)}
 				}
 				txForVerify, err := subTx.WithVRS(tx.RawSignatureValues())
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log: fmt.Sprintf("relayer sub tx WithVRS failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
 				from, err = ethTypes.Sender(signer, txForVerify)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
 				tx.SetFrom(signer, from)
 				relayer, err = ethTypes.DeriveRelayer(from, subTx)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log: fmt.Sprintf("relayer signature verified failed. %v",
 							core.ErrInvalidSender.Error())}
 				}
@@ -618,9 +617,9 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				// Make sure the transaction is signed properly
 				from, err = ethTypes.Sender(signer, tx)
 				if err != nil {
-					// TODO: Add errors.CodeTypeInvalidSignature ?
+					// TODO: Add emtTypes.CodeTypeInvalidSignature ?
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInternal),
+						Code: uint32(emtTypes.CodeInternal),
 						Log:  core.ErrInvalidSender.Error()}
 				}
 			}
@@ -629,9 +628,9 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			// Make sure the transaction is signed properly
 			from, err = ethTypes.Sender(signer, tx)
 			if err != nil {
-				// TODO: Add errors.CodeTypeInvalidSignature ?
+				// TODO: Add emtTypes.CodeTypeInvalidSignature ?
 				return abciTypes.ResponseCheckTx{
-					Code: uint32(errors.CodeInternal),
+					Code: uint32(emtTypes.CodeInternal),
 					Log:  core.ErrInvalidSender.Error()}
 			}
 		}
@@ -642,7 +641,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
 		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInvalidCoins),
+			Code: uint32(emtTypes.CodeInvalidCoins),
 			Log:  core.ErrNegativeValue.Error()}
 	}
 
@@ -652,7 +651,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
 		app.logger.Info(fmt.Sprintf("receive a remote tx with not existed from %X", from))
 		/*return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeUnknownAddress),
+			Code: uint32(emtTypes.CodeUnknownAddress),
 			Log:  core.ErrInvalidSender.Error()}*/
 	}
 
@@ -660,7 +659,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	gasLimit := app.backend.GasLimit()
 	if gasLimit < tx.Gas() {
 		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInternal),
+			Code: uint32(emtTypes.CodeInternal),
 			Log:  core.ErrGasLimitReached.Error()}
 	}
 
@@ -668,7 +667,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	nonce := currentState.GetNonce(from)
 	if nonce != tx.Nonce() {
 		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInvalidSequence),
+			Code: uint32(emtTypes.CodeInvalidSequence),
 			Log: fmt.Sprintf(
 				"Nonce for %X not strictly increasing. Expected %d Got %d .",
 				from, nonce, tx.Nonce())}
@@ -686,8 +685,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 
 	if currentBalance.Cmp(tx.Cost()) < 0 {
 		return abciTypes.ResponseCheckTx{
-			// TODO: Add errors.CodeTypeInsufficientFunds ?
-			Code: uint32(errors.CodeInsufficientFunds),
+			// TODO: Add emtTypes.CodeTypeInsufficientFunds ?
+			Code: uint32(emtTypes.CodeInsufficientFunds),
 			Log: fmt.Sprintf(
 				"Current balance: %s, tx cost: %s",
 				currentBalance, tx.Cost())}
@@ -697,15 +696,15 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 
 	if err != nil && tx.Gas() < intrGas {
 		return abciTypes.ResponseCheckTx{
-			Code: uint32(errors.CodeInsufficientCoins),
+			Code: uint32(emtTypes.CodeInsufficientCoins),
 			Log:  err.Error()}
 	}
 	height := app.backend.Es().WorkState().Height()
 	err = txfilter.IsBetBlocked(from, tx.To(), currentBalance, tx.Data(), height, false)
 	if err != nil {
 		return abciTypes.ResponseCheckTx{
-			// TODO: Add errors.CodeTypeTxIsBlocked ?
-			Code: uint32(errors.CodeInvalidAddress),
+			// TODO: Add emtTypes.CodeTypeTxIsBlocked ?
+			Code: uint32(emtTypes.CodeInvalidAddress),
 			Log: fmt.Sprintf(
 				"Tx is blocked: %v",
 				err)}
@@ -716,7 +715,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			err := txfilter.IsAuthBlocked(from, tx.Data(), height, false)
 			if err != nil {
 				return abciTypes.ResponseCheckTx{
-					Code: uint32(errors.CodeInvalidSequence),
+					Code: uint32(emtTypes.CodeInvalidSequence),
 					Log: fmt.Sprintf(
 						"Auth tx failed, %v", err)}
 			}
@@ -728,7 +727,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				err := txfilter.IsMintBlocked(from)
 				if err != nil {
 					return abciTypes.ResponseCheckTx{
-						Code: uint32(errors.CodeInvalidSequence),
+						Code: uint32(emtTypes.CodeInvalidSequence),
 						Log: fmt.Sprintf(
 							"Mint tx failed, %v", err)}
 				}
