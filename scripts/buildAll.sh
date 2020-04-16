@@ -79,7 +79,7 @@ export GO111MODULE=on
 export GONOSUMDB="*.green-element-chain.*"
 #export GOOS="linux"
 export GOPRIVATE="*.green-element-chain.*"
-export GOPROXY="https://proxy.golang.org,direct"
+export GOPROXY="https://proxy.golang.org"
 export GOSUMDB="off"
 installEthereum
 installTendermint
