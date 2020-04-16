@@ -7,7 +7,7 @@ installEthereum(){
         else
         	mkdir -p $GOPATH/src/github.com/ethereum  && cd $GOPATH/src/github.com/ethereum
         	pwd
-        	git clone https://github.com/green-element-chain/go-ethereum.git
+        	git clone git@github.com:green-element-chain/go-ethereum.git
         	cd go-ethereum
         	pwd
     fi
@@ -27,7 +27,7 @@ installTendermint(){
                     git pull
             else
             	mkdir -p $GOPATH/src/github.com/tendermint  && cd $GOPATH/src/github.com/tendermint
-            	git clone https://github.com/green-element-chain/tendermint.git
+            	git clone git@github.com:green-element-chain/tendermint.git
             	cd tendermint
     fi
     #git checkout -b develop remotes/origin/develop
