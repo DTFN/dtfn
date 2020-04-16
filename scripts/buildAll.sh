@@ -9,14 +9,12 @@ installEthereum(){
         	pwd
         	git clone git@github.com:green-element-chain/go-ethereum.git
         	cd go-ethereum
-        	pwd
     fi
 
     git checkout ForbidNormalPeer
     go mod vendor
     cd cmd/geth && go install
     cd ../../../..
-    pwd
 }
 
 
@@ -35,7 +33,6 @@ installTendermint(){
     go mod vendor
     cd cmd/tendermint && go install
     cd ../../../..
-    pwd
 }
 
 installGelchain(){
@@ -79,6 +76,11 @@ restoreVendors(){
 }
 
 export GO111MODULE=on
+GONOSUMDB="*.green-element-chain.*"
+#GOOS="linux"
+GOPRIVATE="*.green-element-chain.*"
+GOPROXY="https://proxy.golang.org,direct"
+GOSUMDB="off"
 installEthereum
 installTendermint
 installGelchain
