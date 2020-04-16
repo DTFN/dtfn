@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 
 installBLS(){
-    #sudo apt-get install -y libgmp-dev libssl-dev openssl gcc g++
-    apt-get install -y libgmp-dev libssl-dev openssl gcc g++
     mkdir -p $GOPATH/src/github.com/herumi
-
     cd $GOPATH/src/github.com/herumi
     if [ -d mcl ]
         then
@@ -27,7 +24,6 @@ installBLS(){
 
 installUSB(){
     mkdir -p $GOPATH/src/github.com/karalabe
-
     cd $GOPATH/src/github.com/karalabe
     if [ -d usb ]
         then
