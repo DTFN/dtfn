@@ -76,11 +76,11 @@ restoreVendors(){
 }
 
 export GO111MODULE=on
-GONOSUMDB="*.green-element-chain.*"
-#GOOS="linux"
-GOPRIVATE="*.green-element-chain.*"
-GOPROXY="https://proxy.golang.org,direct"
-GOSUMDB="off"
+export GONOSUMDB="*.green-element-chain.*"
+#export GOOS="linux"
+export GOPRIVATE="*.green-element-chain.*"
+export GOPROXY="https://proxy.golang.org,direct"
+export GOSUMDB="off"
 installEthereum
 installTendermint
 installGelchain
