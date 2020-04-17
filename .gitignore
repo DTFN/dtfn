@@ -51,6 +51,6 @@ glide.lock
 /build/
 /cmd/ethermint/ethermint
 
-# ignore file
-/cmd/gelchain/gelchain.go
-/cmd/gelchain/testnet.go
+#ignore go.module
+go.mod
+go.sum
