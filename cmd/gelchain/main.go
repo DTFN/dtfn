@@ -67,6 +67,8 @@ var (
 		utils.VerbosityFlag,
 		utils.ConfigFileFlag,
 		utils.WithTendermintFlag,
+		utils.VersionConfigFile,
+		utils.VersionConfigTypeFlag,
 		//log level
 		utils.LogLevelFlag,
 	}

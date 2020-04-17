@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/green-element-chain/gelchain/version"
 	"os"
 	"strings"
 	"time"
@@ -37,6 +38,26 @@ import (
 )
 
 func ethermintCmd(ctx *cli.Context) error {
+	configType := ctx.GlobalInt(emtUtils.VersionConfigTypeFlag.Name)
+	versionConfig := ctx.GlobalString(emtUtils.VersionConfigFile.Name)
+	conf, err := version.ReadConfig(versionConfig)
+	if configType != 0 && err != nil {
+		panic(err)
+	}
+
+	switch configType {
+	case 0:
+		fmt.Println(configType)
+		version.LoadDefaultConfig(conf)
+	case 1:
+		version.LoadDevelopConfig(conf)
+	case 2:
+		version.LoadStagingConfig(conf)
+	case 3:
+		version.LoadProductionConfig(conf)
+	}
+	version.InitConfig()
+
 	// Step 1: Setup the go-ethereum node and start it
 	node := emtUtils.MakeFullNode(ctx)
 	startNode(ctx, node)
@@ -70,6 +91,12 @@ func ethermintCmd(ctx *cli.Context) error {
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
 	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
+
+	ethLogger.Info("version.config", "version.HeightString", version.HeightString,
+		"version.VersionString", version.VersionString, "version.Bigguy", version.Bigguy,
+		"version.PPChainAdmin", version.PPChainAdmin,
+		"version.PPChainPrivateAdmin", version.PPChainPrivateAdmin,
+		"version.EvmErrHardForkHeight", version.EvmErrHardForkHeight)
 
 	tmConfig := loadTMConfig(ctx)
 

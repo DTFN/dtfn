@@ -16,6 +16,7 @@ require (
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
+	gopkg.in/yaml.v2 v2.2.8
 )
 
 replace github.com/ethereum/go-ethereum => github.com/green-element-chain/go-ethereum v1.4.6

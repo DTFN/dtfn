@@ -78,6 +78,18 @@ var (
 			"when `gelchain init` and `gelchain` are invoked respectively",
 	}
 
+	VersionConfigTypeFlag = cli.IntFlag{
+		Name:  "version_config_type",
+		Value: 0,
+		Usage: "Different ConfigType: 0=default, 1=test, 2=staging, 3=production",
+	}
+
+	VersionConfigFile = cli.StringFlag{
+		Name:  "version_config_file",
+		Value: "/root/gelchain_config/version.yaml",
+		Usage: "YAML configuration file for version.go",
+	}
+
 	//=======================================tendermint flags====================
 	PrivValidatorListenAddr = cli.StringFlag{
 		Name:  "priv_validator_laddr",
