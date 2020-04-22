@@ -47,7 +47,6 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	switch configType {
 	case 0:
-		fmt.Println(configType)
 		version.LoadDefaultConfig(conf)
 	case 1:
 		version.LoadDevelopConfig(conf)
