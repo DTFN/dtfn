@@ -407,9 +407,9 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 	if height%txfilter.EpochBlocks == 0 {
 		//DeepCopy
 		app.strategy.CurrEpochValData.PosTable = app.strategy.NextEpochValData.PosTable.Copy()
+		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
 		txfilter.CurrentPosTable = app.strategy.CurrEpochValData.PosTable
 		txfilter.EthAuthTableCopy = txfilter.EthAuthTable.Copy()
-		app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
 		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height, app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
 		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
 	}

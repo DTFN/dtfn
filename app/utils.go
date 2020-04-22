@@ -132,6 +132,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 		} else {
 			app.strategy.CurrEpochValData.PosTable.InitStruct()
 			app.strategy.CurrEpochValData.PosTable.ExportSortedSigners()
+			txfilter.CurrentPosTable = app.strategy.CurrEpochValData.PosTable
 		}
 	}
 

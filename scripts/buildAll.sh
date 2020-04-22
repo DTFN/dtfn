@@ -49,6 +49,7 @@ installGelchain(){
 }
 
 backupVendors(){
+    rm vendor_bak -rf
     mkdir vendor_bak
     mkdir -p vendor_bak/ethereum/go-ethereum/vendor/github.com/tendermint
     mv ../../ethereum/go-ethereum/vendor/github.com/tendermint/tendermint vendor_bak/ethereum/go-ethereum/vendor/github.com/tendermint
