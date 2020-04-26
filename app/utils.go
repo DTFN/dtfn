@@ -178,7 +178,7 @@ func (app *EthermintApplication) SetPersistenceData() {
 				key := []byte("TmAddressToSignerMap")
 				keyHash := common.BytesToHash(key)
 				//persist every height
-				valBytes, _ := json.Marshal(app.strategy.AuthTable.RevertAuthTable)
+				valBytes, _ := json.Marshal(app.strategy.AuthTable.ExtendAuthTable)
 				trie.TryUpdate(key, valBytes)
 				valueHash := ethereumCrypto.Keccak256Hash(valBytes)
 				wsState.SetState(txfilter.SendToAuth, keyHash, valueHash)
