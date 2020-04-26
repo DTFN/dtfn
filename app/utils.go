@@ -173,6 +173,17 @@ func (app *EthermintApplication) SetPersistenceData() {
 		if app.strategy.HFExpectedData.BlockVersion >= 4 {
 			nextBytes, _ = json.Marshal(app.strategy.AuthTable)
 			wsState.SetCode(txfilter.SendToAuth, nextBytes)
+			if app.strategy.HFExpectedData.BlockVersion >= 5 {
+				trie := wsState.GetOrNewStateObject(txfilter.SendToAuth).GetTrie(wsState.Database())
+				key := []byte("TmAddressToSignerMap")
+				keyHash := common.BytesToHash(key)
+				//persist every height
+				valBytes, _ := json.Marshal(app.strategy.CurrentHeightValData)
+				trie.TryUpdate(key, valBytes)
+				valueHash := ethereumCrypto.Keccak256Hash(valBytes)
+				wsState.SetState(txfilter.SendToAuth, keyHash, valueHash)
+			}
+
 			app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
 		}
 	}

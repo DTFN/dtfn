@@ -7,10 +7,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmTypes "github.com/tendermint/tendermint/types"
+	tmlibs "github.com/tendermint/tendermint/libs/common"
 	"math/big"
 	"fmt"
-	"github.com/green-element-chain/gelchain/version"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/green-element-chain/gelchain/version"
 )
 
 // MinerRewardStrategy is a mining strategy
@@ -249,9 +250,12 @@ func (strategy *Strategy) enterSelectValidators(seed []byte, height int64) abciT
 		}
 	}
 
-	authVals := strategy.getAuthTmItems(height)
-	validatorsSlice = append(validatorsSlice, authVals...)
-
+	abiEvent := strategy.getAuthTmItems(height)
+	if abiEvent != nil {
+		abiEvents := make([]abciTypes.Event, 0)
+		abiEvents = append(abiEvents, *abiEvent)
+		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, Events: abiEvents, AppVersion: strategy.HFExpectedData.BlockVersion}
+	}
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, AppVersion: strategy.HFExpectedData.BlockVersion}
 }
 
@@ -286,46 +290,46 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 	}
 	strategy.CurrentHeightValData.Validators = currentValidators
 
-	authVals := strategy.getAuthTmItems(height)
+	abiEvents := make([]abciTypes.Event, 0)
 	//get all validators and init tm-auth-table
 	if height == version.HeightArray[3] {
-		for _, value := range validatorsSlice {
-			authVals = append(authVals, abciTypes.ValidatorUpdate{
-				PubKey: value.PubKey,
-				Power:  -1,
-			})
-		}
+		initEvent := abciTypes.Event{Type: "AuthTableInit"}
+		abiEvents = append(abiEvents, initEvent)
 		// Private PPChain Admin account
 		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
 	}
-	validatorsSlice = append(validatorsSlice, authVals...)
-
+	abiEvent := strategy.getAuthTmItems(height)
+	if abiEvent != nil {
+		abiEvents = append(abiEvents, *abiEvent)
+	}
+	if len(abiEvents) != 0 {
+		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, Events: abiEvents, AppVersion: strategy.HFExpectedData.BlockVersion}
+	}
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: strategy.HFExpectedData.BlockVersion}
 }
 
-func (strategy *Strategy) getAuthTmItems(height int64) []abciTypes.ValidatorUpdate {
-	if strategy.HFExpectedData.BlockVersion >= 5 {
-		var valUpdates []abciTypes.ValidatorUpdate
-		for _, value := range strategy.AuthTable.ThisBlockChangedMap {
-			if value.Type == "add" {
-				valUpdates = append(valUpdates, abciTypes.ValidatorUpdate{
-					PubKey: value.ApprovedTxData.PubKey,
-					Power:  int64(-1),
-				})
-			} else if value.Type == "remove" {
-				valUpdates = append(valUpdates, abciTypes.ValidatorUpdate{
-					PubKey: value.ApprovedTxData.PubKey,
-					Power:  int64(-2),
-				})
+func (strategy *Strategy) getAuthTmItems(height int64) *abciTypes.Event {
+	if strategy.HFExpectedData.BlockVersion >= 5 && len(strategy.AuthTable.ThisBlockChangedMap) != 0 {
+		abiEvent := &abciTypes.Event{Type: "AuthItem"}
+		for tmAddr, value := range strategy.AuthTable.ThisBlockChangedMap {
+			var oper []byte
+			if value {
+				oper = append(oper, '1')
+
 			}
+			abiEvent.Attributes = append(abiEvent.Attributes, tmlibs.KVPair{
+				Key:   []byte(tmAddr),
+				Value: oper,
+			})
 		}
+
 		//reset at the end of block
-		strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
-		return valUpdates
+		strategy.AuthTable.ThisBlockChangedMap = make(map[string]bool)
+		return abiEvent
 	}
 
 	//return an empty auth map on version<=4
-	strategy.AuthTable.ThisBlockChangedMap = make(map[common.Address]*txfilter.AuthTmItem)
+	strategy.AuthTable.ThisBlockChangedMap = make(map[string]bool)
 	return nil
 }
 
