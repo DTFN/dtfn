@@ -175,7 +175,7 @@ func (app *EthermintApplication) SetPersistenceData() {
 			wsState.SetCode(txfilter.SendToAuth, nextBytes)
 			if app.strategy.HFExpectedData.BlockVersion >= 5 {
 				trie := wsState.GetOrNewStateObject(txfilter.SendToAuth).GetTrie(wsState.Database())
-				key := []byte("TmAddressToSignerMap")
+				key := []byte("ExtendAuthTable")
 				keyHash := common.BytesToHash(key)
 				//persist every height
 				valBytes, _ := json.Marshal(app.strategy.AuthTable.ExtendAuthTable)
