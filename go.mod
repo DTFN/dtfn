@@ -19,6 +19,6 @@ require (
 	gopkg.in/yaml.v2 v2.2.8
 )
 
-replace github.com/ethereum/go-ethereum => github.com/green-element-chain/go-ethereum v1.4.6
+replace github.com/ethereum/go-ethereum => github.com/green-element-chain/go-ethereum v1.4.7
 
-replace github.com/tendermint/tendermint => github.com/green-element-chain/tendermint v1.4.6
+replace github.com/tendermint/tendermint => github.com/green-element-chain/tendermint v1.4.7
