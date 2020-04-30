@@ -77,6 +77,8 @@ export GO111MODULE=on
 
 # If you don't want to input the username and password,you could config the git setting
 # git config --global url."https://<access-token-here>:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+# demo:
+# git config --global url."https://eac1464aa42c023c5de8d74ec0a37f3f26568766:x-oauth-basic@github.com/".insteadOf "https://github.com/"
 export GIT_TERMINAL_PROMPT=1
 
 unset GOPROXY
