@@ -77,6 +77,7 @@ restoreVendors(){
 }
 
 export GO111MODULE=on
+export GIT_TERMINAL_PROMPT=1
 #export GOOS="linux"
 
 unset GOPROXY
