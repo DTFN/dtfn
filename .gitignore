@@ -30,6 +30,7 @@ vendor
 # travis
 profile.tmp
 profile.cov
+glide.lock
 
 # IdeaIDE
 .idea
@@ -49,7 +50,3 @@ profile.cov
 **/yarn-error.log
 /build/
 /cmd/ethermint/ethermint
-
-# ignore file
-/cmd/gelchain/gelchain.go
-/cmd/gelchain/testnet.go

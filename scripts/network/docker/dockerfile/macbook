@@ -1,0 +1,2 @@
+FROM ubuntu:18.04
+RUN brew update && brew install -y gmp openssl gcc

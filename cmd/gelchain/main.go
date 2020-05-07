@@ -11,11 +11,12 @@ import (
 
 	"github.com/green-element-chain/gelchain/cmd/utils"
 	"github.com/green-element-chain/gelchain/version"
+	"time"
 )
 
 var (
 	// The app that holds all commands and flags.
-	app = ethUtils.NewApp(version.Version, "the gelchain command line interface")
+	app = ethUtils.NewApp(version.Version, time.Now().String(), "the gelchain command line interface")
 	// flags that configure the go-ethereum node
 	nodeFlags = []cli.Flag{
 		ethUtils.DataDirFlag,
@@ -24,7 +25,6 @@ var (
 		ethUtils.FakePoWFlag,
 		// Performance tuning
 		ethUtils.CacheFlag,
-		ethUtils.TrieCacheGenFlag,
 		ethUtils.GCModeFlag,
 		utils.TrieTimeLimitFlag,
 		// Account settings
@@ -37,10 +37,10 @@ var (
 		ethUtils.GpoBlocksFlag,
 		ethUtils.GpoPercentileFlag,
 		utils.TargetGasLimitFlag,
-		// Gas Price
-		ethUtils.GasPriceFlag,
-		//network setting
-		ethUtils.LightPeersFlag,
+		utils.TxpoolThreshold,
+		utils.TxpoolPriceLimit,
+		utils.LRUCacheSize,
+		ethUtils.InsecureUnlockAllowedFlag,
 		ethUtils.MaxPeersFlag,
 	}
 
@@ -67,6 +67,8 @@ var (
 		utils.VerbosityFlag,
 		utils.ConfigFileFlag,
 		utils.WithTendermintFlag,
+		utils.VersionConfigFile,
+		utils.VersionConfigTypeFlag,
 		//log level
 		utils.LogLevelFlag,
 	}
@@ -83,9 +85,11 @@ var (
 		utils.PrivatePeerIDs,
 		utils.TendermintP2PListenAddress,
 		utils.TendermintP2PExternalAddress,
+		utils.MempoolBroadcastFlag,
 		utils.TmConsEmptyBlock,
 		utils.TmConsEBlockInteval,
 		utils.TmConsNeedProofBlock,
+		utils.TmConsProposeTimeout,
 		utils.TmInitialEthAccount,
 		utils.TmBlsSelectStrategy,
 		utils.TestNetHostnamePrefix,
@@ -96,6 +100,18 @@ var (
 		utils.TestNetpOpulatePersistentPeers,
 		utils.TestnetStartingIPAddress,
 		utils.TestNetVals,
+		utils.MaxInPeers,
+		utils.MaxOutPeers,
+		utils.RollbackHeight,
+		utils.RollbackFlag,
+		utils.SelectCount,
+		utils.SelectBlockNumber,
+		utils.SelectStrategy,
+		utils.MempoolSize,
+		utils.MempoolThreshold,
+		utils.MempoolHeightThreshold,
+		utils.FlowControlFlag,
+		utils.FlowControlMaxSleepTime,
 	}
 )
 
@@ -136,8 +152,7 @@ func init() {
 		if err := utils.Setup(ctx); err != nil {
 			return err
 		}
-
-		ethUtils.SetupNetwork(ctx)
+		//ethUtils.SetupNetwork(ctx)
 
 		return nil
 	}

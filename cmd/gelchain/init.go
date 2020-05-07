@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,7 +12,7 @@ import (
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/green-element-chain/gelchain/cmd/utils"
 
@@ -49,9 +50,17 @@ func initCmd(ctx *cli.Context) error {
 		config.EnsureRoot(tendermintHome)
 
 		tendermintConfig := filepath.Join(tendermintHome, "config")
-		privValFile := filepath.Join(tendermintConfig,"priv_validator.json")
+		oldPrivVal := filepath.Join(tendermintConfig,"priv_validator.json")
 		var privValidator *privval.FilePV
-		privValidator = privval.LoadOrGenFilePV(privValFile)
+		oldPV, err := privval.LoadOldFilePV(oldPrivVal)
+		if err != nil {
+			return fmt.Errorf("error reading OldPrivValidator from %v: %v\n", oldPrivVal, err)
+		}
+		fmt.Println("Upgrading PrivValidator file")
+		newPrivValKey:=filepath.Join(tendermintConfig,"priv_validator_key.json")
+		newPrivValState:=filepath.Join(tendermintConfig,"priv_validator_state.json")
+		oldPV.Upgrade(newPrivValKey, newPrivValState)
+		privValidator = privval.LoadOrGenFilePV(newPrivValKey, newPrivValState)
 
 
 		// genesis file
@@ -60,7 +69,7 @@ func initCmd(ctx *cli.Context) error {
 			log.Info("Found genesis file", "path", genFile)
 		} else {
 			genDoc := types.GenesisDoc{
-				ChainID: cmn.Fmt("test-chain-%v", cmn.RandStr(6)),
+				ChainID: fmt.Sprintf("test-chain-%v", cmn.RandStr(6)),
 			}
 			genDoc.Validators = []types.GenesisValidator{{
 				PubKey: privValidator.GetPubKey(),
@@ -75,8 +84,8 @@ func initCmd(ctx *cli.Context) error {
 
 	}
 
-	chainDb, err := ethdb.NewLDBDatabase(filepath.Join(ethermintDataDir,
-		"gelchain/chaindata"), 0, 0)
+	chainDb, err := rawdb.NewLevelDBDatabase(filepath.Join(ethermintDataDir,
+		"gelchain/chaindata"), 0, 0,"")
 	if err != nil {
 		ethUtils.Fatalf("could not open database: %v", err)
 	}

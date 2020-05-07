@@ -1,0 +1,23 @@
+develop:
+  height: 20,30,40,200
+  version: 2,3,4,5
+  ppcadmin: 0xb3d49259b486d04505b0b652ade74849c0b703c3
+  ppchainprivateadmin: 0xb3d49259b486d04505b0b652ade74849c0b703c3
+  bigguy: 0xb3d49259b486d04505b0b652ade74849c0b703c3
+  evmerrhardforkheight: 5
+
+staging:
+  height: 8000,8100,8200,100000
+  version: 2,3,4,5
+  ppcadmin: 0xb3d49259b486d04505b0b652ade74849c0b703c3
+  ppchainprivateadmin: 0xb3d49259b486d04505b0b652ade74849c0b703c3
+  bigguy: 0xb3d49259b486d04505b0b652ade74849c0b703c3
+  evmerrhardforkheight: 5
+
+production:
+  height: 85000,1300000,3623000,3660000
+  version: 2,3,4,5
+  ppcadmin: 0xb3d49259b486d04505b0b652ade74849c0b703c3
+  ppchainprivateadmin: 0x121f5ef0aba86e258bfd9d6063b52774c1598adf
+  bigguy: 0x63859f245ba7c3c407a603a6007490b217b3ec5d
+  evmerrhardforkheight: 3588000

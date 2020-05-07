@@ -27,7 +27,7 @@ func TestGetStrategy(t *testing.T){
 	strategy := emtTypes.NewStrategy(big.NewInt(20000))
 	ethapp, err := NewMockEthApplication(strategy,mock_logger)
 	require.NoError(t, err)
-	require.Equal(t,big.NewInt(20000),ethapp.strategy.CurrRoundValData.TotalBalance)
+	require.Equal(t,big.NewInt(20000),ethapp.strategy.CurrHeightValData.TotalBalance)
 }
 
 
@@ -48,8 +48,8 @@ func TestSetThreShold(t *testing.T){
 	initPubKey()
 	strategy := emtTypes.NewStrategy(big.NewInt(20000))
 	ethapp, _ := NewMockEthApplication(strategy,mock_logger)
-	ethapp.SetThreShold(big.NewInt(1000))
-	require.Equal(t,big.NewInt(1000),ethapp.strategy.CurrRoundValData.PosTable.Threshold)
+	ethapp.SetThreshold(big.NewInt(1000))
+	require.Equal(t,big.NewInt(1000),ethapp.strategy.CurrHeightValData.PosTable.Threshold)
 }
 
 func TestUpsertValidator(t *testing.T) {
@@ -65,10 +65,10 @@ func TestUpsertValidator(t *testing.T) {
 	ethapp, err1 := NewMockEthApplication(strategy,mock_logger)
 	require.NoError(t, err1)
 
-	MapList := make(map[string]*emtTypes.AccountMap)
-	AML := &emtTypes.AccountMapList{MapList: MapList}
+	MapList := make(map[string]*emtTypes.AccountMapItem)
+	AML := &emtTypes.AccountMap{MapList: MapList}
 
-	ethapp.strategy.CurrRoundValData.AccountMapList = AML
+	ethapp.strategy.CurrHeightValData.AccountMap = AML
 	upsertFlag, err2 := ethapp.UpsertValidatorTx(SignerList[0], big.NewInt(1), big.NewInt(300), BeneList[0], pubkeylist[0],"")
 	require.Error(t,errors.New("nil validator pubkey or bls pubkey"),err2)
 	require.Equal(t, false,upsertFlag)
@@ -110,14 +110,14 @@ func TestRemoveValidatorTx(t *testing.T) {
 	ethapp, err1 := NewMockEthApplication(strategy,mock_logger)
 	require.NoError(t, err1)
 
-	MapList := make(map[string]*emtTypes.AccountMap)
-	AML := &emtTypes.AccountMapList{MapList: MapList}
+	MapList := make(map[string]*emtTypes.AccountMapItem)
+	AML := &emtTypes.AccountMap{MapList: MapList}
 
-	ethapp.strategy.CurrRoundValData.AccountMapList = AML
+	ethapp.strategy.CurrHeightValData.AccountMap = AML
 
 	upsertFlag, _ := ethapp.RemoveValidatorTx(SignerList[0])
 	require.Error(t, errors.New("can not remove validator for error-tolerant"))
-	require.Equal(t, 0, len(ethapp.strategy.CurrRoundValData.AccountMapList.MapList))
+	require.Equal(t, 0, len(ethapp.strategy.CurrHeightValData.AccountMap.MapList))
 	require.Equal(t, false, upsertFlag)
 }
 
@@ -130,25 +130,25 @@ func TestenterInitial(t *testing.T){
 	ResBlock:=ethapp.enterInitial(1)
 	require.Equal(t,abciTypes.ResponseEndBlock{},ResBlock)
 
-	var Validators=[]*abciTypes.Validator{
-		{	Address: []byte("43A280B075C15EEA8EDE123ED84462C260F780CC"),
+	var Validators=[]abciTypes.ValidatorUpdate{
+		{	//Address: []byte("43A280B075C15EEA8EDE123ED84462C260F780CC"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("lSk6hpSsP+Vpi/yfNFbfqK4x99jx1zTkf7On60ES3I4="),
 			},
 			Power: 1,},
 		{
-			Address: []byte("E431AE48F0F9894E7FBE06CF5CCF66B326D7439F"),
+			//Address: []byte("E431AE48F0F9894E7FBE06CF5CCF66B326D7439F"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("DAgy3l3jPF8L24KBTs7oJfyduihcBoiOOYIstEMx9VY="),
 			},
 			Power: 2,},
 	}
-	ethapp.strategy.CurrRoundValData.InitialValidators=Validators
+	ethapp.strategy.InitialValidators=Validators
 	ethapp.strategy.SetValidators(Validators)
 	ResBlock=ethapp.enterInitial(1)
-	require.Equal(t,2,ethapp.strategy.CurrRoundValData.CurrentValidators)
+	require.Equal(t,2,ethapp.strategy.CurrHeightValData.UpdateValidators)
 }
 
 func TestenterSelectValidators(t *testing.T){
@@ -162,34 +162,34 @@ func TestenterSelectValidators(t *testing.T){
 	ResponseEndBlock:=ethapp.enterSelectValidators(seed, height)
 	require.Equal(t,abciTypes.ResponseEndBlock{},ResponseEndBlock)
 
-	var Validators=[]*abciTypes.Validator{
-		{	Address: []byte("43A280B075C15EEA8EDE123ED84462C260F780CC"),
+	var Validators=[]abciTypes.ValidatorUpdate{
+		{	//Address: []byte("43A280B075C15EEA8EDE123ED84462C260F780CC"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("lSk6hpSsP+Vpi/yfNFbfqK4x99jx1zTkf7On60ES3I4="),
 			},
 			Power: 1,},
 		{
-			Address: []byte("E431AE48F0F9894E7FBE06CF5CCF66B326D7439F"),
+			//Address: []byte("E431AE48F0F9894E7FBE06CF5CCF66B326D7439F"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("DAgy3l3jPF8L24KBTs7oJfyduihcBoiOOYIstEMx9VY="),
 			},
 			Power: 2,},
-		{	Address: []byte("84A280B075C15EEA8EDE123ED84462C260F780CC"),
+		{	//Address: []byte("84A280B075C15EEA8EDE123ED84462C260F780CC"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("9996hpSsP+Vpi/yfNFbfqK4x99jx1zTkf7On60ES3I4="),
 			},
 			Power: 3,},
-		{	Address: []byte("0000000000000000000000000000000000000001"),
+		{	//Address: []byte("0000000000000000000000000000000000000001"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("6666hpSsP+Vpi/yfNFbfqK4x99jx1zTkf7On60ES3I4="),
 			},
 			Power: 4,},
 	}
-	ethapp.strategy.CurrRoundValData.CurrCandidateValidators=Validators
+	ethapp.strategy.CurrHeightValData.CurrCandidateValidators=Validators
 	ResponseEndBlock=ethapp.enterSelectValidators(seed, 10)
 	require.Equal(t,4,len(ResponseEndBlock.ValidatorUpdates))
 }
@@ -200,47 +200,43 @@ func TestblsValidators(t *testing.T){
 	initPubKey()
 	strategy := emtTypes.NewStrategy(big.NewInt(20000))
 	ethapp, _ := NewMockEthApplication(strategy,mock_logger)
-	var Validators=[]*abciTypes.Validator{
-		{	Address: []byte("43A280B075C15EEA8EDE123ED84462C260F780CC"),
+	var Validators=[]abciTypes.ValidatorUpdate{
+		{	//Address: []byte("43A280B075C15EEA8EDE123ED84462C260F780CC"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("lSk6hpSsP+Vpi/yfNFbfqK4x99jx1zTkf7On60ES3I4="),
 			},
 			Power: 1,},
 		{
-			Address: []byte("E431AE48F0F9894E7FBE06CF5CCF66B326D7439F"),
+			//Address: []byte("E431AE48F0F9894E7FBE06CF5CCF66B326D7439F"),
 			PubKey: abciTypes.PubKey{
 				Type:	 "tendermint/PubKeyEd25519",
 				Data: []byte("DAgy3l3jPF8L24KBTs7oJfyduihcBoiOOYIstEMx9VY="),
 			},
 			Power: 2,},
 	}
-	var acm1=emtTypes.AccountMap{
+	var acm1=emtTypes.AccountMapItem{
 		common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"),
-		big.NewInt(100000),
-		big.NewInt(1000),
 		common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b"),
 		"0",
 	}
 
-	var acm2=emtTypes.AccountMap{
+	var acm2=emtTypes.AccountMapItem{
 		common.HexToAddress("0x002f4e1ed26d8e8491046ac2c2faff8df1be470e"),
-		big.NewInt(100000),
-		big.NewInt(1000),
 		common.HexToAddress("0x002f4e1ed26d8e8491046ac2c2faff8df1be470e"),
 		"1",
 	}
-	var Maplist =map[string]*emtTypes.AccountMap{
+	var Maplist =map[string]*emtTypes.AccountMapItem{
 		"0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b":&acm1,
 		"0x002f4e1ed26d8e8491046ac2c2faff8df1be470e":&acm2,
 	}
-	var AccountMapList=emtTypes.AccountMapList{
+	var AccountMapList=emtTypes.AccountMap{
 		MapList:Maplist,
 	}
-	ethapp.strategy.CurrRoundValData.AccountMapList=&AccountMapList
-	ethapp.strategy.CurrRoundValData.InitialValidators=Validators
+	ethapp.strategy.CurrHeightValData.AccountMap=&AccountMapList
+	ethapp.strategy.InitialValidators=Validators
 	ethapp.strategy.SetValidators(Validators)
 	ResponseEndBlock:=ethapp.blsValidators(1)
-	require.Equal(t,4,len(ethapp.strategy.CurrRoundValData.CurrentValidators))
-	require.Equal(t,ethapp.strategy.CurrRoundValData.CurrentValidators[0].Address,ResponseEndBlock.ValidatorUpdates[0].Address)
+	require.Equal(t,4,len(ethapp.strategy.CurrHeightValData.UpdateValidators))
+	require.Equal(t,ethapp.strategy.CurrHeightValData.UpdateValidators[0].PubKey.Data,ResponseEndBlock.ValidatorUpdates[0].PubKey.Data)
 }

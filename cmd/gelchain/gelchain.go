@@ -1,10 +1,9 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	"github.com/green-element-chain/gelchain/version"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/green-element-chain/gelchain/utils"
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/tendermint/tendermint/abci/server"
@@ -27,15 +25,38 @@ import (
 	emtUtils "github.com/green-element-chain/gelchain/cmd/utils"
 	"github.com/green-element-chain/gelchain/ethereum"
 	"github.com/green-element-chain/gelchain/types"
+	"github.com/green-element-chain/gelchain/utils"
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/mempool"
 	tmNode "github.com/tendermint/tendermint/node"
+	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
+	"math/big"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
+	configType := ctx.GlobalInt(emtUtils.VersionConfigTypeFlag.Name)
+	versionConfig := ctx.GlobalString(emtUtils.VersionConfigFile.Name)
+	conf, err := version.ReadConfig(versionConfig)
+	if configType != 0 && err != nil {
+		panic(err)
+	}
+
+	switch configType {
+	case 0:
+		version.LoadDefaultConfig(conf)
+	case 1:
+		version.LoadDevelopConfig(conf)
+	case 2:
+		version.LoadStagingConfig(conf)
+	case 3:
+		version.LoadProductionConfig(conf)
+	}
+	version.InitConfig()
+
 	// Step 1: Setup the go-ethereum node and start it
 	node := emtUtils.MakeFullNode(ctx)
 	startNode(ctx, node)
@@ -43,14 +64,6 @@ func ethermintCmd(ctx *cli.Context) error {
 	// Setup the ABCI server and start it
 	addr := ctx.GlobalString(emtUtils.ABCIAddrFlag.Name)
 	abci := ctx.GlobalString(emtUtils.ABCIProtocolFlag.Name)
-	blsSelectStrategy := ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
-
-	ethGenesisJson := ethermintGenesisPath(ctx)
-	genesis := utils.ReadGenesis(ethGenesisJson)
-	totalBalanceInital := big.NewInt(0)
-	for key, _ := range genesis.Alloc {
-		totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
-	}
 
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
@@ -65,56 +78,79 @@ func ethermintCmd(ctx *cli.Context) error {
 	}
 
 	// Create the ABCI app
-	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy(totalBalanceInital))
-	ethApp.GetStrategy().BlsSelectStrategy = blsSelectStrategy
+	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, types.NewStrategy())
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	ethApp.StartHttpServer()
+	strategy := ethApp.GetStrategy()
+	strategy.BlsSelectStrategy = ctx.GlobalBool(emtUtils.TmBlsSelectStrategy.Name)
+	strategy.SetSigner(backend.Ethereum().BlockChain().Config().ChainID)
 	ethLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "gelchain")
 	configLoggerLevel(ctx, &ethLogger)
 	ethApp.SetLogger(ethLogger)
 
-	tmConfig := loadTMConfig(ctx)
-	ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
+	ethLogger.Info("version.config", "version.HeightString", version.HeightString,
+		"version.VersionString", version.VersionString, "version.Bigguy", version.Bigguy,
+		"version.PPChainAdmin", version.PPChainAdmin,
+		"version.PPChainPrivateAdmin", version.PPChainPrivateAdmin,
+		"version.EvmErrHardForkHeight", version.EvmErrHardForkHeight)
 
-	genDocFile := tmConfig.GenesisFile()
-	genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
-	if err != nil {
-		fmt.Println(err)
-	}
-	validators := genDoc.Validators
-	var tmAddress []string
-	amlist := &types.AccountMapList{
-		MapList: make(map[string]*types.AccountMap),
-	}
-	if err != nil {
-		panic("Sorry but you don't have initial account file")
-	} else {
-		fmt.Println(len(ethAccounts.EthAccounts))
-		log.Info("get Initial accounts")
+	tmConfig := loadTMConfig(ctx)
+
+	hasPersistData := ethApp.InitPersistData()
+	if !hasPersistData {
+		ethGenesisJson := ethermintGenesisPath(ctx)
+		genesis := utils.ReadGenesis(ethGenesisJson)
+		totalBalanceInital := big.NewInt(0)
+		for key, _ := range genesis.Alloc {
+			totalBalanceInital.Add(totalBalanceInital, genesis.Alloc[key].Balance)
+		}
+		strategy.CurrEpochValData.TotalBalance = totalBalanceInital
+
+		ethAccounts, err := types.GetInitialEthAccountFromFile(tmConfig.InitialEthAccountFile())
+		if err != nil {
+			panic("Sorry but you don't have initial account file")
+		}
+
+		genDocFile := tmConfig.GenesisFile()
+		genDoc, err := tmState.MakeGenesisDocFromFile(genDocFile)
+		validators := genDoc.Validators
+		amlist := &types.AccountMap{
+			MapList: make(map[string]*types.AccountMapItem),
+		}
+		log.Info(fmt.Sprintf("get Initial accountMap len %v. genDoc.Validators len %v",
+			len(ethAccounts.EthAccounts), len(validators)))
 		for i := 0; i < len(validators); i++ {
-			tmAddress = append(tmAddress, strings.ToLower(hex.EncodeToString(validators[i].PubKey.Address())))
+			tmAddress := validators[i].PubKey.Address().String()
 			blsKey := validators[i].BlsPubKey
 			blsKeyJsonStr, _ := json.Marshal(blsKey)
-			accountBalance := big.NewInt(1)
-			accountBalance.Div(totalBalanceInital, big.NewInt(100))
+			/*		accountBalance := big.NewInt(1)
+					accountBalance.Div(totalBalanceInital, big.NewInt(100))*/
 			if i == len(ethAccounts.EthAccounts) {
 				break
 			}
-			amlist.MapList[tmAddress[i]] = &types.AccountMap{
+			amlist.MapList[tmAddress] = &types.AccountMapItem{
 				common.HexToAddress(ethAccounts.EthAccounts[i]),
-				ethAccounts.EthBalances[i],
-				big.NewInt(0),
 				common.HexToAddress(ethAccounts.EthBeneficiarys[i]), //10个eth账户中的第i个。
 				string(blsKeyJsonStr),
 			}
 		}
-	}
 
-	ethApp.GetStrategy().SetAccountMapList(amlist)
+		strategy.SetInitialAccountMap(amlist)
+		log.Info(fmt.Sprintf("SetInitialAccountMap %v", amlist))
+	}
+	if strategy.CurrEpochValData.TotalBalance.Int64() == 0 {
+		panic("strategy.CurrEpochValData.TotalBalance==0")
+	}
+	selectCount := ctx.GlobalInt(emtUtils.SelectCount.Name)
+	fmt.Println("selectCount", selectCount)
+	strategy.CurrEpochValData.SelectCount = selectCount
+	selectBlockNumber := ctx.GlobalInt64(emtUtils.SelectBlockNumber.Name)
+	fmt.Println("selectBlockNumber", selectBlockNumber)
+	selectStrategy := ctx.GlobalBool(emtUtils.SelectStrategy.Name)
+	fmt.Println("selectStrategy", selectStrategy)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make gelchain as self contained as possible.
@@ -126,8 +162,31 @@ func ethermintCmd(ctx *cli.Context) error {
 		tmLogger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("module", "tendermint")
 		configLoggerLevel(ctx, &tmLogger)
 
+		// Generate node PrivKey
+		nodeKey, err := p2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
+		if err != nil {
+			return err
+		}
+
+		// Convert old PrivValidator if it exists.
+		oldPrivVal := tmConfig.OldPrivValidatorFile()
+		newPrivValKey := tmConfig.PrivValidatorKeyFile()
+		newPrivValState := tmConfig.PrivValidatorStateFile()
+		if _, err := os.Stat(oldPrivVal); !os.IsNotExist(err) {
+			oldPV, err := privval.LoadOldFilePV(oldPrivVal)
+			if err != nil {
+				return fmt.Errorf("error reading OldPrivValidator from %v: %v\n", oldPrivVal, err)
+			}
+			fmt.Println("Upgrading PrivValidator file",
+				"old", oldPrivVal,
+				"newKey", newPrivValKey,
+				"newState", newPrivValState,
+			)
+			oldPV.Upgrade(newPrivValKey, newPrivValState)
+		}
 		n, err := tmNode.NewNode(tmConfig,
-			privval.LoadOrGenFilePV(tmConfig.PrivValidatorFile()),
+			privval.LoadOrGenFilePV(newPrivValKey, newPrivValState),
+			nodeKey,
 			clientCreator,
 			tmNode.DefaultGenesisDocProviderFunc(tmConfig),
 			tmNode.DefaultDBProvider,
@@ -138,16 +197,43 @@ func ethermintCmd(ctx *cli.Context) error {
 			return err
 		}
 
-		backend.SetMemPool(n.MempoolReactor().Mempool)
-		n.MempoolReactor().Mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
+		rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
+		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
+		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
+
+		memPool := n.Mempool()
+		backend.SetMemPool(memPool)
+		clist_mempool := memPool.(*mempool.CListMempool)
+		clist_mempool.SetRecheckFailCallback(backend.Ethereum().TxPool().RemoveTxs)
 
 		err = n.Start()
 		if err != nil {
 			log.Error("server with tendermint start", "error", err)
 			return err
 		}
-		// Trap signal, run forever.
-		n.RunForever()
+		// Stop upon receiving SIGTERM or CTRL-C.
+		cmn.TrapSignal(tmLogger, func() {
+			if n.IsRunning() {
+				n.Stop()
+			}
+		})
+
+		/*	h := new(memsizeui.Handler)
+			s := &http.Server{Addr: "0.0.0.0:7070", Handler: h}
+			txs := clist_mempool.Txs()
+			sMap := clist_mempool.TxsMap()
+			state, _ := backend.Es().State()
+			work:=backend.Es().WorkState()
+			txPool := backend.Ethereum().TxPool()
+			h.Add("syncMap", &sMap)
+			h.Add("txsList", txs)
+			h.Add("esState", state)
+			h.Add("workState", &work)
+			txPool.DebugMeomory(h)
+			go s.ListenAndServe()*/
+
+		// Run forever.
+		select {}
 		return nil
 	} else {
 		// Start the app on the ABCI server
@@ -157,16 +243,21 @@ func ethermintCmd(ctx *cli.Context) error {
 			os.Exit(1)
 		}
 
-		srv.SetLogger(emtUtils.EthermintLogger().With("module", "abci-server"))
+		logger := emtUtils.EthermintLogger().With("module", "abci-server")
+		srv.SetLogger(logger)
 
 		if err := srv.Start(); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		cmn.TrapSignal(func() {
-			srv.Stop()
+		cmn.TrapSignal(logger, func() {
+			if srv.IsRunning() {
+				srv.Stop()
+			}
 		})
+		// Run forever.
+		select {}
 	}
 
 	return nil
@@ -183,26 +274,37 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig := tmcfg.DefaultConfig()
 	defaultTmConfig.BaseConfig = baseConfig
 	defaultTmConfig.Mempool.RootDir = tmHome
-	defaultTmConfig.Mempool.Recheck = true //fix nonce bug
+	defaultTmConfig.Mempool.Size = ctx.GlobalInt(emtUtils.MempoolSize.Name)
+	defaultTmConfig.Mempool.Broadcast = ctx.GlobalBool(emtUtils.MempoolBroadcastFlag.Name)
+	defaultTmConfig.Mempool.FlowControl = ctx.GlobalBool(emtUtils.FlowControlFlag.Name)
+	defaultTmConfig.Mempool.FlowControlThreshold = ctx.GlobalInt(emtUtils.MempoolThreshold.Name)
+	defaultTmConfig.Mempool.FlowControlHeightThreshold = ctx.GlobalInt(emtUtils.MempoolHeightThreshold.Name)
+	defaultTmConfig.Mempool.FlowControlMaxSleepTime = time.Duration(ctx.GlobalInt(emtUtils.FlowControlMaxSleepTime.Name)) * time.Second
 	defaultTmConfig.P2P.RootDir = tmHome
 	defaultTmConfig.RPC.RootDir = tmHome
 	defaultTmConfig.Consensus.RootDir = tmHome
 	defaultTmConfig.Consensus.CreateEmptyBlocks = ctx.GlobalBool(emtUtils.TmConsEmptyBlock.Name)
 	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = time.Duration(ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)) * time.Second
 	defaultTmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
+	defaultTmConfig.Consensus.TimeoutPropose = time.Duration(ctx.GlobalInt(emtUtils.TmConsProposeTimeout.Name)) * time.Second
+
+	defaultTmConfig.RollbackHeight = ctx.GlobalInt64(emtUtils.RollbackHeight.Name)
+	defaultTmConfig.RollbackFlag = ctx.GlobalBool(emtUtils.RollbackFlag.Name)
 
 	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
 
 	defaultTmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)
 	defaultTmConfig.BaseConfig.InitialEthAccount = ctx.GlobalString(emtUtils.TmInitialEthAccount.Name)
 	defaultTmConfig.PrivValidatorListenAddr = ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
-	defaultTmConfig.PrivValidator = ctx.GlobalString(emtUtils.PrivValidator.Name)
+	defaultTmConfig.PrivValidatorKey = ctx.GlobalString(emtUtils.PrivValidator.Name)
 	defaultTmConfig.P2P.AddrBook = ctx.GlobalString(emtUtils.AddrBook.Name)
 	defaultTmConfig.P2P.AddrBookStrict = ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
 	defaultTmConfig.P2P.PersistentPeers = ctx.GlobalString(emtUtils.PersistentPeers.Name)
 	defaultTmConfig.P2P.PrivatePeerIDs = ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
 	defaultTmConfig.P2P.ListenAddress = ctx.GlobalString(emtUtils.TendermintP2PListenAddress.Name)
 	defaultTmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
+	defaultTmConfig.P2P.MaxNumInboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
+	defaultTmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
 
 	return defaultTmConfig
 }
@@ -245,12 +347,14 @@ func startNode(ctx *cli.Context, stack *ethereum.Node) {
 		}
 		stateReader := ethclient.NewClient(rpcClient)
 
+		paths := make([]accounts.DerivationPath, 0)
+		paths = append(paths, accounts.DefaultBaseDerivationPath)
 		// Open and self derive any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {
 			if err := wallet.Open(""); err != nil {
 				log.Warn("Failed to open wallet", "url", wallet.URL(), "err", err)
 			} else {
-				wallet.SelfDerive(accounts.DefaultBaseDerivationPath, stateReader)
+				wallet.SelfDerive(paths, stateReader)
 			}
 		}
 		// Listen for wallet event till termination
@@ -265,9 +369,10 @@ func startNode(ctx *cli.Context, stack *ethereum.Node) {
 				log.Info("New wallet appeared", "url", event.Wallet.URL(), "status", status)
 
 				if event.Wallet.URL().Scheme == "ledger" {
-					event.Wallet.SelfDerive(accounts.DefaultLedgerBaseDerivationPath, stateReader)
+					paths = append(paths, accounts.LegacyLedgerBaseDerivationPath)
+					event.Wallet.SelfDerive(paths, stateReader)
 				} else {
-					event.Wallet.SelfDerive(accounts.DefaultBaseDerivationPath, stateReader)
+					event.Wallet.SelfDerive(paths, stateReader)
 				}
 
 			case accounts.WalletDropped:
@@ -367,4 +472,18 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 		}
 	}
 	return *match
+}
+
+//delete history block and rollback state here
+//and should put it before the rollback of tendermint
+func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, appBackend *ethereum.Backend) {
+	if rollbackFlag {
+		fmt.Println("you are rollbacking")
+		appBackend.Ethereum().BlockChain().SetHead(uint64(rollbackHeight))
+		fmt.Println(appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64())
+		os.Exit(1)
+	} else {
+		/*fmt.Println(appBackend.GasLimit())
+		fmt.Println("You are not rollbacking")*/
+	}
 }

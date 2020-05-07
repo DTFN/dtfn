@@ -4,12 +4,13 @@ import (
 	"math/big"
 	"os"
 
-	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1"
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 
 	"github.com/green-element-chain/gelchain/ethereum"
 
@@ -68,7 +69,7 @@ func makeConfigNode(ctx *cli.Context) (*ethereum.Node, gethConfig) {
 		ethUtils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
 
-	SetEthermintEthConfig(ctx,&cfg.Eth)
+	SetEthermintEthConfig(ctx, &cfg.Eth)
 	ethUtils.SetEthConfig(ctx, &stack.Node, &cfg.Eth)
 
 	return stack, cfg
@@ -101,16 +102,30 @@ func SetEthermintNodeConfig(cfg *node.Config) {
 
 // SetEthermintEthConfig takes a ethereum configuration and applies gelchain specific configuration
 // #unstable
-func SetEthermintEthConfig(ctx *cli.Context,cfg *eth.Config) {
+func SetEthermintEthConfig(ctx *cli.Context, cfg *eth.Config) {
 	/*cfg.MaxPeers = 0
 	cfg.PowFake = true*/
-	cfg.Ethash.PowMode=3
+	cfg.Ethash.PowMode = ethash.ModeNil
+	cfg.Miner.GasCeil = 0 //disable the miner
 	trieTimeLimit := ctx.GlobalInt(TrieTimeLimitFlag.Name)
 	if trieTimeLimit > 0 {
-		trieTimeout:=int64(trieTimeLimit)*int64(time.Second)
+		trieTimeout := int64(trieTimeLimit) * int64(time.Second)
 		cfg.TrieTimeout = time.Duration(trieTimeout)
 	}
+	if ctx.GlobalBool(FlowControlFlag.Name) {
+		cfg.TxPool.MempoolSize = uint64(ctx.GlobalInt(MempoolSize.Name))
+		cfg.TxPool.MaxFlowLimitSleepTime = time.Duration(ctx.GlobalInt(FlowControlMaxSleepTime.Name)) * time.Second
+		cfg.TxPool.FlowLimitThreshold = uint64(ctx.GlobalInt(TxpoolThreshold.Name))
+	} else {
+		cfg.TxPool.MempoolSize = uint64(0)
+	}
+	txpoolPriceLimit := ctx.GlobalInt(TxpoolPriceLimit.Name)
+	cfg.TxPool.PriceLimit = uint64(txpoolPriceLimit)
 
+	cacheSize := ctx.GlobalInt(LRUCacheSize.Name)
+	if cacheSize > 0 {
+		cfg.TxPool.LRUCacheSize = cacheSize
+	}
 }
 
 // MakeDataDir retrieves the currently requested data directory

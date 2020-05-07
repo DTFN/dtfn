@@ -29,6 +29,9 @@ var (
 	hostnamePrefix          string
 	startingIPAddress       string
 	p2pPort                 int
+
+	rollbackHeight int
+	rollbackFlag   bool
 )
 
 const (
@@ -55,10 +58,13 @@ func testnetCmd(ctx *cli.Context) error {
 	hostnamePrefix = ctx.GlobalString(emtUtils.TestNetHostnamePrefix.Name)
 	startingIPAddress = ctx.GlobalString(emtUtils.TestnetStartingIPAddress.Name)
 
+	rollbackHeight = ctx.GlobalInt(emtUtils.RollbackHeight.Name)
+	rollbackFlag = ctx.GlobalBool(emtUtils.RollbackFlag.Name)
+
 	genVals := make([]types.GenesisValidator, nValidators)
 
 	for i := 0; i < nValidators; i++ {
-		nodeDirName := cmn.Fmt("%s%d", nodeDirPrefix, i)
+		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outputDir, nodeDirName)
 		config.SetRoot(nodeDir)
 
@@ -67,15 +73,34 @@ func testnetCmd(ctx *cli.Context) error {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
+		err = os.MkdirAll(filepath.Join(nodeDir, "data"), nodeDirPerm)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
 
 		commands.InitFilesWithConfig(config)
 
-		pvFile := filepath.Join(nodeDir, config.BaseConfig.PrivValidator)
-		pv := privval.LoadFilePV(pvFile)
+		oldPrivVal := config.OldPrivValidatorFile()
+		newPrivValKey := config.PrivValidatorKeyFile()
+		newPrivValState := config.PrivValidatorStateFile()
+		if _, err := os.Stat(oldPrivVal); !os.IsNotExist(err) {
+			oldPV, err := privval.LoadOldFilePV(oldPrivVal)
+			if err != nil {
+				return fmt.Errorf("error reading OldPrivValidator from %v: %v\n", oldPrivVal, err)
+			}
+			fmt.Println("Upgrading PrivValidator file",
+				"old", oldPrivVal,
+				"newKey", newPrivValKey,
+				"newState", newPrivValState,
+			)
+			oldPV.Upgrade(newPrivValKey, newPrivValState)
+		}
+		pv:=privval.LoadOrGenFilePV(newPrivValKey, newPrivValState)
 		blsState := consensus.LoadFileBS(filepath.Join(nodeDir, config.BaseConfig.BlsState))
 		blsPubK := types.BLSPubKey{
 			Type:    "Secp256k1",
-			Address: pv.Address.String(),
+			Address: pv.GetPubKey().Address().String(),
 			Value:   blsState.GetPubKPKE(),
 		}
 		genVals[i] = types.GenesisValidator{
@@ -87,7 +112,7 @@ func testnetCmd(ctx *cli.Context) error {
 	}
 
 	for i := 0; i < nNonValidators; i++ {
-		nodeDir := filepath.Join(outputDir, cmn.Fmt("%s%d", nodeDirPrefix, i+nValidators))
+		nodeDir := filepath.Join(outputDir, fmt.Sprintf("%s%d", nodeDirPrefix, i+nValidators))
 		config.SetRoot(nodeDir)
 
 		err := os.MkdirAll(filepath.Join(nodeDir, "config"), nodeDirPerm)
@@ -108,7 +133,7 @@ func testnetCmd(ctx *cli.Context) error {
 
 	// Write genesis file.
 	for i := 0; i < nValidators+nNonValidators; i++ {
-		nodeDir := filepath.Join(outputDir, cmn.Fmt("%s%d", nodeDirPrefix, i))
+		nodeDir := filepath.Join(outputDir, fmt.Sprintf("%s%d", nodeDirPrefix, i))
 		if err := genDoc.SaveAs(filepath.Join(nodeDir, config.BaseConfig.Genesis)); err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
@@ -148,7 +173,7 @@ func hostnameOrIP(i int) string {
 func populatePersistentPeersInConfigAndWriteIt(config *cfg.Config) error {
 	persistentPeers := make([]string, nValidators+nNonValidators)
 	for i := 0; i < nValidators+nNonValidators; i++ {
-		nodeDir := filepath.Join(outputDir, cmn.Fmt("%s%d", nodeDirPrefix, i))
+		nodeDir := filepath.Join(outputDir, fmt.Sprintf("%s%d", nodeDirPrefix, i))
 		config.SetRoot(nodeDir)
 		nodeKey, err := p2p.LoadNodeKey(config.NodeKeyFile())
 		if err != nil {
@@ -159,7 +184,7 @@ func populatePersistentPeersInConfigAndWriteIt(config *cfg.Config) error {
 	persistentPeersList := strings.Join(persistentPeers, ",")
 
 	for i := 0; i < nValidators+nNonValidators; i++ {
-		nodeDir := filepath.Join(outputDir, cmn.Fmt("%s%d", nodeDirPrefix, i))
+		nodeDir := filepath.Join(outputDir, fmt.Sprintf("%s%d", nodeDirPrefix, i))
 		config.SetRoot(nodeDir)
 		config.P2P.PersistentPeers = persistentPeersList
 		config.P2P.AddrBookStrict = false
