@@ -10,7 +10,7 @@ installEthereum() {
     cd go-ethereum
   fi
 
-  git checkout ForbidNormalPeer
+  git checkout master
   go mod vendor
   cd cmd/geth && go install
   cd ../../../..
@@ -26,7 +26,7 @@ installTendermint() {
     cd tendermint
   fi
   #git checkout -b develop remotes/origin/develop
-  git checkout ForbidNormalPeer
+  git checkout master
   go mod vendor
   cd cmd/tendermint && go install
   cd ../../../..
@@ -35,7 +35,7 @@ installTendermint() {
 installGelchain() {
   cd green-element-chain/gelchain
   #git checkout -b develop remotes/origin/develop
-  git checkout ForbidNormalPeer
+  git checkout master
   go mod vendor
   backupVendors
   export GO111MODULE=off
