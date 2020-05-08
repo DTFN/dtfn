@@ -7,12 +7,12 @@ develop:
   evmerrhardforkheight: 5
 
 staging:
-  height: 8000,8100,8200,100000
+  height: 8000,8100,8200,20000
   version: 2,3,4,5
   ppcadmin: 0xb3d49259b486d04505b0b652ade74849c0b703c3
   ppchainprivateadmin: 0xb3d49259b486d04505b0b652ade74849c0b703c3
   bigguy: 0xb3d49259b486d04505b0b652ade74849c0b703c3
-  evmerrhardforkheight: 5
+  evmerrhardforkheight: 8000
 
 production:
   height: 85000,1300000,3623000,3660000

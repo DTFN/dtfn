@@ -215,10 +215,14 @@ github.com/green-element-chain/go-ethereum v1.4.6 h1:Pl/3n/NVLv5PubyrCbbZxhGAehZ
 github.com/green-element-chain/go-ethereum v1.4.6/go.mod h1:76FTuWlcWhat4S8BMuqesSzvVPs8lEsfdVym2yM5iiU=
 github.com/green-element-chain/go-ethereum v1.4.7 h1:xqaMa8Ahfu3jrmCuiMVUqSe7QEPDN5HH17XtjAhEV1I=
 github.com/green-element-chain/go-ethereum v1.4.7/go.mod h1:St67Ti6WHCOyGcs5rvWUXUqcNKysoveHnlLf1m78sMw=
+github.com/green-element-chain/go-ethereum v1.5.0 h1:+VWZGIjqPPnQVOUYk527t3uhj8KGRF46JDwg+ekKDOw=
+github.com/green-element-chain/go-ethereum v1.5.0/go.mod h1:St67Ti6WHCOyGcs5rvWUXUqcNKysoveHnlLf1m78sMw=
 github.com/green-element-chain/tendermint v1.4.6 h1:AePKgMkAjxSkX0fqQBo/sKOYllJOLPGe2qFylRV5leg=
 github.com/green-element-chain/tendermint v1.4.6/go.mod h1:1L7ZUvPVtLT0zKhh0gAXYooF4eX+Y+H7HqE3sgKoJFc=
 github.com/green-element-chain/tendermint v1.4.7 h1:rFq2mtxYCAdLCfkmZTVmqgFrAeZbeghjNV+QKmsjiVg=
 github.com/green-element-chain/tendermint v1.4.7/go.mod h1:pIYCk6oZ9BALGtRtab0mI+EaPlLWRUnAAXEzL8a6jNg=
+github.com/green-element-chain/tendermint v1.5.0 h1:U7GLxRSqzsuPZ2SDyQR7S2TWZgYw5s1g17GL5gJs7yo=
+github.com/green-element-chain/tendermint v1.5.0/go.mod h1:u+zB02+WOCjFlm0oXX5Vqf3RDzmsx0czsy+ZMRJVgqg=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.0/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
 github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0/go.mod h1:8NvIoxWQoOIhqOTXgfV/d3M/q6VIi02HzZEHgUlZvzk=
