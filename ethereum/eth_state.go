@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -337,8 +336,6 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
 
-	log.Info(fmt.Sprintf("tx %v, gasUsed %v, status %v", tx, receipt.GasUsed, receipt.Status))
-
 	log.Debug(fmt.Sprintf("deliver a tx from %X tx %v", msg.From(), tx))
 	if err != nil {
 		log.Error(fmt.Sprintf("Deliver Tx err %v", err))
@@ -386,10 +383,6 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	blockHash := block.Hash()
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
-
-	blockHeaderBytes, _ := json.Marshal(block.Header())
-	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X"),
-		string(blockHeaderBytes), blockHash)
 
 	proctime := time.Since(ws.bstart)
 	blockchain.AddGcproc(proctime)

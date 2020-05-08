@@ -19,6 +19,8 @@ import (
 	"math/big"
 	"strings"
 	"github.com/green-element-chain/gelchain/httpserver"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 // EthermintApplication implements an ABCI application
@@ -412,8 +414,28 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 		txfilter.EthAuthTableCopy = txfilter.EthAuthTable.Copy()
 		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height, app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
 		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
+
+		if height == version.HeightArray[4] { //force update genesis config to Constantinople
+			db := app.backend.Ethereum().ChainDb()
+			stored := rawdb.ReadCanonicalHash(db, 0)
+			if (stored == common.Hash{}) {
+				app.logger.Error("No genesis block! No need to reset config!")
+			} else {
+				storedcfg := rawdb.ReadChainConfig(db, stored)
+				if storedcfg == nil {
+					app.logger.Error("Found genesis block without chain config!")
+				} else {
+					upgradeConfig := params.AllEthashProtocolChanges
+					upgradeConfig.ChainID = storedcfg.ChainID
+					upgradeConfig.Ethash = storedcfg.Ethash //we do not use ethash
+					upgradeConfig.Clique = storedcfg.Clique //we do not use clique either
+					fmt.Printf("storedcfg %v \n updated to \n upgradeConfig %v \n", storedcfg, upgradeConfig)
+					rawdb.WriteChainConfig(db, stored, upgradeConfig)
+				}
+			}
+		}
 	}
-	//fmt.Println(fmt.Sprintf("===========txCacheFrom count %v", len(app.backend.CachedTxFrom())))
+
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
@@ -762,9 +784,9 @@ func (app *EthermintApplication) InsertPosItemInit(account common.Address, balan
 	pubKey abciTypes.PubKey, blsKeyString string) error {
 	if app.strategy != nil {
 		tmpSlot := big.NewInt(0)
-		if app.strategy.HFExpectedData.BlockVersion>=4{
+		if app.strategy.HFExpectedData.BlockVersion >= 4 {
 			tmpSlot = big.NewInt(10)
-		}else{
+		} else {
 			tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
 		}
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
