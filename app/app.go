@@ -421,17 +421,14 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 			if (stored == common.Hash{}) {
 				app.logger.Error("No genesis block! No need to reset config!")
 			} else {
-				storedcfg := rawdb.ReadChainConfig(db, stored)
-				if storedcfg == nil {
-					app.logger.Error("Found genesis block without chain config!")
-				} else {
-					upgradeConfig := params.AllEthashProtocolChanges
-					upgradeConfig.ChainID = storedcfg.ChainID
-					upgradeConfig.Ethash = storedcfg.Ethash //we do not use ethash
-					upgradeConfig.Clique = storedcfg.Clique //we do not use clique either
-					fmt.Printf("storedcfg %v \n updated to \n upgradeConfig %v \n", storedcfg, upgradeConfig)
-					rawdb.WriteChainConfig(db, stored, upgradeConfig)
-				}
+				storedcfg:=app.backend.Ethereum().BlockChain().Config()
+				upgradeConfig := params.AllEthashProtocolChanges
+				upgradeConfig.ChainID = storedcfg.ChainID
+				upgradeConfig.Ethash = storedcfg.Ethash //we do not use ethash
+				upgradeConfig.Clique = storedcfg.Clique //we do not use clique either
+				fmt.Printf("storedcfg %v \n updated to \n upgradeConfig %v \n", storedcfg, upgradeConfig)
+				app.backend.Ethereum().BlockChain().SetConfig(upgradeConfig)
+				rawdb.WriteChainConfig(db, stored, upgradeConfig)
 			}
 		}
 	}
