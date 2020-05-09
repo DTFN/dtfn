@@ -415,13 +415,13 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height, app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
 		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
 
-		if height == version.HeightArray[4] { //force update genesis config to Constantinople
+		if height == version.HeightArray[3] { //force update genesis config to Constantinople
 			db := app.backend.Ethereum().ChainDb()
 			stored := rawdb.ReadCanonicalHash(db, 0)
 			if (stored == common.Hash{}) {
 				app.logger.Error("No genesis block! No need to reset config!")
 			} else {
-				storedcfg:=app.backend.Ethereum().BlockChain().Config()
+				storedcfg := app.backend.Ethereum().BlockChain().Config()
 				upgradeConfig := params.AllEthashProtocolChanges
 				upgradeConfig.ChainID = storedcfg.ChainID
 				upgradeConfig.Ethash = storedcfg.Ethash //we do not use ethash
