@@ -381,6 +381,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	// block).
 	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
 	blockHash := block.Hash()
+
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
