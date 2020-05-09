@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -381,6 +382,11 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	// block).
 	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
 	blockHash := block.Hash()
+
+	blockHeaderBytes, _ := json.Marshal(block.Header())
+	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X"),
+		string(blockHeaderBytes), blockHash)
+
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
