@@ -15,11 +15,9 @@ import (
 	"github.com/green-element-chain/gelchain/ethereum"
 	"github.com/green-element-chain/gelchain/httpserver"
 	emtTypes "github.com/green-element-chain/gelchain/types"
-	"github.com/green-element-chain/gelchain/unsafe"
 	"github.com/green-element-chain/gelchain/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/types"
 	"math/big"
 	"strings"
@@ -500,38 +498,16 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 		}
 	} else if index := strings.Index(query.Path, "Rollback/ResetData"); index >= 0 {
 		authTableMap := make(map[string]int64)
-		if len(txfilter.EthAuthTable.AuthItemMap) != 0 {
-			for key, _ := range txfilter.EthAuthTable.AuthItemMap {
-				authTableMap[key.String()] = int64(unsafe.RollbackHeight)
-			}
+		for key, ai := range txfilter.EthAuthTable.AuthItemMap {
+			authTableMap[key.String()] = ai.PermitHeight
 		}
-		if app.strategy.CurrEpochValData.PosTable != nil {
-			for key, _ := range app.strategy.CurrEpochValData.PosTable.PosItemMap {
-				authTableMap[key.String()] = int64(unsafe.RollbackHeight)
-			}
+		for key, pi := range app.strategy.NextEpochValData.PosTable.UnbondPosItemMap {
+			authTableMap[key.String()] = pi.Height
 		}
-		if app.strategy.NextEpochValData.PosTable != nil {
-			for key, _ := range app.strategy.NextEpochValData.PosTable.PosItemMap {
-				authTableMap[key.String()] = int64(unsafe.RollbackHeight)
-			}
+		for key, pi := range app.strategy.NextEpochValData.PosTable.PosItemMap {
+			authTableMap[key.String()] = pi.Height
 		}
-		if app.strategy.NextEpochValData.PosTable != nil {
-			for key, _ := range app.strategy.NextEpochValData.PosTable.UnbondPosItemMap {
-				authTableMap[key.String()] = int64(unsafe.RollbackHeight)
-			}
-		}
-		rollbackVersion := len(version.HeightArray) + 1
-		for index, value := range version.HeightArray {
-			if unsafe.RollbackHeight < value {
-				rollbackVersion = index + 1
-				break
-			}
-		}
-		authTableResetData := p2p.AuthTableResetData{
-			Version:      int64(rollbackVersion),
-			AuthTableMap: authTableMap,
-		}
-		authResetDataBytes, _ := json.Marshal(authTableResetData)
+		authResetDataBytes, _ := json.Marshal(authTableMap)
 		result = string(authResetDataBytes)
 	} else {
 		if err := app.rpcClient.Call(&result, in.Method, in.Params...); err != nil {

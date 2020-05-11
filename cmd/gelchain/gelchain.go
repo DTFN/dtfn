@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/green-element-chain/gelchain/unsafe"
 	"github.com/green-element-chain/gelchain/version"
 	"os"
 	"strings"
@@ -100,6 +99,9 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	tmConfig := loadTMConfig(ctx)
 
+	rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
+	rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
+	whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 	hasPersistData := ethApp.InitPersistData()
 	if !hasPersistData {
 		ethGenesisJson := ethermintGenesisPath(ctx)
@@ -197,11 +199,6 @@ func ethermintCmd(ctx *cli.Context) error {
 			log.Info("tendermint newNode", "error", err)
 			return err
 		}
-
-		rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
-		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
-		unsafe.RollbackHeight = int64(rollbackHeight)
-		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
 		memPool := n.Mempool()
 		backend.SetMemPool(memPool)
@@ -480,10 +477,9 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 //and should put it before the rollback of tendermint
 func whetherRollbackEthApp(rollbackFlag bool, rollbackHeight int, appBackend *ethereum.Backend) {
 	if rollbackFlag {
-		fmt.Println("you are rollbacking")
+		fmt.Printf("you are rollbacking to %v", rollbackHeight)
 		appBackend.Ethereum().BlockChain().SetHead(uint64(rollbackHeight))
 		fmt.Println(appBackend.Ethereum().BlockChain().CurrentBlock().NumberU64())
-		os.Exit(1)
 	} else {
 		/*fmt.Println(appBackend.GasLimit())
 		fmt.Println("You are not rollbacking")*/

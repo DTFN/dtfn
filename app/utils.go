@@ -72,15 +72,6 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 
-	app.strategy.HFExpectedData.Height = app.strategy.CurrentHeightValData.Height
-	if app.strategy.HFExpectedData.IsHarfForkPassed {
-		for i := len(version.HeightArray) - 1; i >= 0; i-- {
-			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
-				app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
-				break
-			}
-		}
-	}
 	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
 	core.EvmErrHardForkHeight = version.EvmErrHardForkHeight
 	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
@@ -117,6 +108,15 @@ func (app *EthermintApplication) InitPersistData() bool {
 			err := json.Unmarshal(currentHeightData, &app.strategy.CurrentHeightValData)
 			if err != nil {
 				panic(fmt.Sprintf("initialize CurrentHeightValData.Validators error %v", err))
+			}
+		}
+	}
+	app.strategy.HFExpectedData.Height = app.strategy.CurrentHeightValData.Height
+	if app.strategy.HFExpectedData.IsHarfForkPassed {
+		for i := len(version.HeightArray) - 1; i >= 0; i-- {
+			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
+				app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
+				break
 			}
 		}
 	}
