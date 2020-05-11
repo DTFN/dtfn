@@ -26,7 +26,7 @@ func (b *Backend) txBroadcastLoop() {
 	defer sub.Unsubscribe()
 
 	waitForServer(b.client)
-	b.ethereum.TxPool().BeginConsume()
+	b.ethereum.TxPool().HandleJournalTxs()
 	//for obj := range b.txSub.Chan() {
 	txCount := 0
 	for obj := range ch {
