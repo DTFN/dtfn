@@ -461,7 +461,6 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 		return abciTypes.ResponseCommit{}
 	}
 
-	app.backend.Ethereum().TxPool().HandleCachedTxs()
 	if app.backend.Ethereum().TxPool().IsFlowControlOpen() {
 		memPool := app.backend.MemPool()
 		if memPool != nil { //when in replay, memPool has not been set, it is nil
