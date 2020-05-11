@@ -6,21 +6,23 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/green-element-chain/gelchain/ethereum"
+	"github.com/green-element-chain/gelchain/httpserver"
 	emtTypes "github.com/green-element-chain/gelchain/types"
+	"github.com/green-element-chain/gelchain/unsafe"
 	"github.com/green-element-chain/gelchain/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/types"
 	"math/big"
 	"strings"
-	"github.com/green-element-chain/gelchain/httpserver"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/params"
 )
 
 // EthermintApplication implements an ABCI application
@@ -496,6 +498,30 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 		} else { //default
 			result = txfilter.EthAuthTable.AuthItemMap
 		}
+	} else if index := strings.Index(query.Path, "Rollback/ResetData"); index >= 0 {
+		authTableMap := make(map[string]int64)
+		for key, _ := range txfilter.EthAuthTable.AuthItemMap {
+			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+		}
+		for key, _ := range app.strategy.CurrEpochValData.PosTable.PosItemMap {
+			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+		}
+		for key, _ := range app.strategy.NextEpochValData.PosTable.PosItemMap {
+			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+		}
+		rollbackVersion := len(version.HeightArray) + 1
+		for index, value := range version.HeightArray {
+			if unsafe.RollbackHeight < value {
+				rollbackVersion = index + 1
+				break
+			}
+		}
+		authTableResetData := p2p.AuthTableResetData{
+			Version:      int64(rollbackVersion),
+			AuthTableMap: authTableMap,
+		}
+		authResetDataBytes, _ := json.Marshal(authTableResetData)
+		result = string(authResetDataBytes)
 	} else {
 		if err := app.rpcClient.Call(&result, in.Method, in.Params...); err != nil {
 			return abciTypes.ResponseQuery{Code: uint32(emtTypes.CodeInternal),
@@ -669,8 +695,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	if checkType != abciTypes.CheckTxType_Local && !currentState.Exist(from) {
 		app.logger.Info(fmt.Sprintf("receive a remote tx with not existed from %X", from))
 		/*return abciTypes.ResponseCheckTx{
-			Code: uint32(emtTypes.CodeUnknownAddress),
-			Log:  core.ErrInvalidSender.Error()}*/
+		Code: uint32(emtTypes.CodeUnknownAddress),
+		Log:  core.ErrInvalidSender.Error()}*/
 	}
 
 	// Check the transaction doesn't exceed the current block limit gas.

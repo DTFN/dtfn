@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/green-element-chain/gelchain/unsafe"
 	"github.com/green-element-chain/gelchain/version"
 	"os"
 	"strings"
@@ -199,6 +200,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 		rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
 		rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
+		unsafe.RollbackHeight = int64(rollbackHeight)
 		whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
 
 		memPool := n.Mempool()
