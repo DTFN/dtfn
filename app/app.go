@@ -509,6 +509,9 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 		for key, _ := range app.strategy.NextEpochValData.PosTable.PosItemMap {
 			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
 		}
+		for key, _ := range app.strategy.NextEpochValData.PosTable.UnbondPosItemMap {
+			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+		}
 		rollbackVersion := len(version.HeightArray) + 1
 		for index, value := range version.HeightArray {
 			if unsafe.RollbackHeight < value {
