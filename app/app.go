@@ -500,17 +500,25 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 		}
 	} else if index := strings.Index(query.Path, "Rollback/ResetData"); index >= 0 {
 		authTableMap := make(map[string]int64)
-		for key, _ := range txfilter.EthAuthTable.AuthItemMap {
-			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+		if len(txfilter.EthAuthTable.AuthItemMap) != 0 {
+			for key, _ := range txfilter.EthAuthTable.AuthItemMap {
+				authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+			}
 		}
-		for key, _ := range app.strategy.CurrEpochValData.PosTable.PosItemMap {
-			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+		if app.strategy.CurrEpochValData.PosTable != nil {
+			for key, _ := range app.strategy.CurrEpochValData.PosTable.PosItemMap {
+				authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+			}
 		}
-		for key, _ := range app.strategy.NextEpochValData.PosTable.PosItemMap {
-			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+		if app.strategy.NextEpochValData.PosTable != nil {
+			for key, _ := range app.strategy.NextEpochValData.PosTable.PosItemMap {
+				authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+			}
 		}
-		for key, _ := range app.strategy.NextEpochValData.PosTable.UnbondPosItemMap {
-			authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+		if app.strategy.NextEpochValData.PosTable != nil {
+			for key, _ := range app.strategy.NextEpochValData.PosTable.UnbondPosItemMap {
+				authTableMap[key.String()] = int64(unsafe.RollbackHeight)
+			}
 		}
 		rollbackVersion := len(version.HeightArray) + 1
 		for index, value := range version.HeightArray {
