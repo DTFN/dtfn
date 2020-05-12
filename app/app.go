@@ -496,7 +496,7 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 		} else { //default
 			result = txfilter.EthAuthTable.AuthItemMap
 		}
-	} else if index := strings.Index(query.Path, "Rollback/ResetData"); index >= 0 {
+	} else if index := strings.Index(query.Path, "/p2p/whitelist"); index >= 0 {
 		authTableMap := make(map[string]int64)
 		for key, ai := range txfilter.EthAuthTable.AuthItemMap {
 			authTableMap[key.String()] = ai.PermitHeight
