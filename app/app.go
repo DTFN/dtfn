@@ -344,7 +344,7 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 		app.backend.DeleteCachedTxInfo(txHash)
 	}
 
-	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
+	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
 	res := app.backend.DeliverTx(tx, app.strategy.HFExpectedData.BlockVersion, txInfo)
 	if res.IsErr() {
