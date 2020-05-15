@@ -396,7 +396,8 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		//app.logger.Info("do punish")
 		app.punishment.DoPunish(db, app.strategy, beginBlock.ByzantineValidators, coinbase, beginBlock.Header.Height)
 	}
-
+	storedcfg := app.backend.Ethereum().BlockChain().Config()
+	fmt.Printf("-------currentheight chainconfig %v rules %v \n", storedcfg, storedcfg.Rules(big.NewInt(beginBlock.Header.Height)))
 	return abciTypes.ResponseBeginBlock{}
 }
 
