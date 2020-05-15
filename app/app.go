@@ -353,6 +353,10 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 			"err", err)
 		return res
 	}
+	ethstate,_ := app.getCurrentState()
+	trie := ethstate.GetOrNewStateObject(common.HexToAddress("0x21eee75dad51e8c286b4725ad56dc0e2d88aabdc")).GetTrie(ethstate.Database())
+	fmt.Println("state Root: %X",trie.Hash())
+	
 	//app.CollectTx(tx)
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,
