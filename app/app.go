@@ -353,10 +353,6 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 			"err", err)
 		return res
 	}
-	ethstate,_ := app.getCurrentState()
-	trie := ethstate.GetOrNewStateObject(common.HexToAddress("0x21eee75dad51e8c286b4725ad56dc0e2d88aabdc")).GetTrie(ethstate.Database())
-	fmt.Printf("state Root: %X\n",trie.Hash())
-	
 	//app.CollectTx(tx)
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,
@@ -437,14 +433,6 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 			}
 		}
 	}
-
-	if height== 45852{
-		fmt.Println("try to print the balance")
-		ethstate,_ := app.getCurrentState()
-		fmt.Printf("from balance: %v \n",ethstate.GetBalance(common.HexToAddress("0xd84c6fb02305c9ea2f20f97e0cccea4e54f9014b")))
-		fmt.Printf("from balance: %v \n",ethstate.GetBalance(common.HexToAddress("0x21eee75dad51e8c286b4725ad56dc0e2d88aabdc")))
-	}
-
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
