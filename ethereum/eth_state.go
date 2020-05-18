@@ -361,9 +361,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
 
 	// Commit ethereum state and update the header.
-	fmt.Printf(",st.state.TrieHash in gelchain before  commit: %X\n",ws.state.TrieHash())
 	hashArray, err := ws.state.Commit(false) // XXX: ugh hardforks
-	fmt.Printf(",st.state.TrieHash in gelchain after  commit: %X\n",ws.state.TrieHash())
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -422,6 +420,9 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 			// log.Info("Error inserting ethereum block in chain", "err", err)
 			return common.Hash{}, err
 		}*/
+
+	fmt.Sprintf("0000..1 existed:%v,height:%v\n", ws.state.Exist(common.HexToAddress("0x0000000000000000000000000000000000000001")), block.Header().Number)
+
 	return blockHash, err
 }
 
