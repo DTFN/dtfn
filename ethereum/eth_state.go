@@ -421,7 +421,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 			return common.Hash{}, err
 		}*/
 
-	fmt.Sprintf("0000..1 existed:%v,height:%v\n", ws.state.Exist(common.HexToAddress("0x0000000000000000000000000000000000000001")), block.Header().Number)
+	log.Info(fmt.Sprintf("0000..1 existed:%v,height:%v\n",
+		ws.state.Exist(common.HexToAddress("0x0000000000000000000000000000000000000001")), block.Header().Number))
 
 	return blockHash, err
 }
