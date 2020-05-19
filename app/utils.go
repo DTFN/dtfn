@@ -169,7 +169,7 @@ func (app *EthermintApplication) SetPersistenceData() {
 	if app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock || height%txfilter.EpochBlocks == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
 		wsState.SetCode(nextEpochDataAddress, nextBytes)
-		app.logger.Info(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
+		app.logger.Debug(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
 		if app.strategy.HFExpectedData.BlockVersion >= 4 {
 			nextBytes, _ = json.Marshal(app.strategy.AuthTable)
 			wsState.SetCode(txfilter.SendToAuth, nextBytes)
@@ -184,7 +184,7 @@ func (app *EthermintApplication) SetPersistenceData() {
 				wsState.SetState(txfilter.SendToAuth, keyHash, valueHash)
 			}
 
-			app.logger.Info(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
+			app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
 		}
 	}
 
@@ -201,5 +201,5 @@ func (app *EthermintApplication) SetPersistenceData() {
 	trie.TryUpdate(key, valBytes)
 	valueHash := ethereumCrypto.Keccak256Hash(valBytes)
 	wsState.SetState(currEpochDataAddress, keyHash, valueHash)
-	app.logger.Info(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
+	app.logger.Debug(fmt.Sprintf("CurrentHeightValData %v", app.strategy.CurrentHeightValData))
 }

@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -386,10 +385,6 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
-	blockHeaderBytes, _ := json.Marshal(block.Header())
-	log.Info(fmt.Sprintf("Try to find Bug: eth_state commit. block.header %v blockHash %X"),
-		string(blockHeaderBytes), blockHash)
-
 	proctime := time.Since(ws.bstart)
 	blockchain.AddGcproc(proctime)
 	stat, err := blockchain.WriteBlockWithState(block, ws.receipts, ws.allLogs, ws.state, true)
@@ -420,10 +415,6 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 			// log.Info("Error inserting ethereum block in chain", "err", err)
 			return common.Hash{}, err
 		}*/
-
-	log.Info(fmt.Sprintf("0000..1 existed:%v,height:%v\n",
-		ws.state.Exist(common.HexToAddress("0x0000000000000000000000000000000000000001")), block.Header().Number))
-
 	return blockHash, err
 }
 
