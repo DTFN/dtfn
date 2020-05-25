@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -384,6 +385,9 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
+
+	blockBytes,_ := json.Marshal(block.Header())
+	log.Info(fmt.Sprintf("eth_state json: %v",string(blockBytes)))
 
 	proctime := time.Since(ws.bstart)
 	blockchain.AddGcproc(proctime)
