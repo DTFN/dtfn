@@ -13,7 +13,6 @@ cd scripts
 source develop_env_ubuntu.sh
 source get_dep.sh
 source buildAll.sh
-source buildAll.sh
 ```
 
 ## Running with docker
