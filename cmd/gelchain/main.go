@@ -9,8 +9,8 @@ import (
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/green-element-chain/gelchain/cmd/utils"
-	"github.com/green-element-chain/gelchain/version"
+	"github.com/DTFN/gelchain/cmd/utils"
+	"github.com/DTFN/gelchain/version"
 	"time"
 )
 

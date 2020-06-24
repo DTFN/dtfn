@@ -6,7 +6,7 @@ installEthereum() {
   else
     mkdir -p $GOPATH/src/github.com/ethereum && cd $GOPATH/src/github.com/ethereum
     pwd
-    git clone git@github.com:green-element-chain/go-ethereum.git
+    git clone git@github.com:DTFN/go-ethereum.git
     cd go-ethereum
   fi
 
@@ -21,7 +21,7 @@ installTendermint() {
     git pull
   else
     mkdir -p $GOPATH/src/github.com/tendermint && cd $GOPATH/src/github.com/tendermint
-    git clone git@github.com:green-element-chain/tendermint.git
+    git clone git@github.com:DTFN/tendermint.git
     cd tendermint
   fi
 
@@ -31,7 +31,7 @@ installTendermint() {
 }
 
 installGelchain() {
-  cd green-element-chain/gelchain
+  cd DTFN/gelchain
 
   go mod vendor
   backupVendors
@@ -47,12 +47,12 @@ backupVendors() {
   mkdir vendor_bak
   mkdir -p vendor_bak/ethereum/go-ethereum/vendor/github.com/tendermint
   mv ../../ethereum/go-ethereum/vendor/github.com/tendermint/tendermint vendor_bak/ethereum/go-ethereum/vendor/github.com/tendermint
-  mkdir -p vendor_bak/green-element-chain/gelchain/vendor/github.com/tendermint
-  mv vendor/github.com/tendermint/tendermint vendor_bak/green-element-chain/gelchain/vendor/github.com/tendermint
+  mkdir -p vendor_bak/DTFN/gelchain/vendor/github.com/tendermint
+  mv vendor/github.com/tendermint/tendermint vendor_bak/DTFN/gelchain/vendor/github.com/tendermint
   mkdir -p vendor_bak/tendermint/tendermint/vendor/github.com/ethereum
   mv ../../tendermint/tendermint/vendor/github.com/ethereum/go-ethereum vendor_bak/tendermint/tendermint/vendor/github.com/ethereum
-  mkdir -p vendor_bak/green-element-chain/gelchain/vendor/github.com/ethereum
-  mv vendor/github.com/ethereum/go-ethereum vendor_bak/green-element-chain/gelchain/vendor/github.com/ethereum
+  mkdir -p vendor_bak/DTFN/gelchain/vendor/github.com/ethereum
+  mv vendor/github.com/ethereum/go-ethereum vendor_bak/DTFN/gelchain/vendor/github.com/ethereum
   rm ../../ethereum/go-ethereum/vendor/github.com/karalabe -rf
   rm ../../ethereum/go-ethereum/vendor/gopkg.in -rf
   rm ../../../gopkg.in -rf
@@ -61,9 +61,9 @@ backupVendors() {
 
 restoreVendors() {
   mv vendor_bak/ethereum/go-ethereum/vendor/github.com/tendermint/tendermint ../../ethereum/go-ethereum/vendor/github.com/tendermint
-  mv vendor_bak/green-element-chain/gelchain/vendor/github.com/tendermint/tendermint vendor/github.com/tendermint
+  mv vendor_bak/DTFN/gelchain/vendor/github.com/tendermint/tendermint vendor/github.com/tendermint
   mv vendor_bak/tendermint/tendermint/vendor/github.com/ethereum/go-ethereum ../../tendermint/tendermint/vendor/github.com/ethereum
-  mv vendor_bak/green-element-chain/gelchain/vendor/github.com/ethereum/go-ethereum vendor/github.com/ethereum
+  mv vendor_bak/DTFN/gelchain/vendor/github.com/ethereum/go-ethereum vendor/github.com/ethereum
   cp ../../karalabe ../../ethereum/go-ethereum/vendor/github.com/ -rf
   cp ../../../gopkg.in vendor ../../ethereum/go-ethereum/vendor -rf
   rm vendor_bak -rf
@@ -81,9 +81,9 @@ export GIT_TERMINAL_PROMPT=1
 unset GOPROXY
 go env -w GOPROXY=https://goproxy.cn
 
-go env -w GONOSUMDB=github.com/green-element-chain/*
-go env -w GOPRIVATE=github.com/green-element-chain/*
-go env -w GONOPROXY=github.com/green-element-chain/*
+go env -w GONOSUMDB=github.com/DTFN/*
+go env -w GOPRIVATE=github.com/DTFN/*
+go env -w GONOPROXY=github.com/DTFN/*
 go env -w GOSUMDB="off"
 
 installEthereum

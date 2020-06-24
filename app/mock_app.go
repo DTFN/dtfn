@@ -3,7 +3,7 @@ package app
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
-	"github.com/green-element-chain/gelchain/types"
+	"github.com/DTFN/gelchain/types"
 	"reflect"
 )
 

@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/golang/mock/gomock"
 	"github.com/tendermint/tendermint/abci/types"
-	"github.com/green-element-chain/gelchain/ethereum"
+	"github.com/DTFN/gelchain/ethereum"
 	types2 "github.com/tendermint/tendermint/types"
-	gelTypes "github.com/green-element-chain/gelchain/types"
+	gelTypes "github.com/DTFN/gelchain/types"
 	"strings"
 	"encoding/hex"
 )

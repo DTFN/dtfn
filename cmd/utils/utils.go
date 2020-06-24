@@ -12,7 +12,7 @@ import (
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/green-element-chain/gelchain/ethereum"
+	"github.com/DTFN/gelchain/ethereum"
 )
 
 // StartNode will start up the node.

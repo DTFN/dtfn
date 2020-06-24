@@ -4,7 +4,7 @@ set -e
 
 ROOT_DIR=$(cd `dirname $(readlink -f "$0")`/.. && pwd)
 OS_ARCH=$(cat /etc/os-release |grep '^ID='|cut -d'=' -f2|sed 's/"//g'|tr '[:upper:]' '[:lower:]')
-BUILD_FLAGS="-ldflags \"-X github.com/green-element-chain/gelchain/version.GitCommit=\`git rev-parse --short HEAD\`\""
+BUILD_FLAGS="-ldflags \"-X github.com/DTFN/gelchain/version.GitCommit=\`git rev-parse --short HEAD\`\""
 BUILD_TAGS=gelchain
 ETH_ACCOUNT=ethAccount
 

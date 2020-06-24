@@ -6,7 +6,7 @@
 
 # 运行脚本启动网络
 
-cd $GOPATH/src/github.com/green-element-chain/gelchain/scripts/network
+cd $GOPATH/src/github.com/DTFN/gelchain/scripts/network
 
 make [build|up|down]
 
@@ -18,7 +18,7 @@ make [build|up|down]
         down：          删除网络节点，所有节点容器都会被删除掉
     
     网络节点配置文件，可以根据需要修改：
-        $GOPATH/src/github.com/green-element-chain/gelchain/scripts/network/config/env.json
+        $GOPATH/src/github.com/DTFN/gelchain/scripts/network/config/env.json
         
         文件配置解释：
             {

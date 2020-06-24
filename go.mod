@@ -1,4 +1,4 @@
-module github.com/green-element-chain/gelchain
+module github.com/DTFN/gelchain
 
 go 1.14
 
@@ -19,6 +19,6 @@ require (
 	gopkg.in/yaml.v2 v2.2.8
 )
 
-replace github.com/ethereum/go-ethereum => github.com/green-element-chain/go-ethereum v1.5.0
+replace github.com/ethereum/go-ethereum => github.com/DTFN/go-ethereum v1.5.0
 
-replace github.com/tendermint/tendermint => github.com/green-element-chain/tendermint v1.5.0
+replace github.com/tendermint/tendermint => github.com/DTFN/tendermint v1.5.0

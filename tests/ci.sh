@@ -3,7 +3,7 @@
 export ROOT_PATH="/tmp/ci_test"
 export GOPATH="$ROOT_PATH/go"
 export PARENT_DIR="$GOPATH/src/github.com"
-export ETHERMINT_PARENT_DIR="$PARENT_DIR/green-element-chain"
+export ETHERMINT_PARENT_DIR="$PARENT_DIR/DTFN"
 export ETHERMINT_DIR="$ETHERMINT_PARENT_DIR/gelchain"
 export TENDERMINT_PARENT_DIR="$PARENT_DIR/tendermint"
 export TENDERMINT_DIR="$TENDERMINT_PARENT_DIR/tendermint"
@@ -23,12 +23,12 @@ echo 'git clone geth'
 echo $GETH_PARENT_DIR
 mkdir -p $GETH_PARENT_DIR && cd $_
 ls $GETH_PARENT_DIR
-git clone -b "bmi2" git@github.com:green-element-chain/go-ethereum.git
+git clone -b "bmi2" git@github.com:DTFN/go-ethereum.git
 go get gopkg.in/urfave/cli.v1
 
 echo 'git clone tendermint'
 mkdir -p $TENDERMINT_PARENT_DIR && cd $_
-git clone -b "feature/rm_geth_dep" git@github.com:green-element-chain/tendermint.git
+git clone -b "feature/rm_geth_dep" git@github.com:DTFN/tendermint.git
 cd $TENDERMINT_DIR && make get_tools get_vendor_deps install install_abci
 
 # fix go-amino dep conflict
@@ -38,7 +38,7 @@ mv $TENDERMINT_DIR/vendor/github.com/davecgh $GOPATH/src/github.com/
 echo 'git clone gelchain'
 mkdir -p $ETHERMINT_PARENT_DIR && cd $_
 # rm conflict deps
-git clone -b "feature/circleci_docker" git@github.com:green-element-chain/gelchain.git
+git clone -b "feature/circleci_docker" git@github.com:DTFN/gelchain.git
 cd $ETHERMINT_DIR
 make get_vendor_deps install
 

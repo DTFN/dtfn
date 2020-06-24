@@ -1,20 +1,20 @@
-package: github.com/green-element-chain/gelchain
+package: github.com/DTFN/gelchain
 import:
 - package: github.com/ethereum/go-ethereum
   version: develop
-  repo:    git@github.com:green-element-chain/go-ethereum.git
+  repo:    git@github.com:DTFN/go-ethereum.git
   vcs:     git
 - package: github.com/tendermint/tendermint
   version: develop
-  repo:    git@github.com:green-element-chain/tendermint.git
+  repo:    git@github.com:DTFN/tendermint.git
   vcs:     git
 - package: github.com/herumi/mcl
   version: fe95b63cc450bc1eb0459dda916a858b5442a258
-  repo:    git@github.com:green-element-chain/mcl.git
+  repo:    git@github.com:DTFN/mcl.git
   vcs:     git
 - package: github.com/herumi/bls
   version: e9c72f18ab9bc09923da739151821cc588c0d295
-  repo:    git@github.com:green-element-chain/bls.git
+  repo:    git@github.com:DTFN/bls.git
   vcs:     git
 - package: github.com/prometheus/prometheus
   version: v2.1.0

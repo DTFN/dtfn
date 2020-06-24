@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/green-element-chain/gelchain/version"
+	"github.com/DTFN/gelchain/version"
 	"os"
 	"strings"
 	"time"
@@ -21,11 +21,11 @@ import (
 
 	cmn "github.com/tendermint/tendermint/libs/common"
 
-	abciApp "github.com/green-element-chain/gelchain/app"
-	emtUtils "github.com/green-element-chain/gelchain/cmd/utils"
-	"github.com/green-element-chain/gelchain/ethereum"
-	"github.com/green-element-chain/gelchain/types"
-	"github.com/green-element-chain/gelchain/utils"
+	abciApp "github.com/DTFN/gelchain/app"
+	emtUtils "github.com/DTFN/gelchain/cmd/utils"
+	"github.com/DTFN/gelchain/ethereum"
+	"github.com/DTFN/gelchain/types"
+	"github.com/DTFN/gelchain/utils"
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/mempool"
