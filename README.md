@@ -9,7 +9,11 @@ For prerequisites and detailed build instructions please read the Installation I
 
 Building geth requires both a Go (version 1.9 or later) and a C compiler. You can install them using your favourite package manager. Once the dependencies are installed, run
 ```
-make dtfn
+cd scripts
+source develop_env_ubuntu.sh
+source get_dep.sh
+source buildAll.sh
+source buildAll.sh
 ```
 
 ## Running with docker
