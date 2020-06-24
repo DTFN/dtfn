@@ -31,7 +31,7 @@ installTendermint() {
 }
 
 installGelchain() {
-  cd DTFN/gelchain
+  cd DTFN/dtfn
 
   go mod vendor
   backupVendors
