@@ -1,4 +1,4 @@
-module github.com/DTFN/gelchain
+module github.com/DTFN/dtfn
 
 go 1.14
 
