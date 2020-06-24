@@ -1,10 +1,10 @@
 package httpserver
 
 import (
-	"github.com/DTFN/gelchain/ethereum"
+	"github.com/DTFN/dtfn/ethereum"
 	"net/http"
 	"time"
-	emtTypes "github.com/DTFN/gelchain/types"
+	emtTypes "github.com/DTFN/dtfn/types"
 )
 
 type BaseServer struct {

@@ -21,7 +21,7 @@ import (
 
 	"encoding/hex"
 	"github.com/ethereum/go-ethereum/log"
-	emtTypes "github.com/DTFN/gelchain/types"
+	emtTypes "github.com/DTFN/dtfn/types"
 	"time"
 )
 

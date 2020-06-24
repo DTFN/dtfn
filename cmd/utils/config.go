@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 
-	"github.com/DTFN/gelchain/ethereum"
+	"github.com/DTFN/dtfn/ethereum"
 
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"time"

@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"strings"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
-	"github.com/DTFN/gelchain/types"
+	"github.com/DTFN/dtfn/types"
 	"github.com/ethereum/go-ethereum/log"
 	"fmt"
 	"encoding/hex"

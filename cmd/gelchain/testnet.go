@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	emtUtils "github.com/DTFN/gelchain/cmd/utils"
+	emtUtils "github.com/DTFN/dtfn/cmd/utils"
 	"github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/consensus"

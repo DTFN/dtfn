@@ -11,7 +11,7 @@ import (
 	"math/big"
 	"fmt"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/DTFN/gelchain/version"
+	"github.com/DTFN/dtfn/version"
 )
 
 // MinerRewardStrategy is a mining strategy
