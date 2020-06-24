@@ -1,17 +1,8 @@
 <div align="center">
-  <p>:zap::zap::zap: DTFN : 自主创新的领先区块链基础设施 :zap::zap::zap:</p>
+  <p>:zap::zap::zap: DTFN : Self-dependent innovation leading blockchain infrastructure :zap::zap::zap:</p>
   <p>Powered by <a href="https://github.com/ethereum/go-ethereum">Go-Ethereum</a> / <a href="https://github.com/tendermint/tendermint">Tendermint</a> / <a href="https://github.com/cosmos/ethermint">Ethermint</a></p>
 </div>
 
-
-
-## DTFN
-
-| 　关键词    | 描述 |
-|:----------:|-------------|
-| **开放许可链** | 无币区块链，完全合规。面向公众提供服务，通过许可方式形成储备节点。|
-| **xPoA共识算法** | 基于BLS签名的真随机数，选择记账节点。通过改进的BFT共识引擎，形成共识。实现去中心化和性能的有效平衡。 |
-| **分布式数字身份** | 实现分布式账户体系。用户自主身份管理。链上身份认证和授权，使用数据。 |
 
 ## Building the source
 For prerequisites and detailed build instructions please read the Installation Instructions on the wiki.
