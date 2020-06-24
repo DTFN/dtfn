@@ -33,7 +33,7 @@ installTendermint() {
 }
 
 installGelchain() {
-  cd DTFN/gelchain
+  cd DTFN/dtfn
   #git checkout -b develop remotes/origin/develop
   git checkout master
   go mod vendor
