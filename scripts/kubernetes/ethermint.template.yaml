@@ -4,9 +4,9 @@ kind: Service
 metadata:
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  name: gelchain
+  name: dtfn
   labels:
-    app: gelchain
+    app: dtfn
 spec:
   ports:
   - port: 46656
@@ -56,7 +56,7 @@ kind: StatefulSet
 metadata:
   name: tm
 spec:
-  serviceName: gelchain
+  serviceName: dtfn
   replicas: {REPLICAS}
   template:
     metadata:
@@ -81,16 +81,16 @@ spec:
           ]
         },{
           "name": "eth-init",
-          "image": "adrianbrink/gelchain:develop",
+          "image": "adrianbrink/dtfn:develop",
           "imagePullPolicy": "IfNotPresent",
           "command": ["bash", "-c", "
             set -ex\n
-            cp -rv /ethinit/* /gelchain/\n
-            gelchain --datadir /gelchain init /gelchain/genesis.json\n
+            cp -rv /ethinit/* /dtfn/\n
+            dtfn --datadir /dtfn init /dtfn/genesis.json\n
           "],
           "volumeMounts": [
-            {"name": "ethroot", "mountPath": "/gelchain"},
-            {"name": "gelchain-setup", "mountPath": "/ethinit"}
+            {"name": "ethroot", "mountPath": "/dtfn"},
+            {"name": "dtfn-setup", "mountPath": "/ethinit"}
           ]
         }]'
     spec:
@@ -179,7 +179,7 @@ spec:
 
       - name: app
         imagePullPolicy: IfNotPresent
-        image: adrianbrink/gelchain:develop
+        image: adrianbrink/dtfn:develop
         ports:
         - containerPort: 8545
           name: geth-rpc
@@ -187,9 +187,9 @@ spec:
         - name: socksdir
           mountPath: /socks
         - name: ethroot
-          mountPath: /gelchain
-        args: [ "gelchain",
-          "--datadir", "/gelchain",
+          mountPath: /dtfn
+        args: [ "dtfn",
+          "--datadir", "/dtfn",
           "--tendermint_addr", "unix:///socks/app.sock",
           "--rpc", "--rpcapi", "eth,net,web3,personal,miner,admin,txpool",
           "--rpcaddr", "0.0.0.0", "--rpcport", "8545"
@@ -231,7 +231,7 @@ spec:
           name: tm-config
       - name: socksdir
         emptyDir: {}
-      - name: gelchain-setup
+      - name: dtfn-setup
         hostPath:
           path: {HOSTPATH}
 

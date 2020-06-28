@@ -1,4 +1,4 @@
-package: github.com/DTFN/gelchain
+package: github.com/DTFN/dtfn
 import:
 - package: github.com/ethereum/go-ethereum
   version: develop
