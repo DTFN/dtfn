@@ -25,7 +25,7 @@
   * Tendermint binary needs to be installed in $PATH
   * NOTE: no library-level dependency on Tendermint core
 * networking is turned off for ethereum node
-  * NOTE: allows running of go-ethereum and gelchain side-by-side
+  * NOTE: allows running of go-ethereum and dtfn side-by-side
 * new `unsafe_reset_all` command to reset all initialisation files 
 
 ### Improvements
@@ -53,7 +53,7 @@ the change was necessary due to a change in the API exposed by geth
 * update to geth v1.6.6
 * add more money to the default account
 * increase the wait times in the contract tests to guard against false positives
-* binaries now correctly unzip to `gelchain`
+* binaries now correctly unzip to `dtfn`
 * general improvements to the build process
 * better documentation
 * proper linting and error detection

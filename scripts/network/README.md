@@ -2,11 +2,11 @@
 
 编译好可执行文件：
     
-    gelchain
+    dtfn
 
 # 运行脚本启动网络
 
-cd $GOPATH/src/github.com/DTFN/gelchain/scripts/network
+cd $GOPATH/src/github.com/DTFN/dtfn/scripts/network
 
 make [build|up|down]
 
@@ -18,7 +18,7 @@ make [build|up|down]
         down：          删除网络节点，所有节点容器都会被删除掉
     
     网络节点配置文件，可以根据需要修改：
-        $GOPATH/src/github.com/DTFN/gelchain/scripts/network/config/env.json
+        $GOPATH/src/github.com/DTFN/dtfn/scripts/network/config/env.json
         
         文件配置解释：
             {
@@ -29,7 +29,7 @@ make [build|up|down]
                 "setup": {
                     "port": [
                         {
-                            "db":"/home/share/gelchain_data",
+                            "db":"/home/share/dtfn_data",
                             "ports":"8545:8545 46656:46656 47757:26657 48858:26658 19190:19190",
                             "loglevel":"info",
                             "debug":0
