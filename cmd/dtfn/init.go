@@ -100,7 +100,7 @@ func initCmd(ctx *cli.Context) error {
 	// As per https://github.com/tendermint/ethermint/issues/244#issuecomment-322024199
 	// Let's implicitly add in the respective keystore files
 	// to avoid manually doing this step:
-	// $ cp -r $GOPATH/src/github.com/tendermint/gelchain/setup/keystore $(DATADIR)
+	// $ cp -r $GOPATH/src/github.com/tendermint/dtfn/setup/keystore $(DATADIR)
 	keystoreDir := filepath.Join(ethermintDataDir, "keystore")
 	if err := os.MkdirAll(keystoreDir, 0777); err != nil {
 		ethUtils.Fatalf("mkdirAll keyStoreDir: %v", err)
@@ -128,7 +128,7 @@ func initCmd(ctx *cli.Context) error {
 var keystoreFilesMap = map[string]string{
 	// https://github.com/tendermint/ethermint/blob/edc95f9d47ba1fb7c8161182533b5f5d5c5d619b/setup/keystore/UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc
 	// OR
-	// $GOPATH/src/github.com/gelchain/setup/keystore/UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc
+	// $GOPATH/src/github.com/dtfn/setup/keystore/UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc
 	"UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc": `
 {
   "address":"7eff122b94897ea5b0e2a9abf47b86337fafebdc",

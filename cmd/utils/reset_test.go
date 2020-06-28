@@ -56,6 +56,6 @@ func TestResetAll(t *testing.T) {
 
 	// clear
 	if err = ResetAll(context); err != nil {
-		t.Errorf("Failed to remove gelchain home directory: %+v", err)
+		t.Errorf("Failed to remove dtfn home directory: %+v", err)
 	}
 }

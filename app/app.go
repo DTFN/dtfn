@@ -86,7 +86,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 	return app, nil
 }
 
-// SetLogger sets the logger for the gelchain application
+// SetLogger sets the logger for the dtfn application
 // #unstable
 func (app *EthermintApplication) SetLogger(log tmLog.Logger) {
 	app.logger = log
@@ -126,7 +126,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 	minerBonus.Div(app.strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5/2))) //divide 2 is for proposer and voters share half the benefit
 	app.strategy.CurrEpochValData.MinorBonus = minerBonus
 
-	// This check determines whether it is the first time gelchain gets started.
+	// This check determines whether it is the first time dtfn gets started.
 	// If it is the first time, then we have to respond with an empty hash, since
 	// that is what tendermint expects.
 	if height.Cmp(bigZero) == 0 {

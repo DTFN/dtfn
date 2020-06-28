@@ -33,12 +33,12 @@ function diff (ethereum, ethermint) {
     keys.forEach((key) => {
       if (ethereum[i][key] !== ethermint[i][key]) {
         errors = true
-        console.error('For test case %s\n ethereum(%s) != gelchain(%s)', key, ethereum[i][key], ethermint[i][key])
+        console.error('For test case %s\n ethereum(%s) != dtfn(%s)', key, ethereum[i][key], ethermint[i][key])
       }
     })
   })
 
   if (!errors) {
-    console.log('Success: Output for ethereum and gelchain was the same')
+    console.log('Success: Output for ethereum and dtfn was the same')
   }
 }

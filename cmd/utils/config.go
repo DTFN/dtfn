@@ -93,14 +93,14 @@ func DefaultNodeConfig() node.Config {
 	return cfg
 }
 
-// SetEthermintNodeConfig takes a node configuration and applies gelchain specific configuration
+// SetEthermintNodeConfig takes a node configuration and applies dtfn specific configuration
 // #unstable
 func SetEthermintNodeConfig(cfg *node.Config) {
 	cfg.P2P.MaxPeers = 0
 	cfg.P2P.NoDiscovery = true
 }
 
-// SetEthermintEthConfig takes a ethereum configuration and applies gelchain specific configuration
+// SetEthermintEthConfig takes a ethereum configuration and applies dtfn specific configuration
 // #unstable
 func SetEthermintEthConfig(ctx *cli.Context, cfg *eth.Config) {
 	/*cfg.MaxPeers = 0

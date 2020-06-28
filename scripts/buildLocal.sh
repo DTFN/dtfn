@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 installEthereum() {
+  echo "Install Ethereum Start"
   if [ -d $GOPATH/src/github.com/ethereum/go-ethereum ]; then
     cd $GOPATH/src/github.com/ethereum/go-ethereum
 #    git pull
@@ -13,9 +14,11 @@ installEthereum() {
   go mod vendor
   cd cmd/geth && go install
   cd ../../../..
+  echo "Install Ethereum End"
 }
 
 installTendermint() {
+  echo "Install Tendermint Start"
   if [ -d $GOPATH/src/github.com/tendermint/tendermint ]; then
     cd $GOPATH/src/github.com/tendermint/tendermint
 #    git pull
@@ -28,9 +31,11 @@ installTendermint() {
   go mod vendor
   cd cmd/tendermint && go install
   cd ../../../..
+  echo "Install Tendermint End"
 }
 
 installdtfn() {
+  echo "Install DTFN Start"
   cd DTFN/dtfn
 
   go mod vendor
@@ -40,6 +45,7 @@ installdtfn() {
   cd ../..
   restoreVendors
   export GO111MODULE=on
+  echo "Install DTFN End"
 }
 
 backupVendors() {

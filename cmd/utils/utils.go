@@ -48,7 +48,7 @@ func HomeDir() string {
 	return ""
 }
 
-// DefaultDataDir tries to guess the default directory for gelchain data
+// DefaultDataDir tries to guess the default directory for dtfn data
 // #unstable
 func DefaultDataDir() string {
 	// Try to place the data folder in the user's home dir
@@ -70,7 +70,7 @@ func DefaultDataDir() string {
 func ResetAll(ctx *cli.Context) error {
 	dbDir := filepath.Join(MakeDataDir(ctx), "gelchain")
 	if err := os.RemoveAll(dbDir); err != nil {
-		log.Debug("Could not reset gelchain. Failed to remove %+v", dbDir)
+		log.Debug("Could not reset dtfn. Failed to remove %+v", dbDir)
 		return err
 	}
 

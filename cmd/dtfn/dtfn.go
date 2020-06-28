@@ -156,7 +156,7 @@ func ethermintCmd(ctx *cli.Context) error {
 	fmt.Println("selectStrategy", selectStrategy)
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
-	// in order to make gelchain as self contained as possible.
+	// in order to make dtfn as self contained as possible.
 	// See Issue https://github.com/tendermint/ethermint/issues/244
 	canInvokeTendermintNode := canInvokeTendermint(ctx)
 	if canInvokeTendermintNode {

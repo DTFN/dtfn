@@ -159,7 +159,7 @@ func init() {
 }
 
 func versionCmd(ctx *cli.Context) error {
-	fmt.Println("gelchain: ", version.Version)
+	fmt.Println("dtfn: ", version.Version)
 	fmt.Println("go-ethereum: ", params.Version)
 	return nil
 }
