@@ -2,7 +2,7 @@
 installEthereum() {
   if [ -d $GOPATH/src/github.com/ethereum/go-ethereum ]; then
     cd $GOPATH/src/github.com/ethereum/go-ethereum
-    git pull
+#    git pull
   else
     mkdir -p $GOPATH/src/github.com/ethereum && cd $GOPATH/src/github.com/ethereum
     pwd
@@ -18,7 +18,7 @@ installEthereum() {
 installTendermint() {
   if [ -d $GOPATH/src/github.com/tendermint/tendermint ]; then
     cd $GOPATH/src/github.com/tendermint/tendermint
-    git pull
+#    git pull
   else
     mkdir -p $GOPATH/src/github.com/tendermint && cd $GOPATH/src/github.com/tendermint
     git clone git@github.com:DTFN/tendermint.git
