@@ -122,7 +122,7 @@ cat << EOF > ${startScript}
 docker run -tid --net=${network_mode} --name=${name} \\
     ${argPorts} \\
     -v ${CHAIN_DIR}/${name}:/chaindata \\
-    -v /usr/bin:/bin ${DOCKER_OS} /bin/gelchain \\
+    -v /usr/bin:/bin ${DOCKER_OS} /bin/dtfn \\
     --datadir /chaindata --rpcapi eth,net,web3,personal,admin,shh --with-tendermint --rpc \\
     --rpccorsdomain=* --rpcvhosts=* --rpcaddr=0.0.0.0 --ws --wsaddr=0.0.0.0 --gcmode=full --lightpeers=15 \\
     --pex=true --fast_sync=true --routable_strict=false --trie_time_limit=1 \\
@@ -221,7 +221,7 @@ function adjustLocalPortOfStartCommand() {
 function networkUp() {
     testnet=${ROOT_DIR}/script/mytestnet
     sudo rm -rf ${CHAIN_DIR}/* ${testnet}
-    gelchain testnet ${NODE_COUNT}
+    dtfn testnet ${NODE_COUNT}
     chmod -R 0755 ${testnet}
     
     master_address=""
@@ -238,9 +238,9 @@ function networkUp() {
         nodeType=${typeInfo#*=}
         argPorts=$(adjustLocalPortOfStartCommand ${addr} $(expr ${name#*r} - 0))
         home=${CHAIN_DIR}/${name}/tendermint
-        chaindata=${CHAIN_DIR}/${name}/gelchain/chaindata
+        chaindata=${CHAIN_DIR}/${name}/dtfn/chaindata
 
-        gelchain --datadir ${CHAIN_DIR}/${name}/ init ${GNS_FILE}
+        dtfn --datadir ${CHAIN_DIR}/${name}/ init ${GNS_FILE}
         cp ${GNS_FILE} ${chaindata}
         mkdir -p ${home} && cp -r ${testnet}/node${index}/config ${home}/
         ethAccount ${GNS_FILE}
@@ -271,12 +271,12 @@ function networkDown() {
 
         echo "stop network at ${addr} ..."
         if [ "${addr}" != "${LOCALHOST}" ]; then
-            sshConn ${addr} "docker ps -a |grep gelchain |awk '{print \$1}' |xargs -ti docker stop {}"
-            sshConn ${addr} "docker ps -a |grep gelchain |awk '{print \$1}' |xargs -ti docker rm -f {}"
+            sshConn ${addr} "docker ps -a |grep dtfn |awk '{print \$1}' |xargs -ti docker stop {}"
+            sshConn ${addr} "docker ps -a |grep dtfn |awk '{print \$1}' |xargs -ti docker rm -f {}"
             sshConn ${addr} "rm -rf ${CHAIN_DIR}/*"
         else
-            docker ps -a |grep gelchain |awk '{print $1}' |xargs -ti docker stop {} >/dev/null 2>&1
-            docker ps -a |grep gelchain |awk '{print $1}' |xargs -ti docker rm -f {}
+            docker ps -a |grep dtfn |awk '{print $1}' |xargs -ti docker stop {} >/dev/null 2>&1
+            docker ps -a |grep dtfn |awk '{print $1}' |xargs -ti docker rm -f {}
             break
         fi
     done
@@ -294,7 +294,7 @@ function networkAdd() {
     master_address=$(cat ${home}/config/priv_validator.json |jq -r '.address' |sed 's/"//g' |tr 'A-Z' 'a-z')
 
     testnet=${ROOT_DIR}/script/mytestnet
-    gelchain testnet ${ADD_COUNT}
+    dtfn testnet ${ADD_COUNT}
     chmod -R 0755 ${testnet}
 
     index=0
@@ -307,9 +307,9 @@ function networkAdd() {
         nodeType=${typeInfo#*=}
         argPorts=$(adjustLocalPortOfStartCommand ${addr} $(expr ${name#*r} - 0))
         home=${CHAIN_DIR}/${name}/tendermint
-        chaindata=${CHAIN_DIR}/${name}/gelchain/chaindata
+        chaindata=${CHAIN_DIR}/${name}/dtfn/chaindata
 
-        gelchain --datadir ${CHAIN_DIR}/${name}/ init ${GNS_FILE}
+        dtfn --datadir ${CHAIN_DIR}/${name}/ init ${GNS_FILE}
         cp ${GNS_FILE} ${chaindata}
         mkdir -p ${home} && cp -r ${testnet}/node${index}/config ${home}/
         ethAccount ${GNS_FILE}

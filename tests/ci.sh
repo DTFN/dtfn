@@ -4,12 +4,12 @@ export ROOT_PATH="/tmp/ci_test"
 export GOPATH="$ROOT_PATH/go"
 export PARENT_DIR="$GOPATH/src/github.com"
 export ETHERMINT_PARENT_DIR="$PARENT_DIR/DTFN"
-export ETHERMINT_DIR="$ETHERMINT_PARENT_DIR/gelchain"
+export ETHERMINT_DIR="$ETHERMINT_PARENT_DIR/dtfn"
 export TENDERMINT_PARENT_DIR="$PARENT_DIR/tendermint"
 export TENDERMINT_DIR="$TENDERMINT_PARENT_DIR/tendermint"
 export GETH_PARENT_DIR="$PARENT_DIR/ethereum"
 export GETH_DIR="$GETH_PARENT_DIR/go-ethereum"
-export DATA_DIR="$ROOT_PATH/.gelchain"
+export DATA_DIR="$ROOT_PATH/.dtfn"
 
 apt update && apt -y install npm
 
@@ -35,10 +35,10 @@ cd $TENDERMINT_DIR && make get_tools get_vendor_deps install install_abci
 mv $TENDERMINT_DIR/vendor/github.com/tendermint/go-amino $GOPATH/src/github.com/tendermint/
 mv $TENDERMINT_DIR/vendor/github.com/davecgh $GOPATH/src/github.com/
 
-echo 'git clone gelchain'
+echo 'git clone dtfn'
 mkdir -p $ETHERMINT_PARENT_DIR && cd $_
 # rm conflict deps
-git clone -b "feature/circleci_docker" git@github.com:DTFN/gelchain.git
+git clone -b "feature/circleci_docker" git@github.com:DTFN/dtfn.git
 cd $ETHERMINT_DIR
 make get_vendor_deps install
 

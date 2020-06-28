@@ -26,7 +26,7 @@ fi
 
 # Get the git commit
 GIT_COMMIT="$(git rev-parse --short HEAD)"
-GIT_IMPORT="github.com/tendermint/gelchain/version"
+GIT_IMPORT="github.com/tendermint/dtfn/version"
 
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64 arm-5 arm-6 arm-7 mips mipsle mips64 mips64le"}
@@ -64,7 +64,7 @@ xgo -go="1.8.3" \
 	-ldflags "-s -w -X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}" \
 	-dest "build/pkg" \
 	-tags="${BUILD_TAGS}" \
-	"${DIR}/cmd/gelchain"
+	"${DIR}/cmd/dtfn"
 
 echo "==> Renaming exe files..."
 for FILE in $(ls ./build/pkg); do
@@ -76,10 +76,10 @@ for FILE in $(ls ./build/pkg); do
     echo "$f"
     mkdir -p "./build/pkg/$f"
 
-    name="gelchain"
+    name="dtfn"
     if [[ $FILE == *"exe" ]]
     then
-        name="gelchain.exe"
+        name="dtfn.exe"
     fi
     echo $name
 
@@ -99,7 +99,7 @@ for PLATFORM in $(find ./build/pkg -mindepth 1 -maxdepth 1 -type d); do
 		popd >/dev/null 2>&1
 done
 
-# Add "gelchain" and $VERSION prefix to package name.
+# Add "dtfn" and $VERSION prefix to package name.
 rm -rf ./build/dist
 mkdir -p ./build/dist
 for FILENAME in $(find ./build/pkg -mindepth 1 -maxdepth 1 -type f); do

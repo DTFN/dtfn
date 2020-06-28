@@ -30,13 +30,13 @@ installTendermint() {
   cd ../../../..
 }
 
-installGelchain() {
+installdtfn() {
   cd DTFN/dtfn
 
   go mod vendor
   backupVendors
   export GO111MODULE=off
-  cd cmd/gelchain && go install
+  cd cmd/dtfn && go install
   cd ../..
   restoreVendors
   export GO111MODULE=on
@@ -47,12 +47,12 @@ backupVendors() {
   mkdir vendor_bak
   mkdir -p vendor_bak/ethereum/go-ethereum/vendor/github.com/tendermint
   mv ../../ethereum/go-ethereum/vendor/github.com/tendermint/tendermint vendor_bak/ethereum/go-ethereum/vendor/github.com/tendermint
-  mkdir -p vendor_bak/DTFN/gelchain/vendor/github.com/tendermint
-  mv vendor/github.com/tendermint/tendermint vendor_bak/DTFN/gelchain/vendor/github.com/tendermint
+  mkdir -p vendor_bak/DTFN/dtfn/vendor/github.com/tendermint
+  mv vendor/github.com/tendermint/tendermint vendor_bak/DTFN/dtfn/vendor/github.com/tendermint
   mkdir -p vendor_bak/tendermint/tendermint/vendor/github.com/ethereum
   mv ../../tendermint/tendermint/vendor/github.com/ethereum/go-ethereum vendor_bak/tendermint/tendermint/vendor/github.com/ethereum
-  mkdir -p vendor_bak/DTFN/gelchain/vendor/github.com/ethereum
-  mv vendor/github.com/ethereum/go-ethereum vendor_bak/DTFN/gelchain/vendor/github.com/ethereum
+  mkdir -p vendor_bak/DTFN/dtfn/vendor/github.com/ethereum
+  mv vendor/github.com/ethereum/go-ethereum vendor_bak/DTFN/dtfn/vendor/github.com/ethereum
   rm ../../ethereum/go-ethereum/vendor/github.com/karalabe -rf
   rm ../../ethereum/go-ethereum/vendor/gopkg.in -rf
   rm ../../../gopkg.in -rf
@@ -61,9 +61,9 @@ backupVendors() {
 
 restoreVendors() {
   mv vendor_bak/ethereum/go-ethereum/vendor/github.com/tendermint/tendermint ../../ethereum/go-ethereum/vendor/github.com/tendermint
-  mv vendor_bak/DTFN/gelchain/vendor/github.com/tendermint/tendermint vendor/github.com/tendermint
+  mv vendor_bak/DTFN/dtfn/vendor/github.com/tendermint/tendermint vendor/github.com/tendermint
   mv vendor_bak/tendermint/tendermint/vendor/github.com/ethereum/go-ethereum ../../tendermint/tendermint/vendor/github.com/ethereum
-  mv vendor_bak/DTFN/gelchain/vendor/github.com/ethereum/go-ethereum vendor/github.com/ethereum
+  mv vendor_bak/DTFN/dtfn/vendor/github.com/ethereum/go-ethereum vendor/github.com/ethereum
   cp ../../karalabe ../../ethereum/go-ethereum/vendor/github.com/ -rf
   cp ../../../gopkg.in vendor ../../ethereum/go-ethereum/vendor -rf
   rm vendor_bak -rf
@@ -88,4 +88,4 @@ go env -w GOSUMDB="off"
 
 installEthereum
 installTendermint
-installGelchain
+installdtfn

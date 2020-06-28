@@ -4,8 +4,8 @@ set -e
 
 ROOT_DIR=$(cd `dirname $(readlink -f "$0")`/.. && pwd)
 OS_ARCH=$(cat /etc/os-release |grep '^ID='|cut -d'=' -f2|sed 's/"//g'|tr '[:upper:]' '[:lower:]')
-BUILD_FLAGS="-ldflags \"-X github.com/DTFN/gelchain/version.GitCommit=\`git rev-parse --short HEAD\`\""
-BUILD_TAGS=gelchain
+BUILD_FLAGS="-ldflags \"-X github.com/DTFN/dtfn/version.GitCommit=\`git rev-parse --short HEAD\`\""
+BUILD_TAGS=dtfn
 ETH_ACCOUNT=ethAccount
 
 function printHelp () {
@@ -71,8 +71,8 @@ function do_move_file() {
     fi
 }
 
-function do_executeCmdGelChain() {
-    echo "do execute command for gelchain ..."
+function do_executeCmddtfn() {
+    echo "do execute command for dtfn ..."
     do_blsPackageCmd 
     
     echo $1
@@ -95,7 +95,7 @@ function do_delete_file() {
 }
 
 function do_clean() {
-    echo "do clean gelchain"
+    echo "do clean dtfn"
     do_blsPackageCmd 'clean'
    
     cd ${ROOT_DIR}
@@ -118,11 +118,11 @@ function main() {
             do_getDependencies
             ;;
         "build")
-            do_executeCmdGelChain "CGO_ENABLED=1 go build ${BUILD_FLAGS} -o ./${BUILD_TAGS} ./cmd/gelchain"
+            do_executeCmddtfn "CGO_ENABLED=1 go build ${BUILD_FLAGS} -o ./${BUILD_TAGS} ./cmd/dtfn"
             do_executeCmdAccount "CGO_ENABLED=1 go build ${BUILD_FLAGS} -o ./${ETH_ACCOUNT} ./cmd/ethAccount"
             ;;
         "install")
-            do_executeCmdGelChain "CGO_ENABLED=1 go install ${BUILD_FLAGS} ./cmd/gelchain}"
+            do_executeCmddtfn "CGO_ENABLED=1 go install ${BUILD_FLAGS} ./cmd/dtfn}"
             do_executeCmdAccount "CGO_ENABLED=1 go install ${BUILD_FLAGS} ./cmd/ethAccount}"
             ;;
         "clean")

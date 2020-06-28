@@ -31,7 +31,7 @@ function validateArgs() {
 
 function do_build() {
     current=$(pwd)
-    imageName="gelchain:18.04" 
+    imageName="dtfn:18.04"
     
     if [[ "${OS_ARCH}" == "centos" ]]; then
         docker build -f dockerfile/centos -t "centos/${imageName}" .
@@ -44,7 +44,7 @@ function do_build() {
 }
 
 function do_clean() {
-    docker images |grep gelchain |awk '{print $3}' |xargs -ti docker rmi {}
+    docker images |grep dtfn |awk '{print $3}' |xargs -ti docker rmi {}
 }
 
 function main() {
