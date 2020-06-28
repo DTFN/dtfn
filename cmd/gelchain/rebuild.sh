@@ -1,6 +1,6 @@
-cd $GOPATH/src/github.com/DTFN/gelchain/cmd/gelchain
-if [ -f "/usr/bin/gelchain" ]; then
-        rm -r /usr/bin/gelchain
+cd $GOPATH/src/github.com/DTFN/dtfn/cmd/dtfn
+if [ -f "/usr/bin/dtfn" ]; then
+        rm -r /usr/bin/dtfn
 fi
 go build
-mv gelchain /usr/bin
+mv dtfn /usr/bin

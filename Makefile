@@ -4,21 +4,21 @@ GOTOOLS := \
 
 PACKAGES := $(shell glide novendor)
 
-BUILD_TAGS? := gelchain
+BUILD_TAGS? := dtfn
 
 VERSION_TAG := 1.0.0-beta
 
 ### Development ###
 all: glide_vendor_deps install test
 dev: glide_vendor_deps build
-gelchain_ubuntu: bls_ubuntu develop_ubuntu develop_build
+dtfn_ubuntu: bls_ubuntu develop_ubuntu develop_build
 
 develop_bls:
 	@echo "create bls environment"
 	@bash ./scripts/build.sh -t blsdep
 
 glide_vendor_deps:
-	@echo "build gelChain"
+	@echo "build dtfn"
 	@bash ./scripts/build.sh -t glide
 
 install:
@@ -51,7 +51,7 @@ develop_centos:
 	@bash ./scripts/develop_env_centos.sh
 
 develop_build:
-	@bash $(GOPATH)/src/github.com/DTFN/gelchain/cmd/gelchain/rebuild.sh
+	@bash $(GOPATH)/src/github.com/DTFN/dtfn/cmd/dtfn/rebuild.sh
 	@bash $(GOPATH)/src/github.com/tendermint/tendermint/cmd/tendermint/rebuild.sh
 
 ### Tooling ###
