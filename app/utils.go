@@ -75,6 +75,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
 	core.EvmErrHardForkHeight = version.EvmErrHardForkHeight
 	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
+	txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
 	txfilter.Bigguy = common.HexToAddress(version.Bigguy)
 
 	wsState, _ := app.backend.Es().State()
@@ -111,6 +112,28 @@ func (app *EthermintApplication) InitPersistData() bool {
 			}
 		}
 	}
+
+	app.logger.Info("Read FrozeTable")
+	frozeTableBytes := wsState.GetCode(txfilter.SendToFroze)
+	app.strategy.FrozeTable = txfilter.CreateFrozeTable()
+	txfilter.EthFrozeTableCopy = app.strategy.FrozeTable.Copy()
+	if len(frozeTableBytes) == 0 {
+		app.logger.Info("no pre FrozeTable")
+	} else {
+		app.logger.Info("FrozeTable Not nil")
+		err := json.Unmarshal(frozeTableBytes, app.strategy.FrozeTable)
+		txfilter.EthFrozeTableCopy = app.strategy.FrozeTable.Copy()
+		if err != nil {
+			panic(fmt.Sprintf("initialize FrozeTable error %v", err))
+		}
+		//if app.strategy.FrozeTable.FrozeItemMap == nil {
+		//	app.strategy.FrozeTable.FrozeItemMap = make(map[common.Address]*txfilter.FrozeItem)
+		//}
+		//if app.strategy.FrozeTable.WaitForDeleteMap == nil {
+		//	app.strategy.FrozeTable.WaitForDeleteMap = make(map[common.Address]*txfilter.FrozeItem)
+		//}
+	}
+
 	app.strategy.HFExpectedData.Height = app.strategy.CurrentHeightValData.Height
 	if app.strategy.HFExpectedData.IsHarfForkPassed {
 		for i := len(version.HeightArray) - 1; i >= 0; i-- {
@@ -186,6 +209,11 @@ func (app *EthermintApplication) SetPersistenceData() {
 
 			app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
 		}
+	}
+
+	if app.strategy.HFExpectedData.BlockVersion >= 6 {
+		frozeBytes, _ := json.Marshal(app.strategy.FrozeTable)
+		wsState.SetCode(txfilter.SendToFroze, frozeBytes)
 	}
 
 	if height%txfilter.EpochBlocks == 0 {
