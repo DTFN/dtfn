@@ -754,7 +754,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 					Code: uint32(emtTypes.CodeInternal),
 					Log:  core.ErrFrozedAddress.Error()}
 			}
-			if txfilter.IsFrozeBlocked(from, tx.To()) != nil{
+			if txfilter.IsFrozeBlocked(from, tx.To()) != nil {
 				return abciTypes.ResponseCheckTx{
 					Code: uint32(emtTypes.CodeInternal),
 					Log:  core.ErrFrozedAddress.Error()}

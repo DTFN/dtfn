@@ -64,7 +64,7 @@ func LoadProductionConfig(c conf) {
 }
 
 func LoadDefaultConfig(c conf) {
-	HeightString = "20,30,40,200,700"
+	HeightString = "20,30,40,200,300"
 	VersionString = "2,3,4,5,6"
 	Bigguy = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
 	EvmErrHardForkHeight = 5
