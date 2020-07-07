@@ -10,7 +10,7 @@ installEthereum() {
     cd go-ethereum
   fi
 
-  git checkout master
+  git checkout relaybug
   go mod vendor
   cd cmd/geth && go install
   cd ../../../..
@@ -25,8 +25,8 @@ installTendermint() {
     git clone git@github.com:DTFN/tendermint.git
     cd tendermint
   fi
-  #git checkout -b develop remotes/origin/develop
-  git checkout master
+  #git checkout -b develop remotes/origin/relaybug
+  git checkout relaybug
   go mod vendor
   cd cmd/tendermint && go install
   cd ../../../..
@@ -34,8 +34,8 @@ installTendermint() {
 
 installdtfn() {
   cd DTFN/dtfn
-  #git checkout -b develop remotes/origin/develop
-  git checkout master
+  #git checkout -b develop remotes/origin/relaybug
+  git checkout relaybug
   go mod vendor
   backupVendors
   export GO111MODULE=off
