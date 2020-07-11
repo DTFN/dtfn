@@ -91,6 +91,23 @@ func (app *EthermintApplication) InitPersistData() bool {
 	key := []byte("CurrentHeightData")
 	keyHash := common.BytesToHash(key)
 	valueHash := wsState.GetState(currEpochDataAddress, keyHash)
+
+	app.logger.Info("Read FrozeTable")
+	frozeTableBytes := wsState.GetCode(txfilter.SendToFroze)
+	app.strategy.FrozeTable = txfilter.CreateFrozeTable()
+	txfilter.EthFrozeTableCopy = app.strategy.FrozeTable.Copy()
+	if len(frozeTableBytes) == 0 {
+		app.logger.Info("no pre FrozeTable")
+	} else {
+		app.logger.Info("FrozeTable Not nil")
+		err := json.Unmarshal(frozeTableBytes, app.strategy.FrozeTable)
+		txfilter.EthFrozeTableCopy = app.strategy.FrozeTable.Copy()
+		if err != nil {
+			panic(fmt.Sprintf("initialize FrozeTable error %v", err))
+		}
+	}
+
+
 	if bytes.Equal(valueHash.Bytes(), common.Hash{}.Bytes()) {
 		app.logger.Info("no pre CurrentHeightData")
 		app.strategy.NextEpochValData.PosTable = txfilter.CreatePosTable()
@@ -113,26 +130,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 	}
 
-	app.logger.Info("Read FrozeTable")
-	frozeTableBytes := wsState.GetCode(txfilter.SendToFroze)
-	app.strategy.FrozeTable = txfilter.CreateFrozeTable()
-	txfilter.EthFrozeTableCopy = app.strategy.FrozeTable.Copy()
-	if len(frozeTableBytes) == 0 {
-		app.logger.Info("no pre FrozeTable")
-	} else {
-		app.logger.Info("FrozeTable Not nil")
-		err := json.Unmarshal(frozeTableBytes, app.strategy.FrozeTable)
-		txfilter.EthFrozeTableCopy = app.strategy.FrozeTable.Copy()
-		if err != nil {
-			panic(fmt.Sprintf("initialize FrozeTable error %v", err))
-		}
-		//if app.strategy.FrozeTable.FrozeItemMap == nil {
-		//	app.strategy.FrozeTable.FrozeItemMap = make(map[common.Address]*txfilter.FrozeItem)
-		//}
-		//if app.strategy.FrozeTable.WaitForDeleteMap == nil {
-		//	app.strategy.FrozeTable.WaitForDeleteMap = make(map[common.Address]*txfilter.FrozeItem)
-		//}
-	}
+
 
 	app.strategy.HFExpectedData.Height = app.strategy.CurrentHeightValData.Height
 	if app.strategy.HFExpectedData.IsHarfForkPassed {
