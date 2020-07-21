@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/DTFN/dtfn/version"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/DTFN/dtfn/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	//_ "net/http/pprof"
@@ -74,7 +74,11 @@ func (app *EthermintApplication) InitPersistData() bool {
 
 	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
 	core.EvmErrHardForkHeight = version.EvmErrHardForkHeight
-	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
+	if txfilter.AppVersion < 4 {
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
+	} else {
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
+	}
 	txfilter.Bigguy = common.HexToAddress(version.Bigguy)
 
 	wsState, _ := app.backend.Es().State()
