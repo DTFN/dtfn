@@ -505,8 +505,7 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 		for key, pi := range app.strategy.NextEpochValData.PosTable.PosItemMap {
 			authTableMap[key.String()] = pi.Height
 		}
-		authResetDataBytes, _ := json.Marshal(authTableMap)
-		result = string(authResetDataBytes)
+		result = authTableMap
 	} else {
 		if err := app.rpcClient.Call(&result, in.Method, in.Params...); err != nil {
 			return abciTypes.ResponseQuery{Code: uint32(emtTypes.CodeInternal),
