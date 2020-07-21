@@ -497,13 +497,17 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 	} else if index := strings.Index(query.Path, "/p2p/whitelist"); index >= 0 {
 		authTableMap := make(map[string]int64)
 		for key, ai := range txfilter.EthAuthTable.AuthItemMap {
-			authTableMap[key.String()] = ai.PermitHeight
+			if tmAddr, exist := txfilter.EthAuthTable.ExtendAuthTable.SignerToTmAddressMap[key]; exist {
+				authTableMap[tmAddr] = ai.PermitHeight
+			} else {
+				fmt.Printf("Error! account %X not found tmAddr! \n", key)
+			}
 		}
-		for key, pi := range app.strategy.NextEpochValData.PosTable.UnbondPosItemMap {
-			authTableMap[key.String()] = pi.Height
+		for _, pi := range app.strategy.NextEpochValData.PosTable.UnbondPosItemMap {
+			authTableMap[pi.TmAddress] = pi.Height
 		}
-		for key, pi := range app.strategy.NextEpochValData.PosTable.PosItemMap {
-			authTableMap[key.String()] = pi.Height
+		for _, pi := range app.strategy.NextEpochValData.PosTable.PosItemMap {
+			authTableMap[pi.TmAddress] = pi.Height
 		}
 		result = authTableMap
 	} else {
