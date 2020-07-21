@@ -429,6 +429,16 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 				app.backend.Ethereum().BlockChain().SetConfig(upgradeConfig)
 				rawdb.WriteChainConfig(db, stored, upgradeConfig)
 			}
+		} else if height < version.HeightArray[3] && height > version.HeightArray[3]-1000 {
+			storedcfg := app.backend.Ethereum().BlockChain().Config()
+			storedcfg.ConstantinopleBlock = nil
+			storedcfg.IstanbulBlock = nil
+			storedcfg.PetersburgBlock = nil
+			storedcfg.MuirGlacierBlock = nil
+			storedcfg.EIP150Block = nil
+			storedcfg.DAOForkSupport = false
+
+			fmt.Printf("storedcfg reset to %v \n", storedcfg)
 		}
 	}
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
