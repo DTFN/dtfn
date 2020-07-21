@@ -72,13 +72,8 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 
-	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
 	core.EvmErrHardForkHeight = version.EvmErrHardForkHeight
-	if txfilter.AppVersion < 4 {
-		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
-	} else {
-		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
-	}
+
 	txfilter.Bigguy = common.HexToAddress(version.Bigguy)
 
 	wsState, _ := app.backend.Es().State()
@@ -123,6 +118,12 @@ func (app *EthermintApplication) InitPersistData() bool {
 				break
 			}
 		}
+	}
+	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
+	if txfilter.AppVersion <= 4 {
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
+	} else {
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
 	}
 
 	if len(currBytes) == 0 {
