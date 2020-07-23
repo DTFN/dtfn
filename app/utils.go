@@ -104,7 +104,6 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 	}
 
-
 	if bytes.Equal(valueHash.Bytes(), common.Hash{}.Bytes()) {
 		app.logger.Info("no pre CurrentHeightData")
 		app.strategy.NextEpochValData.PosTable = txfilter.CreatePosTable()
@@ -127,8 +126,6 @@ func (app *EthermintApplication) InitPersistData() bool {
 		}
 	}
 
-
-
 	app.strategy.HFExpectedData.Height = app.strategy.CurrentHeightValData.Height
 	if app.strategy.HFExpectedData.IsHarfForkPassed {
 		for i := len(version.HeightArray) - 1; i >= 0; i-- {
@@ -141,10 +138,10 @@ func (app *EthermintApplication) InitPersistData() bool {
 	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
 	if txfilter.AppVersion <= 4 {
 		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
-    txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
+		txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
 	} else {
 		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
-  	txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
+		txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
 	}
 
 	if len(currBytes) == 0 {
