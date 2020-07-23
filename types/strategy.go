@@ -292,7 +292,9 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 
 	abiEvents := make([]abciTypes.Event, 0)
 	//get all validators and init tm-auth-table
-	if height == version.HeightArray[3] {
+	if height == version.HeightArray[2] {
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
+	} else if height == version.HeightArray[3] {
 		initEvent := abciTypes.Event{Type: "AuthTableInit"}
 		abiEvents = append(abiEvents, initEvent)
 		// Private PPChain Admin account
