@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/DTFN/dtfn/version"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/DTFN/dtfn/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
 	//_ "net/http/pprof"
@@ -72,10 +72,7 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 
-	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
 	core.EvmErrHardForkHeight = version.EvmErrHardForkHeight
-	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
-	txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
 	txfilter.Bigguy = common.HexToAddress(version.Bigguy)
 
 	wsState, _ := app.backend.Es().State()
@@ -140,6 +137,14 @@ func (app *EthermintApplication) InitPersistData() bool {
 				break
 			}
 		}
+	}
+	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
+	if txfilter.AppVersion <= 4 {
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
+    txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
+	} else {
+		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
+  	txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
 	}
 
 	if len(currBytes) == 0 {
