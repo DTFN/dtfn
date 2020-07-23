@@ -51,6 +51,8 @@ type Strategy struct {
 
 	AuthTable *txfilter.AuthTable
 
+	FrozeTable *txfilter.FrozeTable
+
 	// add for hard fork
 	HFExpectedData HardForkExpectedData
 

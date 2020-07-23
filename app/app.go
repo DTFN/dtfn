@@ -4,6 +4,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/DTFN/dtfn/ethereum"
+	"github.com/DTFN/dtfn/httpserver"
+	emtTypes "github.com/DTFN/dtfn/types"
+	"github.com/DTFN/dtfn/version"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -12,10 +16,6 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/DTFN/dtfn/ethereum"
-	"github.com/DTFN/dtfn/httpserver"
-	emtTypes "github.com/DTFN/dtfn/types"
-	"github.com/DTFN/dtfn/version"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
@@ -431,6 +431,18 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 			}
 		}
 	}
+
+	if app.strategy.HFExpectedData.BlockVersion >= 6 {
+		//we should clear WaitForDeleteMap every block.
+		if app.strategy.FrozeTable.ThisBlockChangedFlag {
+			for key, _ := range app.strategy.FrozeTable.WaitForDeleteMap {
+				delete(app.strategy.FrozeTable.FrozeItemMap, key)
+				delete(app.strategy.FrozeTable.WaitForDeleteMap, key)
+			}
+			txfilter.EthFrozeTableCopy = txfilter.EthFrozeTable.Copy()
+			app.strategy.FrozeTable.ThisBlockChangedFlag = false
+		}
+	}
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
@@ -510,6 +522,8 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 			authTableMap[pi.TmAddress] = pi.Height
 		}
 		result = authTableMap
+	} else if index := strings.Index(query.Path, "FrozeTable/GetFrozeTable"); index >= 0 {
+		result = txfilter.EthFrozeTableCopy.FrozeItemMap
 	} else {
 		if err := app.rpcClient.Call(&result, in.Method, in.Params...); err != nil {
 			return abciTypes.ResponseQuery{Code: uint32(emtTypes.CodeInternal),
@@ -669,6 +683,18 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		txInfo = ethTypes.TxInfo{Tx: tx, From: from, SubTx: subTx, RelayFrom: relayer}
 	}
 
+	//check the legalcy of frozetx
+	if tx.To() != nil {
+		if txfilter.IsFrozeTx(*tx.To()) {
+			err := txfilter.ValidateFrozeTx(from, tx.Data())
+			if err != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(emtTypes.CodeInternal),
+					Log:  core.ErrInvalidFrozeData.Error()}
+			}
+		}
+	}
+
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
@@ -722,6 +748,27 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			Log: fmt.Sprintf(
 				"Current balance: %s, tx cost: %s",
 				currentBalance, tx.Cost())}
+	}
+
+	if app.strategy.HFExpectedData.BlockVersion >= 6 {
+		if isRelayTx {
+			if txfilter.IsFrozed(relayer) {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(emtTypes.CodeInternal),
+					Log:  core.ErrFrozedAddress.Error()}
+			}
+			if txfilter.IsFrozeBlocked(from, tx.To()) != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(emtTypes.CodeInternal),
+					Log:  core.ErrFrozedAddress.Error()}
+			}
+		} else {
+			if txfilter.IsFrozeBlocked(from, tx.To()) != nil {
+				return abciTypes.ResponseCheckTx{
+					Code: uint32(emtTypes.CodeInternal),
+					Log:  core.ErrFrozedAddress.Error()}
+			}
+		}
 	}
 
 	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
