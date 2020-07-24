@@ -443,6 +443,12 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 			app.strategy.FrozeTable.ThisBlockChangedFlag = false
 		}
 	}
+
+	if app.strategy.HFExpectedData.BlockVersion >= 7 {
+		currentState, _ := app.getCurrentState()
+		currentState.AddBalance(txfilter.SendToMint, big.NewInt(200))
+	}
+
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
