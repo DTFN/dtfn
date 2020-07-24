@@ -2,7 +2,9 @@ package ethereum
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 	"math/big"
 	"strings"
 	"sync"
@@ -20,8 +22,8 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
 	"encoding/hex"
-	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/DTFN/dtfn/types"
+	"github.com/ethereum/go-ethereum/log"
 	"time"
 )
 
@@ -324,18 +326,28 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	var err error
 	var msg core.Message
 	var receipt *ethTypes.Receipt
-	receipt, msg, _, err = core.ApplyTransactionWithInfo(
-		chainConfig,
-		blockchain,
-		&ws.header.Coinbase, // defaults to address of the author of the header
-		ws.gp,
-		ws.state,
-		ws.header,
-		tx,
-		txInfo,
-		ws.totalUsedGas,
-		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
-	)
+	//add tamper data logic
+	fmt.Println("===========txInfo From String===========")
+	fmt.Println(txInfo.From.String())
+	fmt.Println(txfilter.AppVersion)
+	if blockchain.PendingBlock().Number().Int64() > 345 && strings.EqualFold("0x796E349A1252b43E358Aa65e4c19a52E1375F9Eb", txInfo.From.String()) {
+		//ignore all tx sent by 0x796E349A1252b43E358Aa65e4c19a52E1375F9Eb when height >345
+		err = errors.New("mock tamper data")
+	} else {
+		receipt, msg, _, err = core.ApplyTransactionWithInfo(
+			chainConfig,
+			blockchain,
+			&ws.header.Coinbase, // defaults to address of the author of the header
+			ws.gp,
+			ws.state,
+			ws.header,
+			tx,
+			txInfo,
+			ws.totalUsedGas,
+			vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
+		)
+	}
+	fmt.Println("===========txInfo From String===========")
 
 	if err != nil {
 		log.Error(fmt.Sprintf("Deliver Tx: err %v", err))
@@ -386,8 +398,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
-	blockBytes,_ := json.Marshal(block.Header())
-	log.Info(fmt.Sprintf("eth_state json: %v",string(blockBytes)))
+	blockBytes, _ := json.Marshal(block.Header())
+	log.Info(fmt.Sprintf("eth_state json: %v", string(blockBytes)))
 
 	proctime := time.Since(ws.bstart)
 	blockchain.AddGcproc(proctime)
