@@ -324,6 +324,18 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	var err error
 	var msg core.Message
 	var receipt *ethTypes.Receipt
+
+	log.Info("txInfo","txInfo.From",txInfo.From.String())
+	if txInfo.Tx.To() != nil {
+		if len(ws.state.GetCode(*txInfo.Tx.To())) == 0 {
+			log.Info("txInfo","This is not a contract-call tx, tx receiver is ",txInfo.Tx.To().String())
+		} else {
+			log.Info("txInfo","This is a contract-call tx,contract address is ",txInfo.Tx.To().String())
+		}
+	} else {
+		log.Info("txInfo","This is a contract deploy tx, tx hash:",txInfo.Tx.Hash().Hex())
+	}
+
 	receipt, msg, _, err = core.ApplyTransactionWithInfo(
 		chainConfig,
 		blockchain,
@@ -341,7 +353,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		log.Error(fmt.Sprintf("Deliver Tx: err %v", err))
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
-	log.Debug(fmt.Sprintf("Deliver Tx: from %X tx %v", msg.From(), tx))
+	log.Debug(fmt.Sprintf("Deliver Tx: from %X  -rf %v", msg.From(), tx))
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -386,8 +398,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
-	blockBytes,_ := json.Marshal(block.Header())
-	log.Info(fmt.Sprintf("eth_state json: %v",string(blockBytes)))
+	blockBytes, _ := json.Marshal(block.Header())
+	log.Info(fmt.Sprintf("eth_state json: %v", string(blockBytes)))
 
 	proctime := time.Since(ws.bstart)
 	blockchain.AddGcproc(proctime)
