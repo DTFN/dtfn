@@ -304,6 +304,11 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
 	defaultTmConfig.P2P.MaxNumInboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
 	defaultTmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
+	defaultTmConfig.P2P.SendRate = int64(128000)
+	defaultTmConfig.P2P.RecvRate = int64(10240000)
+	//defaultTmConfig.P2P.FlushThrottleTimeout = 100 * time.Millisecond
+	defaultTmConfig.P2P.MaxPacketMsgPayloadSize = 102400
+	fmt.Printf("sendRate = %v recvRate=%v \n", defaultTmConfig.P2P.SendRate, defaultTmConfig.P2P.RecvRate)
 
 	return defaultTmConfig
 }
