@@ -14,7 +14,7 @@ import (
 )
 
 var ethGenesisPath string
-var ethSignerAccount [101]common.Address
+var ethSignerAccount [1001]common.Address
 var ethSignerAccountIndex int
 
 type EthAccounts struct {
