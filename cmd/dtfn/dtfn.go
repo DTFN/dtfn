@@ -296,6 +296,7 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.BaseConfig.InitialEthAccount = ctx.GlobalString(emtUtils.TmInitialEthAccount.Name)
 	defaultTmConfig.PrivValidatorListenAddr = ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
 	defaultTmConfig.PrivValidatorKey = ctx.GlobalString(emtUtils.PrivValidator.Name)
+	defaultTmConfig.P2P.PexReactor = ctx.GlobalBool(emtUtils.PexReactor.Name)
 	defaultTmConfig.P2P.AddrBook = ctx.GlobalString(emtUtils.AddrBook.Name)
 	defaultTmConfig.P2P.AddrBookStrict = ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
 	defaultTmConfig.P2P.PersistentPeers = ctx.GlobalString(emtUtils.PersistentPeers.Name)
@@ -304,10 +305,11 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
 	defaultTmConfig.P2P.MaxNumInboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
 	defaultTmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
-	defaultTmConfig.P2P.SendRate = int64(128000)
+	defaultTmConfig.P2P.SendRate = int64(256000)
 	defaultTmConfig.P2P.RecvRate = int64(10240000)
 	//defaultTmConfig.P2P.FlushThrottleTimeout = 100 * time.Millisecond
-	defaultTmConfig.P2P.MaxPacketMsgPayloadSize = 102400
+	defaultTmConfig.P2P.MaxPacketMsgPayloadSize = 10240
+
 	fmt.Printf("sendRate = %v recvRate=%v \n", defaultTmConfig.P2P.SendRate, defaultTmConfig.P2P.RecvRate)
 
 	return defaultTmConfig
