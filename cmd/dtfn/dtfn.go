@@ -217,8 +217,8 @@ func ethermintCmd(ctx *cli.Context) error {
 			}
 		})
 
-		/*	h := new(memsizeui.Handler)
-			s := &http.Server{Addr: "0.0.0.0:7070", Handler: h}
+/*			h := new(memsizeui.Handler)
+			s := &http.Server{Addr: "0.0.0.0:9090", Handler: h}
 			txs := clist_mempool.Txs()
 			sMap := clist_mempool.TxsMap()
 			state, _ := backend.Es().State()
@@ -228,7 +228,7 @@ func ethermintCmd(ctx *cli.Context) error {
 			h.Add("txsList", txs)
 			h.Add("esState", state)
 			h.Add("workState", &work)
-			txPool.DebugMeomory(h)
+			txPool.DebugMemory(h)
 			go s.ListenAndServe()*/
 
 		// Run forever.
@@ -305,10 +305,10 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
 	defaultTmConfig.P2P.MaxNumInboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
 	defaultTmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
-	defaultTmConfig.P2P.SendRate = int64(256000)
-	defaultTmConfig.P2P.RecvRate = int64(10240000)
-	//defaultTmConfig.P2P.FlushThrottleTimeout = 100 * time.Millisecond
-	defaultTmConfig.P2P.MaxPacketMsgPayloadSize = 10240
+	defaultTmConfig.P2P.SendRate = int64(1024000)
+	defaultTmConfig.P2P.RecvRate = int64(1024000)
+	defaultTmConfig.P2P.FlushThrottleTimeout = 10 * time.Millisecond
+	defaultTmConfig.P2P.MaxPacketMsgPayloadSize = 102400
 
 	fmt.Printf("sendRate = %v recvRate=%v \n", defaultTmConfig.P2P.SendRate, defaultTmConfig.P2P.RecvRate)
 
