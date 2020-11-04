@@ -307,7 +307,7 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	defaultTmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
 	defaultTmConfig.P2P.SendRate = int64(1024000)
 	defaultTmConfig.P2P.RecvRate = int64(1024000)
-	defaultTmConfig.P2P.FlushThrottleTimeout = 10 * time.Millisecond
+	defaultTmConfig.P2P.FlushThrottleTimeout = 100 * time.Millisecond
 	defaultTmConfig.P2P.MaxPacketMsgPayloadSize = 1024
 
 	fmt.Printf("sendRate = %v recvRate=%v \n", defaultTmConfig.P2P.SendRate, defaultTmConfig.P2P.RecvRate)
