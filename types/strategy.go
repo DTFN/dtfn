@@ -271,7 +271,7 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 	} else {
 		membersNumber = strategy.CurrEpochValData.DKGMembersLimit
 	}
-	topKSigners := strategy.CurrEpochValData.PosTable.TopKSigners(strategy.CurrEpochValData.DKGMembersLimit)
+	topKSigners := strategy.CurrEpochValData.PosTable.TopKSigners(membersNumber)
 	currentValidators := map[string]Validator{}
 
 	for _, signer := range topKSigners {
