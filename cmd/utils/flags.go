@@ -273,6 +273,12 @@ var (
 		Usage:  "whether use selectstrategy,mainly used in the test",
 	}
 
+	DKGMembersLimit = cli.IntFlag{
+		Name:  "dkg_members_limit",
+		Value: 100,
+		Usage: "limit the upper limit of dkg members for better performance",
+	}
+
 	MaxInPeers = cli.IntFlag{
 		Name:  "max_in_peers",
 		Value: 29,
@@ -283,6 +289,12 @@ var (
 		Name:  "max_out_peers",
 		Value: 11,
 		Usage: "max outbound peers allowed",
+	}
+
+	PexInitDelay = cli.IntFlag{
+		Name:  "pex_init_delay",
+		Value: 180, //seconds
+		Usage: "pex init delay for first DKG process",
 	}
 
 	MempoolSize = cli.IntFlag{
