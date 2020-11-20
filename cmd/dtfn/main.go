@@ -108,11 +108,13 @@ var (
 		utils.SelectCount,
 		utils.SelectBlockNumber,
 		utils.SelectStrategy,
+		utils.DKGMembersLimit,
 		utils.MempoolSize,
 		utils.MempoolThreshold,
 		utils.MempoolHeightThreshold,
 		utils.FlowControlFlag,
 		utils.FlowControlMaxSleepTime,
+		utils.PexInitDelay,
 	}
 )
 

@@ -154,6 +154,9 @@ func ethermintCmd(ctx *cli.Context) error {
 	fmt.Println("selectBlockNumber", selectBlockNumber)
 	selectStrategy := ctx.GlobalBool(emtUtils.SelectStrategy.Name)
 	fmt.Println("selectStrategy", selectStrategy)
+	dkgMembersLimit := ctx.GlobalInt(emtUtils.DKGMembersLimit.Name)
+	fmt.Println("dkgMembersLimit", dkgMembersLimit)
+	strategy.CurrEpochValData.DKGMembersLimit = dkgMembersLimit
 
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make dtfn as self contained as possible.
@@ -217,8 +220,8 @@ func ethermintCmd(ctx *cli.Context) error {
 			}
 		})
 
-		/*	h := new(memsizeui.Handler)
-			s := &http.Server{Addr: "0.0.0.0:7070", Handler: h}
+/*			h := new(memsizeui.Handler)
+			s := &http.Server{Addr: "0.0.0.0:9090", Handler: h}
 			txs := clist_mempool.Txs()
 			sMap := clist_mempool.TxsMap()
 			state, _ := backend.Es().State()
@@ -228,7 +231,7 @@ func ethermintCmd(ctx *cli.Context) error {
 			h.Add("txsList", txs)
 			h.Add("esState", state)
 			h.Add("workState", &work)
-			txPool.DebugMeomory(h)
+			txPool.DebugMemory(h)
 			go s.ListenAndServe()*/
 
 		// Run forever.
@@ -270,42 +273,51 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 
 	DefaultInstrumentationConfig := tmcfg.DefaultInstrumentationConfig()
 
-	defaultTmConfig := tmcfg.DefaultConfig()
-	defaultTmConfig.BaseConfig = baseConfig
-	defaultTmConfig.Mempool.RootDir = tmHome
-	defaultTmConfig.Mempool.Size = ctx.GlobalInt(emtUtils.MempoolSize.Name)
-	defaultTmConfig.Mempool.Broadcast = ctx.GlobalBool(emtUtils.MempoolBroadcastFlag.Name)
-	defaultTmConfig.Mempool.FlowControl = ctx.GlobalBool(emtUtils.FlowControlFlag.Name)
-	defaultTmConfig.Mempool.FlowControlThreshold = ctx.GlobalInt(emtUtils.MempoolThreshold.Name)
-	defaultTmConfig.Mempool.FlowControlHeightThreshold = ctx.GlobalInt(emtUtils.MempoolHeightThreshold.Name)
-	defaultTmConfig.Mempool.FlowControlMaxSleepTime = time.Duration(ctx.GlobalInt(emtUtils.FlowControlMaxSleepTime.Name)) * time.Second
-	defaultTmConfig.P2P.RootDir = tmHome
-	defaultTmConfig.RPC.RootDir = tmHome
-	defaultTmConfig.Consensus.RootDir = tmHome
-	defaultTmConfig.Consensus.CreateEmptyBlocks = ctx.GlobalBool(emtUtils.TmConsEmptyBlock.Name)
-	defaultTmConfig.Consensus.CreateEmptyBlocksInterval = time.Duration(ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)) * time.Second
-	defaultTmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
-	defaultTmConfig.Consensus.TimeoutPropose = time.Duration(ctx.GlobalInt(emtUtils.TmConsProposeTimeout.Name)) * time.Second
+	tmConfig := tmcfg.DefaultConfig()
+	tmConfig.BaseConfig = baseConfig
+	tmConfig.Mempool.RootDir = tmHome
+	tmConfig.Mempool.Size = ctx.GlobalInt(emtUtils.MempoolSize.Name)
+	tmConfig.Mempool.Broadcast = ctx.GlobalBool(emtUtils.MempoolBroadcastFlag.Name)
+	tmConfig.Mempool.FlowControl = ctx.GlobalBool(emtUtils.FlowControlFlag.Name)
+	tmConfig.Mempool.FlowControlThreshold = ctx.GlobalInt(emtUtils.MempoolThreshold.Name)
+	tmConfig.Mempool.FlowControlHeightThreshold = ctx.GlobalInt(emtUtils.MempoolHeightThreshold.Name)
+	tmConfig.Mempool.FlowControlMaxSleepTime = time.Duration(ctx.GlobalInt(emtUtils.FlowControlMaxSleepTime.Name)) * time.Second
+	tmConfig.P2P.RootDir = tmHome
+	tmConfig.RPC.RootDir = tmHome
+	tmConfig.Consensus.RootDir = tmHome
+	tmConfig.Consensus.CreateEmptyBlocks = ctx.GlobalBool(emtUtils.TmConsEmptyBlock.Name)
+	tmConfig.Consensus.CreateEmptyBlocksInterval = time.Duration(ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)) * time.Second
+	tmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
+	tmConfig.Consensus.TimeoutPropose = time.Duration(ctx.GlobalInt(emtUtils.TmConsProposeTimeout.Name)) * time.Second
+	tmConfig.Consensus.DKGMembersLimit = ctx.GlobalInt(emtUtils.DKGMembersLimit.Name)
 
-	defaultTmConfig.RollbackHeight = ctx.GlobalInt64(emtUtils.RollbackHeight.Name)
-	defaultTmConfig.RollbackFlag = ctx.GlobalBool(emtUtils.RollbackFlag.Name)
+	tmConfig.RollbackHeight = ctx.GlobalInt64(emtUtils.RollbackHeight.Name)
+	tmConfig.RollbackFlag = ctx.GlobalBool(emtUtils.RollbackFlag.Name)
 
-	defaultTmConfig.Instrumentation = DefaultInstrumentationConfig
+	tmConfig.Instrumentation = DefaultInstrumentationConfig
 
-	defaultTmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)
-	defaultTmConfig.BaseConfig.InitialEthAccount = ctx.GlobalString(emtUtils.TmInitialEthAccount.Name)
-	defaultTmConfig.PrivValidatorListenAddr = ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
-	defaultTmConfig.PrivValidatorKey = ctx.GlobalString(emtUtils.PrivValidator.Name)
-	defaultTmConfig.P2P.AddrBook = ctx.GlobalString(emtUtils.AddrBook.Name)
-	defaultTmConfig.P2P.AddrBookStrict = ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
-	defaultTmConfig.P2P.PersistentPeers = ctx.GlobalString(emtUtils.PersistentPeers.Name)
-	defaultTmConfig.P2P.PrivatePeerIDs = ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
-	defaultTmConfig.P2P.ListenAddress = ctx.GlobalString(emtUtils.TendermintP2PListenAddress.Name)
-	defaultTmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
-	defaultTmConfig.P2P.MaxNumInboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
-	defaultTmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
+	tmConfig.FastSync = ctx.GlobalBool(emtUtils.FastSync.Name)
+	tmConfig.BaseConfig.InitialEthAccount = ctx.GlobalString(emtUtils.TmInitialEthAccount.Name)
+	tmConfig.PrivValidatorListenAddr = ctx.GlobalString(emtUtils.PrivValidatorListenAddr.Name)
+	tmConfig.PrivValidatorKey = ctx.GlobalString(emtUtils.PrivValidator.Name)
+	tmConfig.P2P.PexReactor = ctx.GlobalBool(emtUtils.PexReactor.Name)
+	tmConfig.P2P.AddrBook = ctx.GlobalString(emtUtils.AddrBook.Name)
+	tmConfig.P2P.AddrBookStrict = ctx.GlobalBool(emtUtils.RoutabilityStrict.Name)
+	tmConfig.P2P.PersistentPeers = ctx.GlobalString(emtUtils.PersistentPeers.Name)
+	tmConfig.P2P.PrivatePeerIDs = ctx.GlobalString(emtUtils.PrivatePeerIDs.Name)
+	tmConfig.P2P.ListenAddress = ctx.GlobalString(emtUtils.TendermintP2PListenAddress.Name)
+	tmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
+	tmConfig.P2P.MaxNumInboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
+	tmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
+	tmConfig.P2P.InitDelay=ctx.GlobalInt(emtUtils.PexInitDelay.Name)
+	tmConfig.P2P.SendRate = int64(1024000)
+	tmConfig.P2P.RecvRate = int64(1024000)
+	tmConfig.P2P.FlushThrottleTimeout = 10 * time.Millisecond
+	tmConfig.P2P.MaxPacketMsgPayloadSize = 1024
 
-	return defaultTmConfig
+	fmt.Printf("sendRate = %v recvRate=%v \n", tmConfig.P2P.SendRate, tmConfig.P2P.RecvRate)
+
+	return tmConfig
 }
 
 func configLoggerLevel(ctx *cli.Context, logger *tmlog.Logger) {
