@@ -94,7 +94,7 @@ type CurrEpochValData struct {
 	MinorBonus   *big.Int `json:"-"` //all voted validators share this bonus per block.
 
 	SelectCount     int `json:"-"` //select count of each height
-	DKGMembersLimit int `json:"-"` //DKG members upper limit for each epoch
+	DKGMembersLimit int `json:"-"` //the upper limit of DKG members in each epoch
 }
 
 type Validator struct {
@@ -265,16 +265,21 @@ func (strategy *Strategy) enterSelectValidators(seed []byte, height int64) abciT
 func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock {
 	blsPubkeySlice := []string{}
 	validatorsSlice := []abciTypes.ValidatorUpdate{}
-	membersNumber := 0
-	if strategy.CurrEpochValData.DKGMembersLimit <= 0 {
-		membersNumber = 100
-	} else {
-		membersNumber = strategy.CurrEpochValData.DKGMembersLimit
+	var updateSigners []common.Address
+	if height == version.HeightArray[3]{	//whitelist init, needs to pass full table
+		updateSigners = strategy.CurrEpochValData.PosTable.SortedSigners()
+	}else{
+		membersNumber := 0
+		if strategy.CurrEpochValData.DKGMembersLimit <= 0 {
+			membersNumber = 100
+		} else {
+			membersNumber = strategy.CurrEpochValData.DKGMembersLimit
+		}
+		updateSigners = strategy.CurrEpochValData.PosTable.TopKSigners(membersNumber)
 	}
-	topKSigners := strategy.CurrEpochValData.PosTable.TopKSigners(membersNumber)
-	currentValidators := map[string]Validator{}
 
-	for _, signer := range topKSigners {
+	currentValidators := map[string]Validator{}
+	for _, signer := range updateSigners {
 		posItem := strategy.CurrEpochValData.PosTable.PosItemMap[signer]
 		tmAddress := posItem.TmAddress
 		updateValidator := abciTypes.ValidatorUpdate{
