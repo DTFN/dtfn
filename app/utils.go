@@ -122,14 +122,8 @@ func (app *EthermintApplication) InitPersistData() bool {
 	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
 	if txfilter.AppVersion <= 4 {
 		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
-		fmt.Println("===============dtfn version PPChainAdmin=================")
-		fmt.Println(txfilter.PPChainAdmin.String())
-		fmt.Println("===============dtfn version PPChainAdmin=================")
 	} else {
 		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
-		fmt.Println("===============dtfn version PPChainPrivateAdmin=================")
-		fmt.Println(txfilter.PPChainAdmin.String())
-		fmt.Println("===============dtfn version PPChainPrivateAdmin=================")
 	}
 
 	if len(currBytes) == 0 {
