@@ -267,7 +267,7 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 	validatorsSlice := []abciTypes.ValidatorUpdate{}
 	var updateSigners []common.Address
 	if height == version.HeightArray[3]{	//whitelist init, needs to pass full table
-		updateSigners = strategy.CurrEpochValData.PosTable.SortedSigners()
+		updateSigners = strategy.CurrEpochValData.PosTable.SortedSigners
 	}else{
 		membersNumber := 0
 		if strategy.CurrEpochValData.DKGMembersLimit <= 0 {
