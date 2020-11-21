@@ -51,8 +51,6 @@ type Strategy struct {
 
 	AuthTable *txfilter.AuthTable
 
-	FrozeTable *txfilter.FrozeTable
-
 	// add for hard fork
 	HFExpectedData HardForkExpectedData
 
@@ -303,13 +301,11 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 	//get all validators and init tm-auth-table
 	if height == version.HeightArray[2] {
 		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
-		txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
 	} else if height == version.HeightArray[3] {
 		initEvent := abciTypes.Event{Type: "AuthTableInit"}
 		abiEvents = append(abiEvents, initEvent)
 		// Private PPChain Admin account
 		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
-		txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
 	}
 	abiEvent := strategy.getAuthTmItems(height)
 	if abiEvent != nil {

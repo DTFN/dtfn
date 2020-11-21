@@ -86,16 +86,8 @@ func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) error {
 	/*	params := map[string]interface{}{
 		"tx": buf.Bytes(),
 	}*/
-	var tmTx []byte
-	if tx.To() == nil{
-		tx.ClearData()
-		txBytes, _ = rlp.EncodeToBytes(tx)
-		tmTx = tmTypes.Tx(txBytes)
-	}else{
-		tmTx = tmTypes.Tx(txBytes)
-	}
-	var result *ctypes.ResultBroadcastTx
-	result, err = b.BroadcastTxSync(tmTx)
+	tmTx := tmTypes.Tx(txBytes)
+	result, err := b.BroadcastTxSync(tmTx)
 
 	//result, err := b.client.Call("broadcast_tx_sync", params, &result)
 	if err != nil {
