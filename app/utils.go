@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/DTFN/dtfn/version"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethereumCrypto "github.com/ethereum/go-ethereum/crypto"
@@ -72,7 +71,6 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 func (app *EthermintApplication) InitPersistData() bool {
 	app.logger.Info("Init Persist Data")
 
-	core.EvmErrHardForkHeight = version.EvmErrHardForkHeight
 	txfilter.Bigguy = common.HexToAddress(version.Bigguy)
 
 	wsState, _ := app.backend.Es().State()
@@ -88,21 +86,6 @@ func (app *EthermintApplication) InitPersistData() bool {
 	key := []byte("CurrentHeightData")
 	keyHash := common.BytesToHash(key)
 	valueHash := wsState.GetState(currEpochDataAddress, keyHash)
-
-	app.logger.Info("Read FrozeTable")
-	frozeTableBytes := wsState.GetCode(txfilter.SendToFroze)
-	app.strategy.FrozeTable = txfilter.CreateFrozeTable()
-	txfilter.EthFrozeTableCopy = app.strategy.FrozeTable.Copy()
-	if len(frozeTableBytes) == 0 {
-		app.logger.Info("no pre FrozeTable")
-	} else {
-		app.logger.Info("FrozeTable Not nil")
-		err := json.Unmarshal(frozeTableBytes, app.strategy.FrozeTable)
-		txfilter.EthFrozeTableCopy = app.strategy.FrozeTable.Copy()
-		if err != nil {
-			panic(fmt.Sprintf("initialize FrozeTable error %v", err))
-		}
-	}
 
 	if bytes.Equal(valueHash.Bytes(), common.Hash{}.Bytes()) {
 		app.logger.Info("no pre CurrentHeightData")
@@ -135,14 +118,7 @@ func (app *EthermintApplication) InitPersistData() bool {
 			}
 		}
 	}
-	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
-	if txfilter.AppVersion <= 4 {
-		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
-		txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
-	} else {
-		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
-		txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
-	}
+	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
 
 	if len(currBytes) == 0 {
 		// no predata existed
@@ -176,44 +152,13 @@ func (app *EthermintApplication) SetPersistenceData() {
 	nextEpochDataAddress := txfilter.SendToUnlock
 	currEpochDataAddress := txfilter.SendToLock
 
-	// we didn't need reset the slots of postable because it it right now.
-	//if height == version.HeightArray[2] {
-	//	//height??
-	//	for index, value := range app.strategy.NextEpochValData.PosTable.PosItemMap {
-	//		fmt.Println(index)
-	//		(*value).Slots = 10
-	//		app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
-	//		fmt.Println((*value).Slots)
-	//	}
-	//	app.strategy.NextEpochValData.PosTable.TotalSlots = int64(len(app.strategy.NextEpochValData.PosTable.PosItemMap)) * 10
-	//	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
-	//}
-
 	if app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock || height%txfilter.EpochBlocks == 0 {
 		nextBytes, _ := json.Marshal(app.strategy.NextEpochValData.PosTable)
 		wsState.SetCode(nextEpochDataAddress, nextBytes)
 		app.logger.Debug(fmt.Sprintf("NextEpochValData.PosTable %v", app.strategy.NextEpochValData.PosTable))
-		if app.strategy.HFExpectedData.BlockVersion >= 4 {
-			nextBytes, _ = json.Marshal(app.strategy.AuthTable)
-			wsState.SetCode(txfilter.SendToAuth, nextBytes)
-			if app.strategy.HFExpectedData.BlockVersion >= 5 {
-				trie := wsState.GetOrNewStateObject(txfilter.SendToAuth).GetTrie(wsState.Database())
-				key := []byte("ExtendAuthTable")
-				keyHash := common.BytesToHash(key)
-				//persist every height
-				valBytes, _ := json.Marshal(app.strategy.AuthTable.ExtendAuthTable)
-				trie.TryUpdate(key, valBytes)
-				valueHash := ethereumCrypto.Keccak256Hash(valBytes)
-				wsState.SetState(txfilter.SendToAuth, keyHash, valueHash)
-			}
-
-			app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
-		}
-	}
-
-	if app.strategy.HFExpectedData.BlockVersion >= 6 {
-		frozeBytes, _ := json.Marshal(app.strategy.FrozeTable)
-		wsState.SetCode(txfilter.SendToFroze, frozeBytes)
+		nextBytes, _ = json.Marshal(app.strategy.AuthTable)
+		wsState.SetCode(txfilter.SendToAuth, nextBytes)
+		app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
 	}
 
 	if height%txfilter.EpochBlocks == 0 {

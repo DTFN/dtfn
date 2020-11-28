@@ -97,12 +97,7 @@ func (es *EthState) AccumulateRewards(strategy *emtTypes.Strategy) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
-	//cancel block rewards when blockversion >= 4
-	if strategy.HFExpectedData.BlockVersion >= 4 {
-		es.work.header.GasUsed = *es.work.totalUsedGas
-	} else {
-		es.work.accumulateRewards(strategy)
-	}
+	es.work.accumulateRewards(strategy)
 }
 
 // Commit and reset the work.
@@ -232,16 +227,9 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 	log.Info(fmt.Sprintf("accumulateRewards LastVoteInfo %v", strategy.CurrentHeightValData.LastVoteInfo))
 	minerBonus := strategy.CurrEpochValData.MinorBonus
 
-	if strategy.CurrentHeightValData.Height <= 3588000 {
-		minerBonus = big.NewInt(1)
-		divisor := big.NewInt(1)
-		// for 1% every year increment
-		minerBonus.Div(strategy.CurrEpochValData.TotalBalance, divisor.Mul(big.NewInt(100), big.NewInt(365*24*60*60/5)))
-	} else {
-		ws.state.AddBalance(ws.CurrentHeader().Coinbase, minerBonus)
+	ws.state.AddBalance(ws.CurrentHeader().Coinbase, minerBonus)
 		//log.Info(fmt.Sprintf("proposer %v , Beneficiary address: %v, get money: %v",
 		//	strategy.CurrentHeightValData.ProposerAddress, ws.CurrentHeader().Coinbase.String(), minerBonus))
-	}
 
 	weightSum := int64(0)
 	for _, voteInfo := range strategy.CurrentHeightValData.LastVoteInfo {
@@ -280,11 +268,7 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 		} else {
 			panic(fmt.Sprintf("address %v not exist in TmAddressToSignerMap", address))
 		}
-		if strategy.HFExpectedData.BlockVersion >= 3 {
-			ws.state.AddBalance(beneficiary, bonusSpecify)
-		} else {
-			ws.state.AddBalance(beneficiary, bonusAverage) //bug
-		}
+		ws.state.AddBalance(beneficiary, bonusSpecify)
 
 		//log.Info(fmt.Sprintf("validator %v , Beneficiary address: %v, get money: %v power: %v validator address: %v",
 		//	strconv.Itoa(i+1), beneficiary.String(), bonusSpecify.String(),

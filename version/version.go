@@ -27,13 +27,7 @@ var (
 
 	PPChainAdmin string
 
-	PPChainPrivateAdmin string
-
-	AccountAdmin string
-
 	Bigguy string
-
-	EvmErrHardForkHeight int64
 
 	HeightString string
 

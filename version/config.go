@@ -40,8 +40,6 @@ func LoadDevelopConfig(c conf) {
 	HeightString = c.Develop.HeightString
 	VersionString = c.Develop.VersionString
 	PPChainAdmin = c.Develop.PPCAdmin
-	PPChainPrivateAdmin = c.Develop.PPChainPrivateAdmin
-	EvmErrHardForkHeight = c.Develop.EvmErrHardForkHeight
 	Bigguy = c.Develop.BigGuy
 }
 
@@ -49,8 +47,6 @@ func LoadStagingConfig(c conf) {
 	HeightString = c.Staging.HeightString
 	VersionString = c.Staging.VersionString
 	PPChainAdmin = c.Staging.PPCAdmin
-	PPChainPrivateAdmin = c.Staging.PPChainPrivateAdmin
-	EvmErrHardForkHeight = c.Staging.EvmErrHardForkHeight
 	Bigguy = c.Staging.BigGuy
 }
 
@@ -58,17 +54,12 @@ func LoadProductionConfig(c conf) {
 	HeightString = c.Production.HeightString
 	VersionString = c.Production.VersionString
 	PPChainAdmin = c.Production.PPCAdmin
-	PPChainPrivateAdmin = c.Production.PPChainPrivateAdmin
-	EvmErrHardForkHeight = c.Production.EvmErrHardForkHeight
 	Bigguy = c.Production.BigGuy
 }
 
 func LoadDefaultConfig(c conf) {
-	HeightString = "20,30,40,200,300"
-	VersionString = "2,3,4,5,6"
+	HeightString = ""
+	VersionString = ""
 	Bigguy = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
-	EvmErrHardForkHeight = 5
-	PPChainPrivateAdmin = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
-	AccountAdmin = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
 	PPChainAdmin = "0xb3d49259b486d04505b0b652ade74849c0b703c3"
 }

@@ -93,9 +93,7 @@ func ethermintCmd(ctx *cli.Context) error {
 
 	ethLogger.Info("version.config", "version.HeightString", version.HeightString,
 		"version.VersionString", version.VersionString, "version.Bigguy", version.Bigguy,
-		"version.PPChainAdmin", version.PPChainAdmin,
-		"version.PPChainPrivateAdmin", version.PPChainPrivateAdmin,
-		"version.EvmErrHardForkHeight", version.EvmErrHardForkHeight)
+		"version.PPChainAdmin", version.PPChainAdmin)
 
 	tmConfig := loadTMConfig(ctx)
 

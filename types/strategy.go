@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"fmt"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/DTFN/dtfn/version"
 )
 
 // MinerRewardStrategy is a mining strategy
@@ -50,8 +49,6 @@ type Strategy struct {
 	NextEpochValData NextEpochValData
 
 	AuthTable *txfilter.AuthTable
-
-	FrozeTable *txfilter.FrozeTable
 
 	// add for hard fork
 	HFExpectedData HardForkExpectedData
@@ -165,76 +162,38 @@ func (strategy *Strategy) enterSelectValidators(seed []byte, height int64) abciT
 	// we use map to remember which validators selected has put into validatorSlice
 	selectedValidators := make(map[string]int)
 
-	if strategy.HFExpectedData.BlockVersion >= 2 {
-		for i := 0; len(validatorsSlice) != selectCount; i++ {
-			var tmPubKey crypto.PubKey
-			var validator Validator
-			var signer common.Address
-			var pubKey abciTypes.PubKey
-			var posItem txfilter.PosItem
-			if height == -1 {
-				//height=-1 表示 seed 存在，使用seed
-				signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
-			} else {
-				//seed 不存在，使用height
-				startIndex := height
-				signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
-			}
-			pubKey = posItem.PubKey
-			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
-			tmAddress := tmPubKey.Address().String()
-			if index, ok := selectedValidators[tmAddress]; ok {
-				validatorsSlice[index].Power++
-			} else {
-				validatorUpdate := abciTypes.ValidatorUpdate{
-					PubKey: pubKey,
-					Power:  1000,
-				}
-				validator = Validator{
-					validatorUpdate,
-					signer,
-				}
-				//Remember tmPubKey.Address 's index in the currentValidators Array
-				selectedValidators[tmAddress] = len(validatorsSlice)
-				validatorsSlice = append(validatorsSlice, validatorUpdate)
-				strategy.CurrentHeightValData.Validators[tmAddress] = validator
-			}
+	for i := 0; len(validatorsSlice) != selectCount; i++ {
+		var tmPubKey crypto.PubKey
+		var validator Validator
+		var signer common.Address
+		var pubKey abciTypes.PubKey
+		var posItem txfilter.PosItem
+		if height == -1 {
+			//height=-1 表示 seed 存在，使用seed
+			signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
+		} else {
+			//seed 不存在，使用height
+			startIndex := height
+			signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
 		}
-	} else {
-		//select validators from posTable
-		for i := 0; i < selectCount; i++ {
-			var tmPubKey crypto.PubKey
-			var validator Validator
-			var signer common.Address
-			var pubKey abciTypes.PubKey
-			var posItem txfilter.PosItem
-			if height == -1 {
-				//height=-1 表示 seed 存在，使用seed
-				signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemBySeedValue(seed, i)
-			} else {
-				//seed 不存在，使用height
-				startIndex := height
-				signer, posItem = strategy.CurrEpochValData.PosTable.SelectItemByHeightValue(startIndex + int64(i))
+		pubKey = posItem.PubKey
+		tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
+		tmAddress := tmPubKey.Address().String()
+		if index, ok := selectedValidators[tmAddress]; ok {
+			validatorsSlice[index].Power++
+		} else {
+			validatorUpdate := abciTypes.ValidatorUpdate{
+				PubKey: pubKey,
+				Power:  10,
 			}
-			pubKey = posItem.PubKey
-			tmPubKey, _ = tmTypes.PB2TM.PubKey(pubKey)
-			tmAddress := tmPubKey.Address().String()
-			if index, ok := selectedValidators[tmAddress]; ok {
-				validatorsSlice[index].Power++
-			} else {
-				validatorUpdate := abciTypes.ValidatorUpdate{
-					PubKey: pubKey,
-					Power:  1000,
-				}
-				validator = Validator{
-					validatorUpdate,
-					signer,
-				}
-				//Remember tmPubKey.Address 's index in the currentValidators Array
-				selectedValidators[tmAddress] = len(validatorsSlice)
-				validatorsSlice = append(validatorsSlice, validatorUpdate)
-				strategy.CurrentHeightValData.Validators[tmAddress] = validator
+			validator = Validator{
+				validatorUpdate,
+				signer,
 			}
+			//Remember tmPubKey.Address 's index in the currentValidators Array
+			selectedValidators[tmAddress] = len(validatorsSlice)
+			validatorsSlice = append(validatorsSlice, validatorUpdate)
+			strategy.CurrentHeightValData.Validators[tmAddress] = validator
 		}
 	}
 
@@ -265,21 +224,19 @@ func (strategy *Strategy) enterSelectValidators(seed []byte, height int64) abciT
 func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock {
 	blsPubkeySlice := []string{}
 	validatorsSlice := []abciTypes.ValidatorUpdate{}
-	var updateSigners []common.Address
-	if height == version.HeightArray[3]{	//whitelist init, needs to pass full table
-		updateSigners = strategy.CurrEpochValData.PosTable.SortedSigners
-	}else{
-		membersNumber := 0
-		if strategy.CurrEpochValData.DKGMembersLimit <= 0 {
-			membersNumber = 100
-		} else {
-			membersNumber = strategy.CurrEpochValData.DKGMembersLimit
-		}
-		updateSigners = strategy.CurrEpochValData.PosTable.TopKSigners(membersNumber)
+	membersNumber := 0
+	if strategy.CurrEpochValData.DKGMembersLimit <= 0 {
+		membersNumber = 100
+	} else {
+		membersNumber = strategy.CurrEpochValData.DKGMembersLimit
 	}
+	sortedSigners := strategy.CurrEpochValData.PosTable.SortedSigners
 
 	currentValidators := map[string]Validator{}
-	for _, signer := range updateSigners {
+	for i, signer := range sortedSigners {
+		if i > membersNumber { //for performance of consensus at this height, theoretically we should return all validators in PosTable
+			break
+		}
 		posItem := strategy.CurrEpochValData.PosTable.PosItemMap[signer]
 		tmAddress := posItem.TmAddress
 		updateValidator := abciTypes.ValidatorUpdate{
@@ -289,7 +246,9 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 		emtValidator := Validator{updateValidator, signer}
 		currentValidators[tmAddress] = emtValidator
 		validatorsSlice = append(validatorsSlice, updateValidator)
-		blsPubkeySlice = append(blsPubkeySlice, posItem.BlsKeyString)
+		if i <= membersNumber {
+			blsPubkeySlice = append(blsPubkeySlice, posItem.BlsKeyString)
+		}
 	}
 
 	for tmAddress, v := range strategy.CurrentHeightValData.Validators {
@@ -304,30 +263,11 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 	}
 	strategy.CurrentHeightValData.Validators = currentValidators
 
-	abiEvents := make([]abciTypes.Event, 0)
-	//get all validators and init tm-auth-table
-	if height == version.HeightArray[2] {
-		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
-		txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
-	} else if height == version.HeightArray[3] {
-		initEvent := abciTypes.Event{Type: "AuthTableInit"}
-		abiEvents = append(abiEvents, initEvent)
-		// Private PPChain Admin account
-		txfilter.PPChainAdmin = common.HexToAddress(version.PPChainPrivateAdmin)
-		txfilter.AccountAdmin = common.HexToAddress(version.AccountAdmin)
-	}
-	abiEvent := strategy.getAuthTmItems(height)
-	if abiEvent != nil {
-		abiEvents = append(abiEvents, *abiEvent)
-	}
-	if len(abiEvents) != 0 {
-		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, Events: abiEvents, AppVersion: strategy.HFExpectedData.BlockVersion}
-	}
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: strategy.HFExpectedData.BlockVersion}
 }
 
 func (strategy *Strategy) getAuthTmItems(height int64) *abciTypes.Event {
-	if strategy.HFExpectedData.BlockVersion >= 5 && len(strategy.AuthTable.ThisBlockChangedMap) != 0 {
+	if len(strategy.AuthTable.ThisBlockChangedMap) != 0 {
 		abiEvent := &abciTypes.Event{Type: "AuthItem"}
 		for tmAddr, value := range strategy.AuthTable.ThisBlockChangedMap {
 			var oper []byte
@@ -353,9 +293,6 @@ func (strategy *Strategy) getAuthTmItems(height int64) *abciTypes.Event {
 
 // Receiver returns which address should receive the mining reward
 func (strategy *Strategy) Receiver() common.Address {
-	if strategy.HFExpectedData.BlockVersion == 4 {
-		return txfilter.Bigguy //not good, all the coinbases in the headers are bigguy
-	}
 	if strategy.CurrentHeightValData.ProposerAddress == "" || len(strategy.CurrEpochValData.PosTable.TmAddressToSignerMap) == 0 {
 		return common.HexToAddress("0000000000000000000000000000000000000002")
 	} else if signer, ok := strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[strategy.CurrentHeightValData.ProposerAddress]; ok {

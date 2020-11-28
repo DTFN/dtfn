@@ -10,11 +10,9 @@ import (
 	"github.com/DTFN/dtfn/version"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
@@ -413,35 +411,6 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 		txfilter.EthAuthTableCopy = txfilter.EthAuthTable.Copy()
 		count := app.strategy.NextEpochValData.PosTable.TryRemoveUnbondPosItems(app.strategy.CurrentHeightValData.Height, app.strategy.CurrEpochValData.PosTable.SortedUnbondSigners)
 		app.GetLogger().Info(fmt.Sprintf("total remove %d Validators.", count))
-
-		if height == version.HeightArray[3] { //force update genesis config to Constantinople
-			db := app.backend.Ethereum().ChainDb()
-			stored := rawdb.ReadCanonicalHash(db, 0)
-			if (stored == common.Hash{}) {
-				app.logger.Error("No genesis block! No need to reset config!")
-			} else {
-				storedcfg := app.backend.Ethereum().BlockChain().Config()
-				upgradeConfig := params.AllEthashProtocolChanges
-				upgradeConfig.ChainID = storedcfg.ChainID
-				upgradeConfig.Ethash = storedcfg.Ethash //we do not use ethash
-				upgradeConfig.Clique = storedcfg.Clique //we do not use clique either
-				fmt.Printf("storedcfg %v \n updated to \n upgradeConfig %v \n", storedcfg, upgradeConfig)
-				app.backend.Ethereum().BlockChain().SetConfig(upgradeConfig)
-				rawdb.WriteChainConfig(db, stored, upgradeConfig)
-			}
-		}
-	}
-
-	if app.strategy.HFExpectedData.BlockVersion >= 6 {
-		//we should clear WaitForDeleteMap every block.
-		if app.strategy.FrozeTable.ThisBlockChangedFlag {
-			for key, _ := range app.strategy.FrozeTable.WaitForDeleteMap {
-				delete(app.strategy.FrozeTable.FrozeItemMap, key)
-				delete(app.strategy.FrozeTable.WaitForDeleteMap, key)
-			}
-			txfilter.EthFrozeTableCopy = txfilter.EthFrozeTable.Copy()
-			app.strategy.FrozeTable.ThisBlockChangedFlag = false
-		}
 	}
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
@@ -508,12 +477,8 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 		}
 	} else if index := strings.Index(query.Path, "/p2p/whitelist"); index >= 0 {
 		authTableMap := make(map[string]int64)
-		for key, ai := range txfilter.EthAuthTable.AuthItemMap {
-			if tmAddr, exist := txfilter.EthAuthTable.ExtendAuthTable.SignerToTmAddressMap[key]; exist {
-				authTableMap[tmAddr] = ai.PermitHeight
-			} else {
-				fmt.Printf("Error! account %X not found tmAddr! \n", key)
-			}
+		for _, ai := range txfilter.EthAuthTable.AuthItemMap {
+			authTableMap[ai.TmAddress] = ai.PermitHeight
 		}
 		for _, pi := range app.strategy.NextEpochValData.PosTable.UnbondPosItemMap {
 			authTableMap[pi.TmAddress] = pi.Height
@@ -522,8 +487,6 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 			authTableMap[pi.TmAddress] = pi.Height
 		}
 		result = authTableMap
-	} else if index := strings.Index(query.Path, "FrozeTable/GetFrozeTable"); index >= 0 {
-		result = txfilter.EthFrozeTableCopy.FrozeItemMap
 	} else {
 		if err := app.rpcClient.Call(&result, in.Method, in.Params...); err != nil {
 			return abciTypes.ResponseQuery{Code: uint32(emtTypes.CodeInternal),
@@ -572,7 +535,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 	} else if checkType == abciTypes.CheckTxType_Recheck {
 		txInfo, cached = app.backend.FetchCachedTxInfo(txHash)
 		if !cached {
-			panic(fmt.Sprintf("The from address of tx should stay in cached"))
+			panic(fmt.Sprintf("The from address of tx should stay in cached on recheck"))
 		} else {
 			defer func() {
 				if !success {
@@ -683,18 +646,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		txInfo = ethTypes.TxInfo{Tx: tx, From: from, SubTx: subTx, RelayFrom: relayer}
 	}
 
-	//check the legalcy of frozetx
-	if tx.To() != nil {
-		if txfilter.IsFrozeTx(*tx.To()) {
-			err := txfilter.ValidateFrozeTx(from, tx.Data())
-			if err != nil {
-				return abciTypes.ResponseCheckTx{
-					Code: uint32(emtTypes.CodeInternal),
-					Log:  core.ErrInvalidFrozeData.Error()}
-			}
-		}
-	}
-
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
@@ -748,27 +699,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 			Log: fmt.Sprintf(
 				"Current balance: %s, tx cost: %s",
 				currentBalance, tx.Cost())}
-	}
-
-	if app.strategy.HFExpectedData.BlockVersion >= 6 {
-		if isRelayTx {
-			if txfilter.IsFrozed(relayer) {
-				return abciTypes.ResponseCheckTx{
-					Code: uint32(emtTypes.CodeInternal),
-					Log:  core.ErrFrozedAddress.Error()}
-			}
-			if txfilter.IsFrozeBlocked(from, tx.To()) != nil {
-				return abciTypes.ResponseCheckTx{
-					Code: uint32(emtTypes.CodeInternal),
-					Log:  core.ErrFrozedAddress.Error()}
-			}
-		} else {
-			if txfilter.IsFrozeBlocked(from, tx.To()) != nil {
-				return abciTypes.ResponseCheckTx{
-					Code: uint32(emtTypes.CodeInternal),
-					Log:  core.ErrFrozedAddress.Error()}
-			}
-		}
 	}
 
 	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
@@ -841,11 +771,7 @@ func (app *EthermintApplication) InsertPosItemInit(account common.Address, balan
 	pubKey abciTypes.PubKey, blsKeyString string) error {
 	if app.strategy != nil {
 		tmpSlot := big.NewInt(0)
-		if app.strategy.HFExpectedData.BlockVersion >= 4 {
-			tmpSlot = big.NewInt(10)
-		} else {
-			tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
-		}
+		tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		tmAddress := tmPubKey.Address().String()
 		return app.strategy.NextEpochValData.PosTable.InsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
