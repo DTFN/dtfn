@@ -50,7 +50,6 @@ var (
 		ethUtils.RPCPortFlag,
 		ethUtils.RPCCORSDomainFlag,
 		ethUtils.RPCVirtualHostsFlag,
-		ethUtils.RPCIPSFlag,
 		ethUtils.RPCApiFlag,
 		ethUtils.IPCDisabledFlag,
 		ethUtils.WSEnabledFlag,
