@@ -262,7 +262,12 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 		}
 	}
 	strategy.CurrentHeightValData.Validators = currentValidators
-
+	abiEvent := strategy.getAuthTmItems(height)
+	if abiEvent != nil {
+		abiEvents := make([]abciTypes.Event, 0)
+		abiEvents = append(abiEvents, *abiEvent)
+		return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, Events: abiEvents, AppVersion: strategy.HFExpectedData.BlockVersion}
+	}
 	return abciTypes.ResponseEndBlock{ValidatorUpdates: validatorsSlice, BlsKeyString: blsPubkeySlice, AppVersion: strategy.HFExpectedData.BlockVersion}
 }
 
