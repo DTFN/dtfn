@@ -276,6 +276,7 @@ func (strategy *Strategy) blsValidators(height int64) abciTypes.ResponseEndBlock
 		updateSigners = strategy.CurrEpochValData.PosTable.TopKSigners(membersNumber)
 	}
 
+	currentValidators := map[string]Validator{}
 	for _, signer := range updateSigners {
 		posItem := strategy.CurrEpochValData.PosTable.PosItemMap[signer]
 		tmAddress := posItem.TmAddress
