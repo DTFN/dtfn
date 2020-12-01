@@ -289,8 +289,6 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	tmConfig.Consensus.CreateEmptyBlocksInterval = time.Duration(ctx.GlobalInt(emtUtils.TmConsEBlockInteval.Name)) * time.Second
 	tmConfig.Consensus.NeedProofBlock = ctx.GlobalBool(emtUtils.TmConsNeedProofBlock.Name)
 	tmConfig.Consensus.TimeoutPropose = time.Duration(ctx.GlobalInt(emtUtils.TmConsProposeTimeout.Name)) * time.Second
-	tmConfig.Consensus.DKGMembersLimit = ctx.GlobalInt(emtUtils.DKGMembersLimit.Name)
-
 	tmConfig.RollbackHeight = ctx.GlobalInt64(emtUtils.RollbackHeight.Name)
 	tmConfig.RollbackFlag = ctx.GlobalBool(emtUtils.RollbackFlag.Name)
 
@@ -309,7 +307,6 @@ func loadTMConfig(ctx *cli.Context) *tmcfg.Config {
 	tmConfig.P2P.ExternalAddress = ctx.GlobalString(emtUtils.TendermintP2PExternalAddress.Name)
 	tmConfig.P2P.MaxNumInboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
 	tmConfig.P2P.MaxNumOutboundPeers = ctx.GlobalInt(emtUtils.MaxInPeers.Name)
-	tmConfig.P2P.InitDelay=ctx.GlobalInt(emtUtils.PexInitDelay.Name)
 	tmConfig.P2P.SendRate = int64(1024000)
 	tmConfig.P2P.RecvRate = int64(1024000)
 	tmConfig.P2P.FlushThrottleTimeout = 10 * time.Millisecond
