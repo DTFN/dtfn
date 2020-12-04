@@ -273,6 +273,12 @@ var (
 		Usage:  "whether use selectstrategy,mainly used in the test",
 	}
 
+	PosTablePercent = cli.IntFlag{
+		Name:  "postable_percent",
+		Value: 10000,
+		Usage: "the percent of the initial whole balance in genesis.json, that is the minimal unit for a bet account to join posTable",
+	}
+
 	DKGMembersLimit = cli.IntFlag{
 		Name:  "dkg_members_limit",
 		Value: 100,

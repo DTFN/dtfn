@@ -59,10 +59,10 @@ func (app *EthermintApplication) GetUpdatedValidators(height int64, seed []byte)
 }
 
 func (app *EthermintApplication) SetPosTableThreshold() {
-	if app.strategy.CurrEpochValData.TotalBalance.Int64() == 0 {
+	if app.strategy.CurrEpochValData.TotalBalance.Cmp(big.NewInt(0)) == 0 {
 		panic("strategy.CurrEpochValData.TotalBalance==0")
 	}
-	thresholdUnit := big.NewInt(txfilter.ThresholdUnit)
+	thresholdUnit := big.NewInt(int64(app.strategy.CurrEpochValData.PosTablePercent))
 	threshold := big.NewInt(0)
 	threshold.Div(app.strategy.CurrEpochValData.TotalBalance, thresholdUnit)
 	app.strategy.NextEpochValData.PosTable.SetThreshold(threshold)

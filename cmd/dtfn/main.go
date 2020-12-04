@@ -108,6 +108,7 @@ var (
 		utils.SelectCount,
 		utils.SelectBlockNumber,
 		utils.SelectStrategy,
+		utils.PosTablePercent,
 		utils.DKGMembersLimit,
 		utils.MempoolSize,
 		utils.MempoolThreshold,

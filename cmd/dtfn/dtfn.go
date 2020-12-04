@@ -156,6 +156,8 @@ func ethermintCmd(ctx *cli.Context) error {
 	fmt.Println("dkgMembersLimit", dkgMembersLimit)
 	strategy.CurrEpochValData.DKGMembersLimit = dkgMembersLimit
 
+	strategy.CurrEpochValData.PosTablePercent = ctx.GlobalInt(emtUtils.PosTablePercent.Name)
+
 	// Step 2: If we can invoke `tendermint node`, let's do so
 	// in order to make dtfn as self contained as possible.
 	// See Issue https://github.com/tendermint/ethermint/issues/244

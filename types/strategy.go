@@ -87,11 +87,11 @@ type CurrEpochValData struct {
 	//deepcopy from NextEpochValData each epoch
 	PosTable *txfilter.PosTable `json:"pos_table"`
 
-	TotalBalance *big.Int `json:"total_balance"`
-	MinorBonus   *big.Int `json:"-"` //all voted validators share this bonus per block.
-
-	SelectCount     int `json:"-"` //select count of each height
-	DKGMembersLimit int `json:"-"` //the upper limit of DKG members in each epoch
+	TotalBalance      *big.Int `json:"total_balance"`
+	MinorBonus        *big.Int `json:"-"` //all voted validators share this bonus per block.
+	PosTablePercent int      `json:"-"` //the minimal percent for a bet account to join posTable
+	SelectCount       int      `json:"-"` //select count of each height
+	DKGMembersLimit   int      `json:"-"` //the upper limit of DKG members in each epoch
 }
 
 type Validator struct {
