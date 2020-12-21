@@ -724,7 +724,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				currentBalance, tx.Cost())}
 	}
 
-	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true,false) // homestead == true
 
 	if err != nil && tx.Gas() < intrGas {
 		return abciTypes.ResponseCheckTx{
