@@ -7,7 +7,6 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -48,7 +47,7 @@ type Backend struct {
 
 // NewBackend creates a new Backend
 // #stable - 0.4.0
-func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
+func NewBackend(node *Node, ethConfig *eth.Config,
 	client rpcClient.HTTPClient) (*Backend, error) {
 
 	// Create working ethereum state.
@@ -56,7 +55,7 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 
 	// eth.New takes a ServiceContext for the EventMux, the AccountManager,
 	// and some basic functions around the DataDir.
-	ethereum, err := eth.New(ctx, ethConfig)
+	ethereum, err := eth.New(&node.Node, ethConfig)
 	if err != nil {
 		return nil, err
 	}

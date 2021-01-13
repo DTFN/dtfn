@@ -12,11 +12,12 @@ import (
 	"github.com/DTFN/dtfn/cmd/utils"
 	"github.com/DTFN/dtfn/version"
 	"time"
+	"path/filepath"
 )
 
 var (
 	// The app that holds all commands and flags.
-	app = ethUtils.NewApp(version.Version, time.Now().String(), "the gelchain command line interface")
+	app = NewApp(version.Version, time.Now().String(), "the gelchain command line interface")
 	// flags that configure the go-ethereum node
 	nodeFlags = []cli.Flag{
 		ethUtils.DataDirFlag,
@@ -45,12 +46,12 @@ var (
 	}
 
 	rpcFlags = []cli.Flag{
-		ethUtils.RPCEnabledFlag,
-		ethUtils.RPCListenAddrFlag,
-		ethUtils.RPCPortFlag,
-		ethUtils.RPCCORSDomainFlag,
-		ethUtils.RPCVirtualHostsFlag,
-		ethUtils.RPCApiFlag,
+		ethUtils.LegacyRPCEnabledFlag,
+		ethUtils.LegacyRPCListenAddrFlag,
+		ethUtils.LegacyRPCPortFlag,
+		ethUtils.LegacyRPCCORSDomainFlag,
+		ethUtils.LegacyRPCVirtualHostsFlag,
+		ethUtils.LegacyRPCApiFlag,
 		ethUtils.IPCDisabledFlag,
 		ethUtils.WSEnabledFlag,
 		ethUtils.WSListenAddrFlag,
@@ -116,6 +117,17 @@ var (
 		utils.PexInitDelay,
 	}
 )
+
+// NewApp creates an app with sane defaults.
+func NewApp(gitCommit, gitDate, usage string) *cli.App {
+	app := cli.NewApp()
+	app.Name = filepath.Base(os.Args[0])
+	app.Author = ""
+	app.Email = ""
+	app.Version = params.VersionWithCommit(gitCommit, gitDate)
+	app.Usage = usage
+	return app
+}
 
 func init() {
 	app.Action = ethermintCmd

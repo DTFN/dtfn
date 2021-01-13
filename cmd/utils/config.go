@@ -43,17 +43,17 @@ type gethConfig struct {
 
 // MakeFullNode creates a full go-ethereum node
 // #unstable
-func MakeFullNode(ctx *cli.Context) *ethereum.Node {
+func MakeFullNode(ctx *cli.Context) (*ethereum.Node, *ethereum.Backend) {
 	stack, cfg := makeConfigNode(ctx)
 
+	var backend *ethereum.Backend
+	var err error
 	tendermintLAddr := ctx.GlobalString(TendermintAddrFlag.Name)
-	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return ethereum.NewBackend(ctx, &cfg.Eth, rpcClient.NewURIClient(tendermintLAddr))
-	}); err != nil {
-		ethUtils.Fatalf("Failed to register the ABCI application service: %v", err)
+	if backend, err = ethereum.NewBackend(stack, &cfg.Eth, rpcClient.NewURIClient(tendermintLAddr)); err != nil {
+		ethUtils.Fatalf("Failed to ethereum.NewBackend: %v", err)
 	}
 
-	return stack
+	return stack, backend
 }
 
 func makeConfigNode(ctx *cli.Context) (*ethereum.Node, gethConfig) {

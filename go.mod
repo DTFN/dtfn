@@ -16,6 +16,6 @@ require (
 	gopkg.in/yaml.v2 v2.2.8
 )
 
-replace github.com/ethereum/go-ethereum => github.com/DTFN/go-ethereum v1.5.0
+replace github.com/ethereum/go-ethereum => github.com/DTFN/go-ethereum v1.5.2
 
 replace github.com/tendermint/tendermint => github.com/DTFN/tendermint v1.5.0
