@@ -337,10 +337,10 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	)
 
 	if err != nil {
-		log.Error(fmt.Sprintf("Deliver Tx: err %v", err))
+		log.Error(fmt.Sprintf("Deliver Tx: from %X txHash %X err %v", msg.From(), tx.Hash(), err))
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
-	log.Debug(fmt.Sprintf("Deliver Tx: from %X tx %v", msg.From(), tx))
+	log.Info(fmt.Sprintf("Deliver Tx: from %X txHash %X", msg.From(), tx.Hash()))
 
 	logs := ws.state.GetLogs(tx.Hash())
 
