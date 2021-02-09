@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
@@ -35,6 +34,7 @@ import (
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
 	"math/big"
+	"github.com/ethereum/go-ethereum/console/prompt"
 )
 
 func ethermintCmd(ctx *cli.Context) error {
@@ -58,18 +58,13 @@ func ethermintCmd(ctx *cli.Context) error {
 	version.InitConfig()
 
 	// Step 1: Setup the go-ethereum node and start it
-	node := emtUtils.MakeFullNode(ctx)
+	node, backend := emtUtils.MakeFullNode(ctx)
 	startNode(ctx, node)
-
+	backend.Start(node.Server())
+	defer backend.Stop()
 	// Setup the ABCI server and start it
 	addr := ctx.GlobalString(emtUtils.ABCIAddrFlag.Name)
 	abci := ctx.GlobalString(emtUtils.ABCIProtocolFlag.Name)
-
-	// Fetch the registered service of this type
-	var backend *ethereum.Backend
-	if err := node.Service(&backend); err != nil {
-		ethUtils.Fatalf("ethereum backend service not running: %v", err)
-	}
 
 	// In-proc RPC connection so ABCI.Query can be forwarded over the ethereum rpc
 	rpcClient, err := node.Attach()
@@ -220,19 +215,19 @@ func ethermintCmd(ctx *cli.Context) error {
 			}
 		})
 
-/*			h := new(memsizeui.Handler)
-			s := &http.Server{Addr: "0.0.0.0:9090", Handler: h}
-			txs := clist_mempool.Txs()
-			sMap := clist_mempool.TxsMap()
-			state, _ := backend.Es().State()
-			work:=backend.Es().WorkState()
-			txPool := backend.Ethereum().TxPool()
-			h.Add("syncMap", &sMap)
-			h.Add("txsList", txs)
-			h.Add("esState", state)
-			h.Add("workState", &work)
-			txPool.DebugMemory(h)
-			go s.ListenAndServe()*/
+		/*			h := new(memsizeui.Handler)
+					s := &http.Server{Addr: "0.0.0.0:9090", Handler: h}
+					txs := clist_mempool.Txs()
+					sMap := clist_mempool.TxsMap()
+					state, _ := backend.Es().State()
+					work:=backend.Es().WorkState()
+					txPool := backend.Ethereum().TxPool()
+					h.Add("syncMap", &sMap)
+					h.Add("txsList", txs)
+					h.Add("esState", state)
+					h.Add("workState", &work)
+					txPool.DebugMemory(h)
+					go s.ListenAndServe()*/
 
 		// Run forever.
 		select {}
@@ -426,7 +421,7 @@ func unlockAccount(ctx *cli.Context, ks *keystore.KeyStore, address string, i in
 // getPassPhrase retrieves the passwor associated with an account, either fetched
 // from a list of preloaded passphrases, or requested interactively from the user.
 // nolint: unparam
-func getPassPhrase(prompt string, confirmation bool, i int, passwords []string) string {
+func getPassPhrase(promptStr string, confirmation bool, i int, passwords []string) string {
 	// If a list of passwords was supplied, retrieve from them
 	if len(passwords) > 0 {
 		if i < len(passwords) {
@@ -435,15 +430,15 @@ func getPassPhrase(prompt string, confirmation bool, i int, passwords []string) 
 		return passwords[len(passwords)-1]
 	}
 	// Otherwise prompt the user for the password
-	if prompt != "" {
-		fmt.Println(prompt)
+	if promptStr != "" {
+		fmt.Println(promptStr)
 	}
-	password, err := console.Stdin.PromptPassword("Passphrase: ")
+	password, err := prompt.Stdin.PromptPassword("Passphrase: ")
 	if err != nil {
 		ethUtils.Fatalf("Failed to read passphrase: %v", err)
 	}
 	if confirmation {
-		confirm, err := console.Stdin.PromptPassword("Repeat passphrase: ")
+		confirm, err := prompt.Stdin.PromptPassword("Repeat passphrase: ")
 		if err != nil {
 			ethUtils.Fatalf("Failed to read passphrase confirmation: %v", err)
 		}

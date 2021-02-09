@@ -23,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	emtTypes "github.com/DTFN/dtfn/types"
 	"time"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 const errorCode = 1
@@ -194,6 +195,7 @@ func (es *EthState) Pending() (*ethTypes.Block, *state.StateDB) {
 		es.work.transactions,
 		nil,
 		es.work.receipts,
+		new(trie.Trie),
 	), es.work.state.Copy()
 }
 
@@ -321,10 +323,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction, txInfo ethTypes.TxInfo) abciTypes.ResponseDeliverTx {
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
-	var err error
-	var msg core.Message
-	var receipt *ethTypes.Receipt
-	receipt, msg, _, err = core.ApplyTransactionWithInfo(
+	receipt, msg, err := core.ApplyTransactionWithInfo(
 		chainConfig,
 		blockchain,
 		&ws.header.Coinbase, // defaults to address of the author of the header
@@ -338,10 +337,10 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	)
 
 	if err != nil {
-		log.Error(fmt.Sprintf("Deliver Tx: err %v", err))
+		log.Error(fmt.Sprintf("Deliver Tx: from %X txHash %X err %v", msg.From(), tx.Hash(), err))
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
-	log.Debug(fmt.Sprintf("Deliver Tx: from %X tx %v", msg.From(), tx))
+	log.Info(fmt.Sprintf("Deliver Tx: from %X txHash %X", msg.From(), tx.Hash()))
 
 	logs := ws.state.GetLogs(tx.Hash())
 
@@ -380,14 +379,14 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 
 	// Create block object and compute final commit hash (hash of the ethereum
 	// block).
-	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
+	block := ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts, new(trie.Trie))
 	blockHash := block.Hash()
 
 	log.Info(fmt.Sprintf("eth_state commit. block.header %v blockHash %X",
 		block.Header(), blockHash))
 
-	blockBytes,_ := json.Marshal(block.Header())
-	log.Info(fmt.Sprintf("eth_state json: %v",string(blockBytes)))
+	blockBytes, _ := json.Marshal(block.Header())
+	log.Info(fmt.Sprintf("eth_state json: %v", string(blockBytes)))
 
 	proctime := time.Since(ws.bstart)
 	blockchain.AddGcproc(proctime)

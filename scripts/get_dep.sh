@@ -10,7 +10,8 @@ installBLS(){
         else
         git clone https://github.com/DTFN/mcl.git && cd $GOPATH/src/github.com/herumi/mcl
     fi
-    git reset --hard fe95b63cc450bc1eb0459dda916a858b5442a258 && make
+    git reset --hard 5fd1dc64ef2ef04014bfadcb3c2ad0c54edf794b && make
+    mv lib/libmcl.so lib/libmcl_dy.so
     cd $GOPATH/src/github.com/herumi
     if [ -d bls ]
         then
@@ -19,7 +20,10 @@ installBLS(){
         else
         git clone https://github.com/DTFN/bls.git && cd $GOPATH/src/github.com/herumi/bls
     fi
-    git reset --hard e9c72f18ab9bc09923da739151821cc588c0d295 && make
+    git reset --hard f53dadd5a51900f94b7aecff0063feada2f4bb30 && make
+    mv lib/libbls384.so lib/libbls384_dy.so
+    mv lib/libbls256.so lib/libbls256_dy.so
+    mv lib/libbls384_256.so mv lib/libbls384_256_dy.so
 }
 
 installUSB(){
