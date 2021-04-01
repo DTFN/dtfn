@@ -65,6 +65,15 @@ func (app *EthermintApplication) SetPosTableThreshold() {
 	thresholdUnit := big.NewInt(int64(app.strategy.CurrEpochValData.PosTablePercent))
 	threshold := big.NewInt(0)
 	threshold.Div(app.strategy.CurrEpochValData.TotalBalance, thresholdUnit)
+	fmt.Println("================threshold=================")
+	fmt.Println(threshold)
+	fmt.Println("================threshold=================")
+	fmt.Println("================thresholdUnit=================")
+	fmt.Println(thresholdUnit)
+	fmt.Println("================thresholdUnit=================")
+	fmt.Println("================thresholdUnit=================")
+	fmt.Println(app.strategy.CurrEpochValData.TotalBalance)
+	fmt.Println("================thresholdUnit=================")
 	app.strategy.NextEpochValData.PosTable.SetThreshold(threshold)
 }
 
