@@ -771,6 +771,10 @@ func (app *EthermintApplication) InsertPosItemInit(account common.Address, balan
 	pubKey abciTypes.PubKey, blsKeyString string) error {
 	if app.strategy != nil {
 		tmpSlot := big.NewInt(0)
+		fmt.Println("================InsertPosItemInit=================")
+		fmt.Println(balance)
+		fmt.Println(app.strategy.NextEpochValData.PosTable.Threshold)
+		fmt.Println("================InsertPosItemInit=================")
 		tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		tmAddress := tmPubKey.Address().String()
