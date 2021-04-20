@@ -3,6 +3,7 @@ module github.com/DTFN/dtfn
 go 1.14
 
 require (
+	github.com/aws/aws-sdk-go v1.27.0 // indirect
 	github.com/cosmos/cosmos-sdk v0.38.3 // indirect
 	github.com/ethereum/go-ethereum v1.9.12
 	github.com/golang/mock v1.4.3
