@@ -161,7 +161,7 @@ func (app *EthermintApplication) SetPersistenceData() {
 		app.logger.Debug(fmt.Sprintf("AuthTable %v", app.strategy.AuthTable))
 	}
 
-	if height%txfilter.EpochBlocks == 0 {
+	if app.strategy.CurrEpochValData.PosTable.ChangedFlagThisBlock || height%txfilter.EpochBlocks == 0 {
 		currBytes, _ := json.Marshal(app.strategy.CurrEpochValData)
 		wsState.SetCode(currEpochDataAddress, currBytes)
 	}

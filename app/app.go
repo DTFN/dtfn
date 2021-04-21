@@ -382,6 +382,24 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	//	app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	//}
 
+	len := len(app.strategy.CurrEpochValData.PosTable.SortedSigners)
+	normalSigner := app.strategy.CurrEpochValData.PosTable.SortedSigners[0]
+	normalSlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[normalSigner].Slots
+	for i := 0; i < len; i++ {
+		specifySigner := app.strategy.CurrEpochValData.PosTable.SortedSigners[i]
+		specifySlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[specifySigner].Slots
+		if(specifySlot != normalSlot){
+			updatedSlot := (normalSlot+specifySlot)/2
+			if(updatedSlot != specifySlot){
+				app.strategy.CurrEpochValData.PosTable.UpdatePosItem(specifySigner, updatedSlot)
+				app.strategy.NextEpochValData.PosTable.UpdatePosItem(specifySigner, updatedSlot)
+			}
+		}
+	}
+	app.strategy.CurrEpochValData.PosTable.ChangedFlagThisBlock = true
+	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
+
+
 	app.strategy.CurrentHeightValData.ProposerAddress = strings.ToUpper(hex.EncodeToString(beginBlock.Header.ProposerAddress))
 	coinbase := app.Receiver()
 	app.backend.Es().UpdateHeaderCoinbase(coinbase)

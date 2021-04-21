@@ -1,15 +1,14 @@
 package app
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"math/big"
-	"github.com/ethereum/go-ethereum/core/state"
-	"strings"
-	abciTypes "github.com/tendermint/tendermint/abci/types"
-	"github.com/DTFN/dtfn/types"
-	"github.com/ethereum/go-ethereum/log"
-	"fmt"
 	"encoding/hex"
+	"fmt"
+	"github.com/DTFN/dtfn/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"math/big"
+	"strings"
 )
 
 type Punishment struct {
@@ -84,33 +83,57 @@ func subBalance(stateDB *state.StateDB, addr common.Address, amount *big.Int) *b
 }
 
 func (p *Punishment) DoPunish(stateDB *state.StateDB, strategy *types.Strategy, evidences []abciTypes.Evidence, coinbase common.Address, currentHeight int64) {
-	if transferStrategy, ok := p.SubBalanceStrategy.(TransferStrategy); ok {
-		transferStrategy.transferTo = coinbase
-	}
+	normalSigner := strategy.CurrEpochValData.PosTable.SortedSigners[0]
+	normalSlot := strategy.CurrEpochValData.PosTable.PosItemMap[normalSigner].Slots
 	for _, e := range evidences {
 		signer, found := strategy.NextEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
-		if found {
-			p.Punish(stateDB, signer)
-			log.Info(fmt.Sprintf("evil signer %v got slashed because of Evidence %v", signer, e))
-			_, found := strategy.NextEpochValData.PosTable.PosItemMap[signer]
-			if found { //evil signer has not unbonded, kicked it out
-				err := strategy.NextEpochValData.PosTable.RemovePosItem(signer, currentHeight, true)
-				if err != nil {
-					_, found := strategy.NextEpochValData.PosTable.UnbondPosItemMap[signer]
-					if !found {
-						panic(fmt.Sprintf("evil signer %v cannot be found in either posItemMap or unbondedPosItemMap of NextEpochValData.PosTable. but is in the TmAddressToSignerMap", signer))
-					}
-				} else {
-					log.Info(fmt.Sprintf("evil signer %v got unbonded because of Evidence %v", signer, e))
-				}
-			} else { //he should be in the unbonded map
-				_, found := strategy.NextEpochValData.PosTable.UnbondPosItemMap[signer]
-				if !found {
-					panic(fmt.Sprintf("evil signer %v cannot be found in either posItemMap or unbondedPosItemMap of CurrEpochValData.PosTable. but is in the TmAddressToSignerMap", signer))
-				}
+		fmt.Println("\n=============evidence height================")
+		fmt.Println(e.Height)
+		fmt.Println(signer.String())
+		fmt.Println("=============evidence height================")
+		if found{
+			specifySlot := strategy.NextEpochValData.PosTable.PosItemMap[signer].Slots
+			updatedSlot := specifySlot*2- normalSlot
+			if(updatedSlot > 2){
+				strategy.NextEpochValData.PosTable.DecreasePosItem(signer, updatedSlot/2)
 			}
-		} else {
-			log.Error(fmt.Sprintf("Fail to punish address %X. Evidence %v is too long ago?", e.Validator.Address, e))
+		}
+		signer, found = strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
+		if found{
+			specifySlot := strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots
+			updatedSlot := specifySlot*2- normalSlot
+			if(updatedSlot > 2){
+				strategy.CurrEpochValData.PosTable.DecreasePosItem(signer, updatedSlot/2)
+			}
 		}
 	}
+	//if transferStrategy, ok := p.SubBalanceStrategy.(TransferStrategy); ok {
+	//	transferStrategy.transferTo = coinbase
+	//}
+	//for _, e := range evidences {
+	//	signer, found := strategy.NextEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
+	//	if found {
+	//		p.Punish(stateDB, signer)
+	//		log.Info(fmt.Sprintf("evil signer %v got slashed because of Evidence %v", signer, e))
+	//		_, found := strategy.NextEpochValData.PosTable.PosItemMap[signer]
+	//		if found { //evil signer has not unbonded, kicked it out
+	//			err := strategy.NextEpochValData.PosTable.RemovePosItem(signer, currentHeight, true)
+	//			if err != nil {
+	//				_, found := strategy.NextEpochValData.PosTable.UnbondPosItemMap[signer]
+	//				if !found {
+	//					panic(fmt.Sprintf("evil signer %v cannot be found in either posItemMap or unbondedPosItemMap of NextEpochValData.PosTable. but is in the TmAddressToSignerMap", signer))
+	//				}
+	//			} else {
+	//				log.Info(fmt.Sprintf("evil signer %v got unbonded because of Evidence %v", signer, e))
+	//			}
+	//		} else { //he should be in the unbonded map
+	//			_, found := strategy.NextEpochValData.PosTable.UnbondPosItemMap[signer]
+	//			if !found {
+	//				panic(fmt.Sprintf("evil signer %v cannot be found in either posItemMap or unbondedPosItemMap of CurrEpochValData.PosTable. but is in the TmAddressToSignerMap", signer))
+	//			}
+	//		}
+	//	} else {
+	//		log.Error(fmt.Sprintf("Fail to punish address %X. Evidence %v is too long ago?", e.Validator.Address, e))
+	//	}
+	//}
 }

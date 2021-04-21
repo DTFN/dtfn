@@ -182,9 +182,10 @@ func (strategy *Strategy) enterSelectValidators(seed []byte, height int64) abciT
 		if index, ok := selectedValidators[tmAddress]; ok {
 			validatorsSlice[index].Power++
 		} else {
+			basePower := strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots;
 			validatorUpdate := abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
-				Power:  10,
+				Power:  basePower*basePower*basePower*basePower,
 			}
 			validator = Validator{
 				validatorUpdate,
