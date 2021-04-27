@@ -398,11 +398,6 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		specifySlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[specifySigner].Slots
 		if(specifySlot != app.MaxSlot){
 			updatedSlot := (app.MaxSlot+specifySlot)/2
-			fmt.Println("===========updatedSlot=============")
-			fmt.Println(updatedSlot)
-			fmt.Println(app.MaxSlot)
-			fmt.Println(specifySlot)
-			fmt.Println("===========updatedSlot=============")
 			if(updatedSlot != specifySlot){
 				app.strategy.CurrEpochValData.PosTable.UpdatePosItem(specifySigner, updatedSlot)
 				app.strategy.NextEpochValData.PosTable.UpdatePosItem(specifySigner, updatedSlot)
