@@ -142,6 +142,7 @@ func ethermintCmd(ctx *cli.Context) error {
 		strategy.SetInitialAccountMap(amlist)
 		log.Info(fmt.Sprintf("SetInitialAccountMap %v", amlist))
 	}
+
 	if strategy.CurrEpochValData.TotalBalance.Int64() == 0 {
 		panic("strategy.CurrEpochValData.TotalBalance==0")
 	}

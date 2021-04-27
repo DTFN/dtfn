@@ -141,6 +141,14 @@ func (app *EthermintApplication) InitPersistData() bool {
 
 	app.logger.Info("Read AuthTable")
 	app.strategy.AuthTable = wsState.InitAuthTable()
+	//
+	//app.strategy.CurrEpochValData.PosTable.
+
+	normalSigner := app.strategy.CurrEpochValData.PosTable.SortedSigners[0]
+	app.MaxSlot = app.strategy.CurrEpochValData.PosTable.PosItemMap[normalSigner].Slots
+	fmt.Println("======app maxslot history==============")
+	fmt.Println(app.MaxSlot)
+	fmt.Println("======app maxslot history==============")
 
 	return true
 }

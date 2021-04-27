@@ -53,6 +53,8 @@ type EthermintApplication struct {
 	punishment *Punishment
 
 	logger tmLog.Logger
+
+	MaxSlot  int64
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -205,6 +207,13 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	} else {
 		panic("no qualified initial validators, please check config")
 	}
+
+
+	normalSigner := app.strategy.CurrEpochValData.PosTable.SortedSigners[0]
+	app.MaxSlot = app.strategy.CurrEpochValData.PosTable.PosItemMap[normalSigner].Slots
+	fmt.Println("======app maxslot history==============")
+	fmt.Println(app.MaxSlot)
+	fmt.Println("======app maxslot history==============")
 
 	app.SetPersistenceData()
 
@@ -383,13 +392,17 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	//}
 
 	len := len(app.strategy.CurrEpochValData.PosTable.SortedSigners)
-	normalSigner := app.strategy.CurrEpochValData.PosTable.SortedSigners[0]
-	normalSlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[normalSigner].Slots
+
 	for i := 0; i < len; i++ {
 		specifySigner := app.strategy.CurrEpochValData.PosTable.SortedSigners[i]
 		specifySlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[specifySigner].Slots
-		if(specifySlot != normalSlot){
-			updatedSlot := (normalSlot+specifySlot)/2
+		if(specifySlot != app.MaxSlot){
+			updatedSlot := (app.MaxSlot+specifySlot)/2
+			fmt.Println("===========updatedSlot=============")
+			fmt.Println(updatedSlot)
+			fmt.Println(app.MaxSlot)
+			fmt.Println(specifySlot)
+			fmt.Println("===========updatedSlot=============")
 			if(updatedSlot != specifySlot){
 				app.strategy.CurrEpochValData.PosTable.UpdatePosItem(specifySigner, updatedSlot)
 				app.strategy.NextEpochValData.PosTable.UpdatePosItem(specifySigner, updatedSlot)
