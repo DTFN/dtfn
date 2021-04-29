@@ -275,7 +275,7 @@ var (
 
 	PosTablePercent = cli.IntFlag{
 		Name:  "postable_percent",
-		Value: 10000,
+		Value: 100000,
 		Usage: "the percent of the initial whole balance in genesis.json, that is the minimal unit for a bet account to join posTable",
 	}
 

@@ -391,32 +391,34 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	//	app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
 	//}
 
-	len := len(app.strategy.CurrEpochValData.PosTable.SortedSigners)
+	app.strategy.CurrentHeightValData.ProposerAddress = strings.ToUpper(hex.EncodeToString(beginBlock.Header.ProposerAddress))
+	coinbase := app.Receiver()
+	app.backend.Es().UpdateHeaderCoinbase(coinbase)
+	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
-	for i := 0; i < len; i++ {
-		specifySigner := app.strategy.CurrEpochValData.PosTable.SortedSigners[i]
-		specifySlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[specifySigner].Slots
-		if(specifySlot != app.MaxSlot){
-			updatedSlot := (app.MaxSlot+specifySlot)/2
-			if(updatedSlot != specifySlot){
-				app.strategy.CurrEpochValData.PosTable.UpdatePosItem(specifySigner, updatedSlot)
-				app.strategy.NextEpochValData.PosTable.UpdatePosItem(specifySigner, updatedSlot)
+	for i, voteInfo := range app.strategy.CurrentHeightValData.LastVoteInfo {
+		if voteInfo.SignedLastBlock {
+			address := strings.ToUpper(hex.EncodeToString(
+				app.strategy.CurrentHeightValData.LastVoteInfo[i].Validator.Address))
+			if signer, ok := app.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[address]; ok {
+				specifySlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots
+				if(specifySlot != app.MaxSlot){
+					updatedSlot := (app.MaxSlot+specifySlot)/2
+					if(updatedSlot != specifySlot){
+						app.strategy.CurrEpochValData.PosTable.UpdatePosItem(signer, updatedSlot)
+						app.strategy.NextEpochValData.PosTable.UpdatePosItem(signer, updatedSlot)
+					}
+				}
 			}
 		}
 	}
 	app.strategy.CurrEpochValData.PosTable.ChangedFlagThisBlock = true
 	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
 
-
-	app.strategy.CurrentHeightValData.ProposerAddress = strings.ToUpper(hex.EncodeToString(beginBlock.Header.ProposerAddress))
-	coinbase := app.Receiver()
-	app.backend.Es().UpdateHeaderCoinbase(coinbase)
-	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
-
 	db, e := app.getCurrentState()
 	if e == nil {
 		//app.logger.Info("do punish")
-		app.punishment.DoPunish(db, app.strategy, beginBlock.ByzantineValidators, coinbase, beginBlock.Header.Height)
+		app.punishment.DoPunish(db, app.strategy, beginBlock.ByzantineValidators, coinbase, beginBlock.Header.Height, app.MaxSlot)
 	}
 	storedcfg := app.backend.Ethereum().BlockChain().Config()
 	fmt.Printf("-------currentheight chainconfig %v rules %v \n", storedcfg, storedcfg.Rules(big.NewInt(beginBlock.Header.Height)))

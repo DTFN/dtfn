@@ -82,18 +82,12 @@ func subBalance(stateDB *state.StateDB, addr common.Address, amount *big.Int) *b
 	return amount
 }
 
-func (p *Punishment) DoPunish(stateDB *state.StateDB, strategy *types.Strategy, evidences []abciTypes.Evidence, coinbase common.Address, currentHeight int64) {
-	normalSigner := strategy.CurrEpochValData.PosTable.SortedSigners[0]
-	normalSlot := strategy.CurrEpochValData.PosTable.PosItemMap[normalSigner].Slots
+func (p *Punishment) DoPunish(stateDB *state.StateDB, strategy *types.Strategy, evidences []abciTypes.Evidence, coinbase common.Address, currentHeight int64,maxSlot int64) {
 	for _, e := range evidences {
 		signer, found := strategy.NextEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
-		fmt.Println("\n=============evidence height================")
-		fmt.Println(e.Height)
-		fmt.Println(signer.String())
-		fmt.Println("=============evidence height================")
 		if found{
 			specifySlot := strategy.NextEpochValData.PosTable.PosItemMap[signer].Slots
-			updatedSlot := specifySlot*2- normalSlot
+			updatedSlot := specifySlot*2- maxSlot
 			if(updatedSlot > 2){
 				strategy.NextEpochValData.PosTable.DecreasePosItem(signer, updatedSlot/2)
 			}
@@ -101,7 +95,7 @@ func (p *Punishment) DoPunish(stateDB *state.StateDB, strategy *types.Strategy, 
 		signer, found = strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
 		if found{
 			specifySlot := strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots
-			updatedSlot := specifySlot*2- normalSlot
+			updatedSlot := specifySlot*2- maxSlot
 			if(updatedSlot > 2){
 				strategy.CurrEpochValData.PosTable.DecreasePosItem(signer, updatedSlot/2)
 			}
