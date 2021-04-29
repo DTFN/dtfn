@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/hex"
-	"fmt"
 	"github.com/DTFN/dtfn/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
