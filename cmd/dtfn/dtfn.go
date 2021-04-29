@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/DTFN/dtfn/version"
+	"github.com/ethereum/go-ethereum/core/txfilter"
 	"os"
 	"strings"
 	"time"
@@ -100,6 +101,11 @@ func ethermintCmd(ctx *cli.Context) error {
 	rollbackFlag := ctx.GlobalBool(emtUtils.RollbackFlag.Name)
 	rollbackHeight := ctx.GlobalInt(emtUtils.RollbackHeight.Name)
 	whetherRollbackEthApp(rollbackFlag, rollbackHeight, backend)
+
+	//moved from initPersistData to cleanbranchforustc
+	//we should support the kickout operation for ppchainadmin
+	txfilter.PPChainAdmin = common.HexToAddress(version.PPChainAdmin)
+
 	hasPersistData := ethApp.InitPersistData()
 	if !hasPersistData {
 		ethGenesisJson := ethermintGenesisPath(ctx)
