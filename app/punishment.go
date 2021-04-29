@@ -1,13 +1,11 @@
 package app
 
 import (
-	"encoding/hex"
 	"github.com/DTFN/dtfn/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"math/big"
-	"strings"
 )
 
 type Punishment struct {
@@ -82,24 +80,24 @@ func subBalance(stateDB *state.StateDB, addr common.Address, amount *big.Int) *b
 }
 
 func (p *Punishment) DoPunish(stateDB *state.StateDB, strategy *types.Strategy, evidences []abciTypes.Evidence, coinbase common.Address, currentHeight int64,maxSlot int64) {
-	for _, e := range evidences {
-		signer, found := strategy.NextEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
-		if found{
-			specifySlot := strategy.NextEpochValData.PosTable.PosItemMap[signer].Slots
-			updatedSlot := specifySlot*2- maxSlot
-			if(updatedSlot > 2){
-				strategy.NextEpochValData.PosTable.DecreasePosItem(signer, updatedSlot/2)
-			}
-		}
-		signer, found = strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
-		if found{
-			specifySlot := strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots
-			updatedSlot := specifySlot*2- maxSlot
-			if(updatedSlot > 2){
-				strategy.CurrEpochValData.PosTable.DecreasePosItem(signer, updatedSlot/2)
-			}
-		}
-	}
+	//for _, e := range evidences {
+	//	signer, found := strategy.NextEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
+	//	if found{
+	//		specifySlot := strategy.NextEpochValData.PosTable.PosItemMap[signer].Slots
+	//		updatedSlot := specifySlot*2- maxSlot
+	//		if(updatedSlot > 2){
+	//			strategy.NextEpochValData.PosTable.DecreasePosItem(signer, updatedSlot/2)
+	//		}
+	//	}
+	//	signer, found = strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[strings.ToUpper(hex.EncodeToString(e.Validator.Address))]
+	//	if found{
+	//		specifySlot := strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots
+	//		updatedSlot := specifySlot*2- maxSlot
+	//		if(updatedSlot > 2){
+	//			strategy.CurrEpochValData.PosTable.DecreasePosItem(signer, updatedSlot/2)
+	//		}
+	//	}
+	//}
 	//if transferStrategy, ok := p.SubBalanceStrategy.(TransferStrategy); ok {
 	//	transferStrategy.transferTo = coinbase
 	//}
