@@ -54,7 +54,7 @@ type EthermintApplication struct {
 
 	logger tmLog.Logger
 
-	MaxSlot  int64
+	MaxSlot int64
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -207,7 +207,6 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciT
 	} else {
 		panic("no qualified initial validators, please check config")
 	}
-
 
 	normalSigner := app.strategy.CurrEpochValData.PosTable.SortedSigners[0]
 	app.MaxSlot = app.strategy.CurrEpochValData.PosTable.PosItemMap[normalSigner].Slots
@@ -396,24 +395,26 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.backend.Es().UpdateHeaderCoinbase(coinbase)
 	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
-	for i, voteInfo := range app.strategy.CurrentHeightValData.LastVoteInfo {
-		if voteInfo.SignedLastBlock {
-			address := strings.ToUpper(hex.EncodeToString(
-				app.strategy.CurrentHeightValData.LastVoteInfo[i].Validator.Address))
-			if signer, ok := app.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[address]; ok {
-				specifySlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots
-				if(specifySlot != app.MaxSlot){
-					updatedSlot := (app.MaxSlot+specifySlot)/2
-					if(updatedSlot != specifySlot){
-						app.strategy.CurrEpochValData.PosTable.UpdatePosItem(signer, updatedSlot)
-						app.strategy.NextEpochValData.PosTable.UpdatePosItem(signer, updatedSlot)
+	if beginBlock.Header.Height > 5 {
+		for i, voteInfo := range app.strategy.CurrentHeightValData.LastVoteInfo {
+			if voteInfo.SignedLastBlock {
+				address := strings.ToUpper(hex.EncodeToString(
+					app.strategy.CurrentHeightValData.LastVoteInfo[i].Validator.Address))
+				if signer, ok := app.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[address]; ok {
+					specifySlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots
+					if specifySlot != app.MaxSlot {
+						updatedSlot := (app.MaxSlot + specifySlot) / 2
+						if updatedSlot != specifySlot {
+							app.strategy.CurrEpochValData.PosTable.UpdatePosItem(signer, updatedSlot)
+							app.strategy.NextEpochValData.PosTable.UpdatePosItem(signer, updatedSlot)
+						}
 					}
 				}
 			}
 		}
+		app.strategy.CurrEpochValData.PosTable.ChangedFlagThisBlock = true
+		app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
 	}
-	app.strategy.CurrEpochValData.PosTable.ChangedFlagThisBlock = true
-	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
 
 	db, e := app.getCurrentState()
 	if e == nil {
