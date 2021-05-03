@@ -187,6 +187,10 @@ func (strategy *Strategy) enterSelectValidators(seed []byte, height int64) abciT
 				PubKey: pubKey,
 				Power:  basePower*basePower*basePower*basePower*basePower,
 			}
+			fmt.Println("-------------basepower---------------")
+			fmt.Println(basePower)
+			fmt.Println(signer.String())
+			fmt.Println("-------------basepower---------------")
 			validator = Validator{
 				validatorUpdate,
 				signer,
