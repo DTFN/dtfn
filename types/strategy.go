@@ -185,7 +185,7 @@ func (strategy *Strategy) enterSelectValidators(seed []byte, height int64) abciT
 			basePower := strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots;
 			validatorUpdate := abciTypes.ValidatorUpdate{
 				PubKey: pubKey,
-				Power:  basePower*basePower*basePower*basePower*basePower/10,
+				Power:  basePower*basePower*basePower*basePower*basePower,
 			}
 			validator = Validator{
 				validatorUpdate,
