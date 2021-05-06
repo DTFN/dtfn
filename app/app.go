@@ -400,19 +400,18 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 			if voteInfo.SignedLastBlock {
 				address := strings.ToUpper(hex.EncodeToString(
 					app.strategy.CurrentHeightValData.LastVoteInfo[i].Validator.Address))
-				if signer, ok := app.strategy.CurrEpochValData.PosTable.TmAddressToSignerMap[address]; ok {
-					specifySlot := app.strategy.CurrEpochValData.PosTable.PosItemMap[signer].Slots
+				if signer, ok := app.strategy.NextEpochValData.PosTable.TmAddressToSignerMap[address]; ok {
+					specifySlot := app.strategy.NextEpochValData.PosTable.PosItemMap[signer].Slots
 					if specifySlot != app.MaxSlot {
 						updatedSlot := (app.MaxSlot + specifySlot) / 2
 						if updatedSlot != specifySlot {
-							app.strategy.CurrEpochValData.PosTable.UpdatePosItem(signer, updatedSlot)
 							app.strategy.NextEpochValData.PosTable.UpdatePosItem(signer, updatedSlot)
 						}
 					}
 				}
 			}
 		}
-		app.strategy.CurrEpochValData.PosTable.ChangedFlagThisBlock = true
+		//app.strategy.CurrEpochValData.PosTable.ChangedFlagThisBlock = true
 		app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = true
 	}
 
