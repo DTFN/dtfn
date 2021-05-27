@@ -770,8 +770,9 @@ func (app *EthermintApplication) GetStrategy() *emtTypes.Strategy {
 func (app *EthermintApplication) InsertPosItemInit(account common.Address, balance *big.Int, beneficiary common.Address,
 	pubKey abciTypes.PubKey, blsKeyString string) error {
 	if app.strategy != nil {
-		tmpSlot := big.NewInt(0)
-		tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
+		tmpSlot := big.NewInt(10)
+		// change initial slot to 10
+		//tmpSlot.Div(balance, app.strategy.NextEpochValData.PosTable.Threshold)
 		tmPubKey, _ := types.PB2TM.PubKey(pubKey)
 		tmAddress := tmPubKey.Address().String()
 		return app.strategy.NextEpochValData.PosTable.InsertPosItem(account, txfilter.NewPosItem(1, tmpSlot.Int64(), pubKey, tmAddress, blsKeyString, beneficiary))
