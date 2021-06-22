@@ -211,6 +211,9 @@ type workState struct {
 	state  *state.StateDB
 	bstart time.Time //leilei add for gcproc
 
+	preExecutedState *state.StateDB
+	pretotalUsedGas *uint64
+
 	txIndex      int
 	transactions []*ethTypes.Transaction
 	receipts     ethTypes.Receipts
@@ -226,6 +229,20 @@ func (ws *workState) State() *state.StateDB {
 
 func (ws workState) Height() int64 {
 	return ws.height
+}
+
+func (es *EthState) CopyPreExecutedState() {
+	es.mtx.Lock()
+	defer es.mtx.Unlock()
+	es.work.preExecutedState = es.work.state.Copy()
+	es.work.pretotalUsedGas = new(uint64)
+}
+
+func (es *EthState) CopyState() {
+	es.mtx.Lock()
+	defer es.mtx.Unlock()
+	es.work.state = es.work.preExecutedState.Copy()
+	es.work.totalUsedGas = es.work.pretotalUsedGas
 }
 
 // nolint: unparam
