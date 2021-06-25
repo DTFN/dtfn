@@ -66,6 +66,12 @@ func (es *EthState) State() (*state.StateDB, error) {
 	return es.work.state, nil
 }
 
+
+func (es *EthState) PreState() (*state.StateDB, error) {
+	return es.work.preExecutedState, nil
+}
+
+
 // After NewEthState, call SetEthereum and SetEthConfig.
 func NewEthState() *EthState {
 	return &EthState{
@@ -339,17 +345,17 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction, txInfo ethTypes.TxInfo) abciTypes.ResponseDeliverTx {
-	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
+	ws.preExecutedState.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, msg, err := core.ApplyTransactionWithInfo(
 		chainConfig,
 		blockchain,
 		&ws.header.Coinbase, // defaults to address of the author of the header
 		ws.gp,
-		ws.state,
+		ws.preExecutedState,
 		ws.header,
 		tx,
 		txInfo,
-		ws.totalUsedGas,
+		ws.pretotalUsedGas,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
 
@@ -359,7 +365,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	}
 	log.Info(fmt.Sprintf("Deliver Tx: from %X txHash %X", msg.From(), tx.Hash()))
 
-	logs := ws.state.GetLogs(tx.Hash())
+	logs := ws.preExecutedState.GetLogs(tx.Hash())
 
 	ws.txIndex++
 

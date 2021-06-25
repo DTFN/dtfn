@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/DTFN/dtfn/ethereum"
@@ -21,6 +20,10 @@ import (
 	"github.com/tendermint/tendermint/types"
 	"math/big"
 	"strings"
+)
+
+var (
+	preExecutedTxSize = 100000
 )
 
 // EthermintApplication implements an ABCI application
@@ -50,6 +53,16 @@ type EthermintApplication struct {
 	//select Strategy in the test
 	SelectStrategy bool
 
+	preExecutedTx chan []byte
+
+	preExecutedTxRsp chan abciTypes.ResponseDeliverTx
+
+	preTempBeginBlock abciTypes.RequestBeginBlock
+
+	preExecutedNumsTx int64
+
+	preExecutedUsed chan int64
+
 	httpServer *httpserver.BaseServer
 
 	punishment *Punishment
@@ -70,18 +83,24 @@ func NewEthermintApplication(backend *ethereum.Backend,
 	amountStrategy := &Percent100AmountStrategy{}
 	subBalanceStrategy := &TransferStrategy{}
 	app := &EthermintApplication{
-		backend:         backend,
-		rpcClient:       client,
-		getCurrentState: backend.Es().State, //backend.Ethereum().BlockChain().State,
-		checkTxState:    state.Copy(),
-		strategy:        strategy,
-		httpServer:      httpserver.NewBaseServer(strategy, backend),
-		punishment:      NewPunishment(amountStrategy, subBalanceStrategy),
+		backend:           backend,
+		rpcClient:         client,
+		getCurrentState:   backend.Es().State, //backend.Ethereum().BlockChain().State,
+		checkTxState:      state.Copy(),
+		preExecutedTx:     make(chan []byte, preExecutedTxSize),
+		preExecutedTxRsp:  make(chan abciTypes.ResponseDeliverTx, preExecutedTxSize),
+		preExecutedUsed:   make(chan int64, 1),
+		preExecutedNumsTx: 0,
+		strategy:          strategy,
+		httpServer:        httpserver.NewBaseServer(strategy, backend),
+		punishment:        NewPunishment(amountStrategy, subBalanceStrategy),
 	}
 
 	if err := app.backend.InitEthState(common.HexToAddress(app.backend.InitReceiver())); err != nil {
 		return nil, err
 	}
+
+	go app.StartPreExecuteEngine()
 
 	return app, nil
 }
@@ -241,117 +260,10 @@ func (app *EthermintApplication) CheckTx(req abciTypes.RequestCheckTx) abciTypes
 // DeliverTx executes a transaction against the latest state
 // #stable - 0.4.0
 func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciTypes.ResponseDeliverTx {
-	tx, err := decodeTx(req.Tx)
-	if err != nil {
-		// nolint: errcheck
-		app.logger.Debug("DelivexTx: Received invalid transaction", "tx", tx, "err", err)
-		return abciTypes.ResponseDeliverTx{
-			Code: uint32(emtTypes.CodeInternal),
-			Log:  err.Error(),
-		}
-	}
+	var temp []byte
+	temp = append(temp, req.Tx...)
+	app.InsertTxIntoChannel(temp)
 
-	txHash := tx.Hash()
-	txInfo, ok := app.backend.FetchCachedTxInfo(txHash)
-	if !ok {
-		var signer ethTypes.Signer = ethTypes.HomesteadSigner{}
-		if tx.Protected() {
-			signer = app.strategy.Signer()
-		}
-		if tx.To() != nil {
-			if txfilter.IsRelayTxFromRelayer(*tx.To()) {
-				txInfo = ethTypes.TxInfo{Tx: tx}
-				txInfo.SubTx, err = ethTypes.DecodeTxFromHexBytes(tx.Data())
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(emtTypes.CodeInternal),
-						Log: fmt.Sprintf("relayer sub tx decode failed. %v",
-							core.ErrInvalidSender.Error())}
-				}
-				err = ethTypes.CheckRelayerTx(tx, txInfo.SubTx)
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(emtTypes.CodeInvalidSequence),
-						Log: fmt.Sprintf(
-							"Relayer tx not match with main tx, please check, %v", err)}
-				}
-				txForVerify, err := txInfo.SubTx.WithVRS(tx.RawSignatureValues())
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(emtTypes.CodeInternal),
-						Log: fmt.Sprintf("relayer sub tx WithVRS failed. %v",
-							core.ErrInvalidSender.Error())}
-				}
-				txInfo.From, err = ethTypes.Sender(signer, txForVerify)
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(emtTypes.CodeInternal),
-						Log:  core.ErrInvalidSender.Error()}
-				}
-				tx.SetFrom(signer, txInfo.From)
-				txInfo.RelayFrom, err = ethTypes.DeriveRelayer(txInfo.From, txInfo.SubTx)
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(emtTypes.CodeInternal),
-						Log: fmt.Sprintf("relayer signature verified failed. %v",
-							core.ErrInvalidSender.Error())}
-				}
-			} else {
-				// Make sure the transaction is signed properly
-				from, err := ethTypes.Sender(signer, tx)
-				if err != nil {
-					return abciTypes.ResponseDeliverTx{
-						Code: uint32(emtTypes.CodeInternal),
-						Log:  core.ErrInvalidSender.Error()}
-				}
-				txInfo = ethTypes.TxInfo{Tx: tx, From: from}
-
-				if txfilter.IsRelayTxFromClient(*tx.To()) {
-					txInfo.SubTx, err = ethTypes.DecodeTxFromHexBytes(tx.Data())
-					if err != nil {
-						return abciTypes.ResponseDeliverTx{
-							Code: uint32(emtTypes.CodeInternal),
-							Log: fmt.Sprintf("relayer sub tx decode failed. %v",
-								core.ErrInvalidSender.Error())}
-					}
-					err = ethTypes.CheckRelayerTx(tx, txInfo.SubTx)
-					if err != nil {
-						return abciTypes.ResponseDeliverTx{
-							Code: uint32(emtTypes.CodeInvalidSequence),
-							Log: fmt.Sprintf(
-								"Relayer tx not match with main tx, please check, %v", err)}
-					}
-					txInfo.RelayFrom, err = ethTypes.DeriveRelayer(from, txInfo.SubTx)
-					if err != nil {
-						return abciTypes.ResponseDeliverTx{
-							Code: uint32(emtTypes.CodeInternal),
-							Log: fmt.Sprintf("relayer signature verified failed. %v",
-								core.ErrInvalidSender.Error())}
-					}
-				}
-			}
-		} else {
-			// Make sure the transaction is signed properly
-			from, err := ethTypes.Sender(signer, tx)
-			if err != nil {
-				return abciTypes.ResponseDeliverTx{
-					Code: uint32(emtTypes.CodeInternal),
-					Log:  core.ErrInvalidSender.Error()}
-			}
-			txInfo = ethTypes.TxInfo{Tx: tx, From: from}
-		}
-	} else {
-		app.backend.DeleteCachedTxInfo(txHash)
-	}
-
-	res := app.backend.DeliverTx(tx, app.strategy.HFExpectedData.BlockVersion, txInfo)
-	if res.IsErr() {
-		// nolint: errcheck
-		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
-			"err", err)
-		return res
-	}
-	//app.CollectTx(tx)
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,
 	}
@@ -361,39 +273,12 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 // #stable - 0.4.0
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
-	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
-	header := beginBlock.GetHeader()
-	// update the eth header with the tendermint header!breaking!!
-	app.backend.UpdateHeaderWithTimeInfo(&header)
-	app.strategy.HFExpectedData.Height = beginBlock.GetHeader().Height
-	app.strategy.HFExpectedData.BlockVersion = beginBlock.GetHeader().Version.App
-	app.strategy.CurrentHeightValData.Height = beginBlock.GetHeader().Height
-	//when we reach the upgrade height,we change the blockversion
+	app.PreBeginBlock(beginBlock)
 
-	if app.strategy.HFExpectedData.IsHarfForkPassed {
-		for i := len(version.HeightArray) - 1; i >= 0; i-- {
-			if app.strategy.HFExpectedData.Height >= version.HeightArray[i] {
-				app.strategy.HFExpectedData.BlockVersion = uint64(version.VersionArray[i])
-				break
-			}
-		}
-	}
-	app.logger.Info("block version", "appVersion", app.strategy.HFExpectedData.BlockVersion)
-	txfilter.AppVersion = app.strategy.HFExpectedData.BlockVersion
-	//if app.strategy.HFExpectedData.IsHarfForkPassed && app.strategy.HFExpectedData.Height == version.NextHardForkHeight {
-	//	app.strategy.HFExpectedData.BlockVersion = version.NextHardForkVersion
-	//}
+	//copy state to temp state
+	app.logger.Error("copy state to pre executed State")
+	app.backend.Es().CopyPreExecutedState()
 
-	app.strategy.CurrentHeightValData.ProposerAddress = strings.ToUpper(hex.EncodeToString(beginBlock.Header.ProposerAddress))
-	coinbase := app.Receiver()
-	app.backend.Es().UpdateHeaderCoinbase(coinbase)
-	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
-
-	db, e := app.getCurrentState()
-	if e == nil {
-		//app.logger.Info("do punish")
-		app.punishment.DoPunish(db, app.strategy, beginBlock.ByzantineValidators, coinbase, beginBlock.Header.Height)
-	}
 	storedcfg := app.backend.Ethereum().BlockChain().Config()
 	fmt.Printf("-------currentheight chainconfig %v rules %v \n", storedcfg, storedcfg.Rules(big.NewInt(beginBlock.Header.Height)))
 	return abciTypes.ResponseBeginBlock{}
@@ -402,6 +287,22 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
+	app.logger.Error("wait! we should blocked here")
+	fmt.Println(<-app.preExecutedUsed)
+
+	app.logger.Error("copy preExecuted state to state")
+	app.backend.Es().CopyState()
+
+	//Todo: This should move to endBlock to process. For it will change postable
+	db, e := app.getCurrentState()
+	if e == nil {
+		//app.logger.Info("do punish")
+		app.punishment.DoPunish(db, app.strategy, app.preTempBeginBlock.ByzantineValidators, app.Receiver(), app.preTempBeginBlock.Header.Height)
+	}
+
+
+
+
 	app.logger.Info(fmt.Sprintf("EndBlock height %v seed %X ", endBlock.GetHeight(), endBlock.GetSeed())) // nolint: errcheck
 
 	height := endBlock.Height
@@ -431,6 +332,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 			}
 		}
 	}
+
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
 
@@ -510,7 +412,7 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 			authTableMap[pi.TmAddress] = pi.Height
 		}
 		result = authTableMap
-	}  else {
+	} else {
 		if err := app.rpcClient.Call(&result, in.Method, in.Params...); err != nil {
 			return abciTypes.ResponseQuery{Code: uint32(emtTypes.CodeInternal),
 				Log: err.Error()}
@@ -724,7 +626,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 				currentBalance, tx.Cost())}
 	}
 
-	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true,false) // homestead == true
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true, false) // homestead == true
 
 	if err != nil && tx.Gas() < intrGas {
 		return abciTypes.ResponseCheckTx{
