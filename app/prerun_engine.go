@@ -9,25 +9,38 @@ import (
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 func (app *EthermintApplication) StartPreExecuteEngine() {
 	for obj := range app.preExecutedTx {
-		app.preExecuteTx(obj)
-		app.preExecutedNumsTx--
-		if app.preExecutedNumsTx == 0 {
-			app.logger.Error("executed pre tx completed")
-			app.preExecutedUsed <- 1
+		resetFlag := atomic.LoadInt32(&app.atomResetingFlag)
+		app.logger.Error("atom lock", "resetFlag", strconv.Itoa(int(resetFlag)))
+
+		if resetFlag == 1 {
+			app.logger.Error("reset begin")
+			app.preExecutedNumsTx--
+			if app.preExecutedNumsTx == 0 {
+				app.preExecutedUsed <- 1
+			}
+		} else {
+			app.logger.Error("no pre executed data here")
+			app.preExecuteTx(obj)
+			app.preExecutedNumsTx--
+			if app.preExecutedNumsTx == 0 {
+				app.logger.Error("executed pre tx completed")
+				app.preExecutedUsed <- 1
+			}
 		}
+
 	}
 }
-
 
 func (app *EthermintApplication) InsertTxIntoChannel(temp []byte) {
 	app.preExecutedTx <- temp
 }
-
 
 func (app *EthermintApplication) PreBeginBlock(beginBlock abciTypes.RequestBeginBlock) {
 	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
@@ -69,8 +82,7 @@ func (app *EthermintApplication) PreBeginBlock(beginBlock abciTypes.RequestBegin
 	app.logger.Error("pre Temp Begin Block")
 }
 
-
-func(app *EthermintApplication) preExecuteTx(txBytes []byte) abciTypes.ResponseDeliverTx {
+func (app *EthermintApplication) preExecuteTx(txBytes []byte) abciTypes.ResponseDeliverTx {
 	tx, err := decodeTx(txBytes)
 
 	if err != nil {
@@ -187,4 +199,3 @@ func(app *EthermintApplication) preExecuteTx(txBytes []byte) abciTypes.ResponseD
 		Code: abciTypes.CodeTypeOK,
 	}
 }
-

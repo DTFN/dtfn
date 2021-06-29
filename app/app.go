@@ -20,6 +20,7 @@ import (
 	"github.com/tendermint/tendermint/types"
 	"math/big"
 	"strings"
+	"sync/atomic"
 )
 
 var (
@@ -53,6 +54,10 @@ type EthermintApplication struct {
 	//select Strategy in the test
 	SelectStrategy bool
 
+	httpServer *httpserver.BaseServer
+
+	punishment *Punishment
+
 	preExecutedTx chan []byte
 
 	preExecutedTxRsp chan abciTypes.ResponseDeliverTx
@@ -61,11 +66,22 @@ type EthermintApplication struct {
 
 	preExecutedNumsTx int64
 
+	//pre total tx, to memory whether pass deliverTx
+	preTotalNumsTx int64
+
 	preExecutedUsed chan int64
 
-	httpServer *httpserver.BaseServer
+	//Atom operation for performance, not mutex
+	//In the end of endBlock,we should reset atomResetingFlag to 0
+	atomResetingFlag int32
 
-	punishment *Punishment
+	resetCompleted chan int64
+
+	//end block will change the preExecutedRun to false
+	//if we recevied the first begin block,we will change the preExecutedRun from false to true
+	//if we recevied the others, preExecutedRun stay true
+	//we will run the reset logic
+	preExecutedRun bool
 
 	logger tmLog.Logger
 }
@@ -83,17 +99,23 @@ func NewEthermintApplication(backend *ethereum.Backend,
 	amountStrategy := &Percent100AmountStrategy{}
 	subBalanceStrategy := &TransferStrategy{}
 	app := &EthermintApplication{
-		backend:           backend,
-		rpcClient:         client,
-		getCurrentState:   backend.Es().State, //backend.Ethereum().BlockChain().State,
-		checkTxState:      state.Copy(),
+		backend:         backend,
+		rpcClient:       client,
+		getCurrentState: backend.Es().State, //backend.Ethereum().BlockChain().State,
+		checkTxState:    state.Copy(),
+		strategy:        strategy,
+		httpServer:      httpserver.NewBaseServer(strategy, backend),
+
 		preExecutedTx:     make(chan []byte, preExecutedTxSize),
 		preExecutedTxRsp:  make(chan abciTypes.ResponseDeliverTx, preExecutedTxSize),
 		preExecutedUsed:   make(chan int64, 1),
+		resetCompleted:    make(chan int64, 1),
 		preExecutedNumsTx: 0,
-		strategy:          strategy,
-		httpServer:        httpserver.NewBaseServer(strategy, backend),
-		punishment:        NewPunishment(amountStrategy, subBalanceStrategy),
+
+		atomResetingFlag: 0,
+		preTotalNumsTx:   0,
+		preExecutedRun:   false,
+		punishment:       NewPunishment(amountStrategy, subBalanceStrategy),
 	}
 
 	if err := app.backend.InitEthState(common.HexToAddress(app.backend.InitReceiver())); err != nil {
@@ -273,11 +295,25 @@ func (app *EthermintApplication) DeliverTx(req abciTypes.RequestDeliverTx) abciT
 // #stable - 0.4.0
 func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 	app.logger.Debug("BeginBlock") // nolint: errcheck
-	app.PreBeginBlock(beginBlock)
 
-	//copy state to temp state
-	app.logger.Error("copy state to pre executed State")
-	app.backend.Es().CopyPreExecutedState()
+	if !app.preExecutedRun {
+		app.preExecutedRun = true
+		app.logger.Error("atomic", "no need to Reset data", true)
+
+		app.logger.Error("copy state to pre executed State")
+		app.backend.Es().CopyPreExecutedState()
+	} else {
+		atomic.StoreInt32(&app.atomResetingFlag, 1)
+		app.logger.Error("atomic", "Reset", true)
+		preExecutedUsed := <- app.preExecutedUsed
+		app.logger.Error("preExecuted completed", "preExecutedUsed", preExecutedUsed)
+		atomic.StoreInt32(&app.atomResetingFlag, 0)
+
+		app.logger.Error("copy state to pre executed State")
+		app.backend.Es().CopyPreExecutedState()
+	}
+
+	app.PreBeginBlock(beginBlock)
 
 	storedcfg := app.backend.Ethereum().BlockChain().Config()
 	fmt.Printf("-------currentheight chainconfig %v rules %v \n", storedcfg, storedcfg.Rules(big.NewInt(beginBlock.Header.Height)))
@@ -299,9 +335,6 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 		//app.logger.Info("do punish")
 		app.punishment.DoPunish(db, app.strategy, app.preTempBeginBlock.ByzantineValidators, app.Receiver(), app.preTempBeginBlock.Header.Height)
 	}
-
-
-
 
 	app.logger.Info(fmt.Sprintf("EndBlock height %v seed %X ", endBlock.GetHeight(), endBlock.GetSeed())) // nolint: errcheck
 
@@ -332,6 +365,10 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 			}
 		}
 	}
+
+	//Reset atom lock
+	app.preExecutedRun = false
+	atomic.StoreInt32(&app.atomResetingFlag, 0)
 
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
