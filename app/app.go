@@ -298,18 +298,17 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 	if !app.preExecutedRun {
 		app.preExecutedRun = true
-		app.logger.Error("atomic", "no need to Reset data", true)
-
-		app.logger.Error("copy state to pre executed State")
+		app.logger.Info("PreExecute", "FirstRun", true)
+		app.logger.Info("copy state to pre executed State")
 		app.backend.Es().CopyPreExecutedState()
 	} else {
 		atomic.StoreInt32(&app.atomResetingFlag, 1)
-		app.logger.Error("atomic", "Reset", true)
-		preExecutedUsed := <- app.preExecutedUsed
-		app.logger.Error("preExecuted completed", "preExecutedUsed", preExecutedUsed)
+		app.logger.Info("PreExecute", "FirstRun", false, "NeedReset", true)
+		<-app.preExecutedUsed
+		app.logger.Info("reset completed")
 		atomic.StoreInt32(&app.atomResetingFlag, 0)
 
-		app.logger.Error("copy state to pre executed State")
+		app.logger.Info("copy state to pre executed State")
 		app.backend.Es().CopyPreExecutedState()
 	}
 
@@ -323,10 +322,10 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
-	app.logger.Error("wait! we should blocked here")
+	app.logger.Info("wait for async deliverTx")
 	fmt.Println(<-app.preExecutedUsed)
 
-	app.logger.Error("copy preExecuted state to state")
+	app.logger.Info("copy preExecuted state to state")
 	app.backend.Es().CopyState()
 
 	//Todo: This should move to endBlock to process. For it will change postable

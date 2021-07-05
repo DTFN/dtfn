@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/txfilter"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
-	"strconv"
 	"strings"
 	"sync/atomic"
 )
@@ -17,20 +16,17 @@ import (
 func (app *EthermintApplication) StartPreExecuteEngine() {
 	for obj := range app.preExecutedTx {
 		resetFlag := atomic.LoadInt32(&app.atomResetingFlag)
-		app.logger.Error("atom lock", "resetFlag", strconv.Itoa(int(resetFlag)))
-
 		if resetFlag == 1 {
-			app.logger.Error("reset begin")
+			app.logger.Info("reset block come, we need to discard it.")
 			app.preExecutedNumsTx--
 			if app.preExecutedNumsTx == 0 {
 				app.preExecutedUsed <- 1
 			}
 		} else {
-			app.logger.Error("no pre executed data here")
 			app.preExecuteTx(obj)
 			app.preExecutedNumsTx--
 			if app.preExecutedNumsTx == 0 {
-				app.logger.Error("executed pre tx completed")
+				app.logger.Info("executed pre tx completed")
 				app.preExecutedUsed <- 1
 			}
 		}
@@ -46,7 +42,7 @@ func (app *EthermintApplication) PreBeginBlock(beginBlock abciTypes.RequestBegin
 	app.strategy.NextEpochValData.PosTable.ChangedFlagThisBlock = false
 	header := beginBlock.GetHeader()
 
-	app.logger.Error("begin block", "tx size", header.NumTxs)
+	app.logger.Info("begin block", "tx size", header.NumTxs)
 	app.preExecutedNumsTx = header.NumTxs
 	if app.preExecutedNumsTx == 0 {
 		app.preExecutedUsed <- 1
@@ -79,7 +75,6 @@ func (app *EthermintApplication) PreBeginBlock(beginBlock abciTypes.RequestBegin
 	app.strategy.CurrentHeightValData.LastVoteInfo = beginBlock.LastCommitInfo.Votes
 
 	app.preTempBeginBlock = beginBlock
-	app.logger.Error("pre Temp Begin Block")
 }
 
 func (app *EthermintApplication) preExecuteTx(txBytes []byte) abciTypes.ResponseDeliverTx {

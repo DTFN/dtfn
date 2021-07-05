@@ -9,13 +9,13 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
-
 	abciTypes "github.com/tendermint/tendermint/abci/types"
+	"sync"
 
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 
-	"github.com/ethereum/go-ethereum/consensus/ethash"
 	emtTypes "github.com/DTFN/dtfn/types"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 	mempl "github.com/tendermint/tendermint/mempool"
 )
 
@@ -26,6 +26,11 @@ import (
 // Backend handles the chain database and VM
 // #stable - 0.4.0
 type Backend struct {
+	//add mutex to avoid concurrent map writes
+	//for pre-execution
+	//TODO: maybe replaced by other structure for performance?
+	mutex *sync.RWMutex
+
 	// backing ethereum structures
 	ethereum  *eth.Ethereum
 	ethConfig *eth.Config
@@ -73,6 +78,7 @@ func NewBackend(node *Node, ethConfig *eth.Config,
 
 	ethBackend := &Backend{
 		ethereum:     ethereum,
+		mutex:        new(sync.RWMutex),
 		ethConfig:    ethConfig,
 		es:           es,
 		client:       client,
@@ -129,15 +135,21 @@ func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
 }
 
 func (b *Backend) FetchCachedTxInfo(txHash common.Hash) (ethTypes.TxInfo, bool) {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
 	txInfo, ok := b.cachedTxInfo[txHash]
 	return txInfo, ok
 }
 
 func (b *Backend) DeleteCachedTxInfo(txHash common.Hash) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
 	delete(b.cachedTxInfo, txHash)
 }
 
 func (b *Backend) InsertCachedTxInfo(txHash common.Hash, txInfo ethTypes.TxInfo) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
 	b.cachedTxInfo[txHash] = txInfo
 }
 
