@@ -178,9 +178,12 @@ func (app *EthermintApplication) preExecuteTx(txBytes []byte) abciTypes.Response
 			}
 			txInfo = ethTypes.TxInfo{Tx: tx, From: from}
 		}
-	} else {
-		app.backend.DeleteCachedTxInfo(txHash)
 	}
+
+	// we needn't delete it. because we don't have it.
+	//} else {
+	//	app.backend.DeleteCachedTxInfo(txHash)
+	//}
 
 	res := app.backend.DeliverTx(tx, app.strategy.HFExpectedData.BlockVersion, txInfo)
 	if res.IsErr() {

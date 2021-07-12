@@ -3,6 +3,8 @@ module github.com/DTFN/dtfn
 go 1.14
 
 require (
+	github.com/beego/bee/v2 v2.0.2 // indirect
+	github.com/beego/beego/v2 v2.0.1 // indirect
 	github.com/cosmos/cosmos-sdk v0.38.3 // indirect
 	github.com/ethereum/go-ethereum v1.9.12
 	github.com/golang/mock v1.4.3
@@ -13,7 +15,7 @@ require (
 	github.com/tendermint/tendermint v0.33.3
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.3.0
 )
 
 replace github.com/ethereum/go-ethereum => github.com/DTFN/go-ethereum v1.5.2
