@@ -19,6 +19,7 @@ import (
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
 	"math/big"
+	//_ "net/http/pprof"
 	"strings"
 	"sync/atomic"
 )
@@ -95,6 +96,10 @@ func NewEthermintApplication(backend *ethereum.Backend,
 	if err != nil {
 		return nil, err
 	}
+
+	//go func() {
+	//	http.ListenAndServe("0.0.0.0:8081", nil)
+	//}()
 
 	amountStrategy := &Percent100AmountStrategy{}
 	subBalanceStrategy := &TransferStrategy{}
