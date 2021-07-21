@@ -48,6 +48,8 @@ type Backend struct {
 	memPool       mempl.Mempool
 	currentTxInfo ethTypes.TxInfo
 	cachedTxInfo  map[common.Hash]ethTypes.TxInfo
+
+	needClearedTxInfo map[common.Hash]int64
 }
 
 // NewBackend creates a new Backend
@@ -83,6 +85,8 @@ func NewBackend(node *Node, ethConfig *eth.Config,
 		es:           es,
 		client:       client,
 		cachedTxInfo: make(map[common.Hash]ethTypes.TxInfo),
+
+		needClearedTxInfo: make(map[common.Hash]int64),
 	}
 	return ethBackend, nil
 }
@@ -119,6 +123,10 @@ func (b *Backend) CachedTxInfo() map[common.Hash]ethTypes.TxInfo {
 	return b.cachedTxInfo
 }
 
+func (b *Backend) NeedClearedTxInfo() map[common.Hash]int64 {
+	return b.needClearedTxInfo
+}
+
 //----------------------------------------------------------------------
 // Handle block processing
 
@@ -152,6 +160,27 @@ func (b *Backend) InsertCachedTxInfo(txHash common.Hash, txInfo ethTypes.TxInfo)
 	defer b.mutex.Unlock()
 	b.cachedTxInfo[txHash] = txInfo
 }
+
+func (b *Backend) InsertNeedClearTxHash(txHash common.Hash, height int64) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	b.needClearedTxInfo[txHash] = height
+}
+
+func (b *Backend) DeleteNeedClearTxHash(txHash common.Hash, height int64) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	delete(b.needClearedTxInfo, txHash)
+}
+
+func (b *Backend) ClearAllNeedClearTxHash(){
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	for key, _ := range b.NeedClearedTxInfo() {
+		delete(b.needClearedTxInfo, key)
+	}
+}
+
 
 // Commit finalises the current block
 // #unstable

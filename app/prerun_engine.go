@@ -192,6 +192,9 @@ func (app *EthermintApplication) preExecuteTx(txBytes []byte) abciTypes.Response
 			"err", err)
 		return res
 	}
+
+	app.backend.InsertNeedClearTxHash(txHash, app.backend.Ethereum().BlockChain().CurrentBlock().Number().Int64())
+
 	//app.CollectTx(tx)
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,

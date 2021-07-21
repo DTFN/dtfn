@@ -363,7 +363,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		log.Error(fmt.Sprintf("Deliver Tx: from %X txHash %X err %v", msg.From(), tx.Hash(), err))
 		return abciTypes.ResponseDeliverTx{Code: errorCode, Log: err.Error()}
 	}
-	log.Info(fmt.Sprintf("Deliver Tx: from %X txHash %X", msg.From(), tx.Hash()))
+
+	//TODO: cancel
+	//log.Info(fmt.Sprintf("Deliver Tx: from %X txHash %X", msg.From(), tx.Hash()))
 
 	logs := ws.preExecutedState.GetLogs(tx.Hash())
 

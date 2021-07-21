@@ -19,7 +19,9 @@ import (
 	tmLog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
 	"math/big"
-	//_ "net/http/pprof"
+	"net/http"
+
+	_ "net/http/pprof"
 	"strings"
 	"sync/atomic"
 )
@@ -97,9 +99,9 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		return nil, err
 	}
 
-	//go func() {
-	//	http.ListenAndServe("0.0.0.0:8081", nil)
-	//}()
+	go func() {
+		http.ListenAndServe("0.0.0.0:8081", nil)
+	}()
 
 	amountStrategy := &Percent100AmountStrategy{}
 	subBalanceStrategy := &TransferStrategy{}
@@ -315,6 +317,11 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 		app.logger.Info("copy state to pre executed State")
 		app.backend.Es().CopyPreExecutedState()
+
+		//we need to reset needClearTxHash of pre Execute tx
+		app.logger.Error("clear all need clear Tx begin")
+		app.backend.ClearAllNeedClearTxHash()
+		app.logger.Error("clear all need clear Tx completed")
 	}
 
 	app.PreBeginBlock(beginBlock)
@@ -373,6 +380,11 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 	//Reset atom lock
 	app.preExecutedRun = false
 	atomic.StoreInt32(&app.atomResetingFlag, 0)
+
+	for key, value := range app.backend.NeedClearedTxInfo() {
+		app.backend.DeleteCachedTxInfo(key)
+		app.backend.DeleteNeedClearTxHash(key,value)
+	}
 
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
 }
@@ -505,6 +517,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction, checkType 
 		} else {
 			defer func() {
 				if !success {
+					app.logger.Error("clear cached Tx Info")
 					app.backend.DeleteCachedTxInfo(txHash)
 				}
 			}()
