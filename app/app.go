@@ -335,9 +335,8 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 // #stable - 0.4.0
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
 	app.logger.Info("wait for async deliverTx")
-	fmt.Println(<-app.preExecutedUsed)
-
-	app.logger.Info("copy preExecuted state to state")
+	finished := <-app.preExecutedUsed
+	app.logger.Info("copy preExecuted state to state", "finished", finished)
 	app.backend.Es().CopyState()
 
 	//Todo: This should move to endBlock to process. For it will change postable

@@ -299,7 +299,7 @@ var (
 
 	MempoolSize = cli.IntFlag{
 		Name:  "mempool_size",
-		Value: 500000,
+		Value: 800000,
 		Usage: "the size of tendermint mempool",
 	}
 
