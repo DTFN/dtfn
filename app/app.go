@@ -323,6 +323,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 		app.backend.ClearAllNeedClearTxHash()
 		app.logger.Error("clear all need clear Tx completed")
 	}
+	app.preTotalNumsTx = beginBlock.Header.NumTxs
 
 	app.PreBeginBlock(beginBlock)
 

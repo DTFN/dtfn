@@ -11,6 +11,7 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 func (app *EthermintApplication) StartPreExecuteEngine() {
@@ -23,10 +24,13 @@ func (app *EthermintApplication) StartPreExecuteEngine() {
 				app.preExecutedUsed <- 1
 			}
 		} else {
+			if app.preExecutedNumsTx == app.preTotalNumsTx {
+				app.logger.Info("executed pre tx begin", "time", time.Now().UTC().String())
+			}
 			app.preExecuteTx(obj)
 			app.preExecutedNumsTx--
 			if app.preExecutedNumsTx == 0 {
-				app.logger.Info("executed pre tx completed")
+				app.logger.Info("executed pre tx completed", "time", time.Now().UTC().String())
 				app.preExecutedUsed <- 1
 			}
 		}
