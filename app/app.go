@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmLog "github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/mempool"
 	"github.com/tendermint/tendermint/types"
 	"math/big"
 	"net/http"
@@ -270,6 +271,16 @@ func (app *EthermintApplication) CheckTx(req abciTypes.RequestCheckTx) abciTypes
 	} else {
 		txBytes := req.Tx
 		var err error
+
+		var txWithFrom mempool.TxWithFrom
+		err = json.Unmarshal(req.Tx,&txWithFrom)
+		if err == nil{
+			txBytes = txWithFrom.TxBytes
+			tx, err = decodeTx(txBytes)
+			app.logger.Debug("CheckTx: Received valid transaction", "tx", tx) // nolint: errcheck
+			return app.validateTxWithFrom(tx,req.Type,txWithFrom.Info.From,
+				txWithFrom.Info.RelayFrom,txWithFrom.Info.IsRelayTx)
+		}
 		tx, err = decodeTx(txBytes)
 		if err != nil {
 			// nolint: errcheck
@@ -383,7 +394,7 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 
 	for key, value := range app.backend.NeedClearedTxInfo() {
 		app.backend.DeleteCachedTxInfo(key)
-		app.backend.DeleteNeedClearTxHash(key,value)
+		app.backend.DeleteNeedClearTxHash(key, value)
 	}
 
 	return app.GetUpdatedValidators(endBlock.GetHeight(), endBlock.GetSeed())
