@@ -31,7 +31,7 @@ function validateArgs() {
 
 function do_build() {
     current=$(pwd)
-    imageName="dtfn:18.04"
+    imageName="dtfn:20.04"
     
     if [[ "${OS_ARCH}" == "centos" ]]; then
         docker build -f dockerfile/centos -t "centos/${imageName}" .

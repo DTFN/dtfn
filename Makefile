@@ -2,24 +2,24 @@ GOTOOLS := \
 					 github.com/karalabe/xgo \
 					 github.com/alecthomas/gometalinter
 
-PACKAGES := $(shell glide novendor)
+# PACKAGES := $(shell glide novendor)
 
 BUILD_TAGS? := dtfn
 
 VERSION_TAG := 1.0.0-beta
 
 ### Development ###
-all: glide_vendor_deps install test
-dev: glide_vendor_deps build
+all: vendor_deps install test
+dev: vendor_deps build
 dtfn_ubuntu: bls_ubuntu develop_ubuntu develop_build
 
 develop_bls:
 	@echo "create bls environment"
 	@bash ./scripts/build.sh -t blsdep
 
-glide_vendor_deps:
+vendor_deps:
 	@echo "build dtfn"
-	@bash ./scripts/build.sh -t glide
+	@bash ./scripts/build.sh -t mod
 
 install:
 	@bash ./scripts/build.sh -t install
@@ -29,7 +29,7 @@ build:
 
 test:
 	@echo "--> Running go test"
-	@go test $(PACKAGES)
+	# @go test $(PACKAGES)
 
 clean:
 	@bash ./scripts/build.sh -t clean

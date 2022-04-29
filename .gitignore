@@ -21,6 +21,8 @@ build/*
 *~
 .project
 .settings
+/dtfn
+/ethAccount
 
 # used by the Makefile
 /build/_workspace/

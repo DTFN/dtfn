@@ -1,2 +1,3 @@
 FROM ubuntu:18.04
 RUN brew update && brew install -y gmp openssl gcc
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/lib:/lib64

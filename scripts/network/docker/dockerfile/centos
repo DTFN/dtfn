@@ -1,2 +1,3 @@
 FROM centos:7
 RUN yum update && yum install -y gmp-devel openssl-devel gcc
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/lib:/lib64
