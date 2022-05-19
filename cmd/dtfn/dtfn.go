@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/DTFN/dtfn/version"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/DTFN/dtfn/version"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -20,11 +21,14 @@ import (
 
 	cmn "github.com/tendermint/tendermint/libs/common"
 
+	"math/big"
+
 	abciApp "github.com/DTFN/dtfn/app"
 	emtUtils "github.com/DTFN/dtfn/cmd/utils"
 	"github.com/DTFN/dtfn/ethereum"
 	"github.com/DTFN/dtfn/types"
 	"github.com/DTFN/dtfn/utils"
+	"github.com/ethereum/go-ethereum/console/prompt"
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/mempool"
@@ -33,8 +37,6 @@ import (
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	tmState "github.com/tendermint/tendermint/state"
-	"math/big"
-	"github.com/ethereum/go-ethereum/console/prompt"
 )
 
 func ethermintCmd(ctx *cli.Context) error {

@@ -9,10 +9,11 @@ import (
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/params"
 
+	"path/filepath"
+	"time"
+
 	"github.com/DTFN/dtfn/cmd/utils"
 	"github.com/DTFN/dtfn/version"
-	"time"
-	"path/filepath"
 )
 
 var (
@@ -155,6 +156,12 @@ func init() {
 			Name:   "testnet",
 			Usage:  "generate ,the test config file",
 		},
+		{
+			Action:      makeMigrationCmd,
+			Name:        "makemigration",
+			Usage:       "dump latest state, including height, contract code, contract state",
+			Description: "read archive data",
+		},
 	}
 
 	app.Flags = append(app.Flags, nodeFlags...)
@@ -166,7 +173,6 @@ func init() {
 		if err := utils.Setup(ctx); err != nil {
 			return err
 		}
-		//ethUtils.SetupNetwork(ctx)
 
 		return nil
 	}

@@ -7,15 +7,16 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
 
 	"github.com/DTFN/dtfn/ethereum"
 
-	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 	"time"
+
+	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 )
 
 const (
@@ -51,6 +52,18 @@ func MakeFullNode(ctx *cli.Context) (*ethereum.Node, *ethereum.Backend) {
 	tendermintLAddr := ctx.GlobalString(TendermintAddrFlag.Name)
 	if backend, err = ethereum.NewBackend(stack, &cfg.Eth, rpcClient.NewURIClient(tendermintLAddr)); err != nil {
 		ethUtils.Fatalf("Failed to ethereum.NewBackend: %v", err)
+	}
+
+	return stack, backend
+}
+
+// MakeMigrationNode creates an node to create snapshot
+func MakeMigrationNode(ctx *cli.Context) (*ethereum.Node, *ethereum.Backend) {
+	stack, cfg := makeConfigNode(ctx)
+
+	backend, err := ethereum.NewBackend(stack, &cfg.Eth, nil)
+	if err != nil {
+		ethUtils.Fatalf("Failed to create archive read backend: %v", err)
 	}
 
 	return stack, backend
