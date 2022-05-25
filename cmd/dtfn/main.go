@@ -57,6 +57,7 @@ var (
 		ethUtils.LegacyRPCVirtualHostsFlag,
 		ethUtils.LegacyRPCApiFlag,
 		ethUtils.IPCDisabledFlag,
+		ethUtils.IPCPathFlag,
 		ethUtils.WSEnabledFlag,
 		ethUtils.WSListenAddrFlag,
 		ethUtils.WSPortFlag,
