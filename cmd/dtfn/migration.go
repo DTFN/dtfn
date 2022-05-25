@@ -13,6 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/txfilter"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"gopkg.in/urfave/cli.v1"
@@ -65,21 +67,23 @@ func makeMigrationCmd(ctx *cli.Context) error {
 	firstBlock := blockChain.Genesis().NumberU64()
 	lastBlock := blockChain.CurrentBlock().NumberU64()
 	fmt.Printf("Read blocks [%d, %d] to reconstruct preimages for contract address\n", firstBlock, lastBlock)
-	preimages := reconstructContractPreimage(blockChain, firstBlock, lastBlock)
+	preimages, txTotal, txFailed := reconstructContractPreimage(blockChain, firstBlock, lastBlock)
 	fmt.Printf("\x1b[K")
-	fmt.Printf("%d preimages for contract address reconstructed\n", len(preimages))
+	fmt.Printf("%d preimages for contract address reconstructed, %d tx in total, %d tx failed\n", len(preimages), txTotal, txFailed)
 
 	fmt.Println("Write state to snapshot directory")
-	contractWritten := writeState2File(blockChain, lastBlock, preimages, snapshotDir)
+	contractWritten := writeState2File(blockChain, lastBlock, preimages, snapshotDir, txTotal, txFailed)
 	fmt.Printf("\x1b[K")
 	fmt.Printf("%d contracts written\n", contractWritten)
 	return nil
 }
 
 // traverse through block chain to reconstruct contract address preimages
-func reconstructContractPreimage(chain *core.BlockChain, firstBlock uint64, lastBlock uint64) map[common.Hash]common.Address {
+func reconstructContractPreimage(chain *core.BlockChain, firstBlock uint64, lastBlock uint64) (map[common.Hash]common.Address, uint64, uint64) {
+	var txTotal uint64
+	var txFailed uint64
 	if chain == nil || firstBlock > lastBlock {
-		return nil
+		return nil, txTotal, txFailed
 	}
 
 	// preimages is a map from address hash to address
@@ -100,20 +104,40 @@ func reconstructContractPreimage(chain *core.BlockChain, firstBlock uint64, last
 		receipts := chain.GetReceiptsByHash(block.Hash())
 
 		for ti, tx := range block.Transactions() {
-			if tx.To() != nil {
+			txTotal++
+			if receipts[ti].Status != 0x01 {
+				txFailed++
+			}
+
+			if tx.To() != nil && *tx.To() != txfilter.RelayTxFromClient && *tx.To() != txfilter.RelayTxFromRelayer {
 				continue
 			}
 
-			h := crypto.Keccak256(receipts[ti].ContractAddress[:])
-			preimages[common.BytesToHash(h)] = receipts[ti].ContractAddress
+			isTxCreate := true
+			if tx.To() != nil && (*tx.To() == txfilter.RelayTxFromClient || *tx.To() == txfilter.RelayTxFromRelayer) {
+				subTransaction, err := types.DecodeTxFromHexBytes(tx.Data())
+				if err != nil {
+					fmt.Println("Error decode subtransaction:", err)
+				}
+
+				if subTransaction.To() != nil {
+					isTxCreate = false
+				}
+			}
+
+			if isTxCreate {
+				h := crypto.Keccak256(receipts[ti].ContractAddress[:])
+				preimages[common.BytesToHash(h)] = receipts[ti].ContractAddress
+			}
 		}
 	}
 
-	return preimages
+	return preimages, txTotal, txFailed
 }
 
 // here we assume preimages have one entry for every contract address we come across
-func writeState2File(chain *core.BlockChain, blockNumber uint64, preimages map[common.Hash]common.Address, targetDir string) uint64 {
+func writeState2File(chain *core.BlockChain, blockNumber uint64, preimages map[common.Hash]common.Address, targetDir string,
+	txTotal uint64, txFailed uint64) uint64 {
 	if chain == nil {
 		return 0
 	}
@@ -146,6 +170,22 @@ func writeState2File(chain *core.BlockChain, blockNumber uint64, preimages map[c
 	defer blockHashFile.Close()
 
 	blockHashFile.WriteString(block.Hash().Hex())
+
+	// write tx summary
+	txSummaryFileName := filepath.Join(targetDir, "txSummary")
+	txSummaryFile, err := os.Create(txSummaryFileName)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	defer txSummaryFile.Close()
+
+	txSummaryFile.WriteString("txTotal:")
+	txSummaryFile.WriteString(strconv.FormatUint(txTotal, 10))
+	txSummaryFile.WriteString("\n")
+	txSummaryFile.WriteString("txFailed:")
+	txSummaryFile.WriteString(strconv.FormatUint(txFailed, 10))
+	txSummaryFile.WriteString("\n")
 
 	// read state db
 	stateDB, err := chain.State()
