@@ -331,4 +331,10 @@ var (
 		Value: 64,
 		Usage: "the size of the block cache",
 	}
+
+	StandaloneFlag = cli.BoolFlag{
+		Name: "standalone",
+		Usage: "If set, dtfn will start as a standalone node, with that said, there's no p2p/rpc listening or dialing, no tendermint core integrated, " +
+			"only ipc is enabled to handle data query",
+	}
 )

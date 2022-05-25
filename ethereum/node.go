@@ -25,13 +25,13 @@ func New(conf *node.Config) (*Node, error) {
 
 // Start starts base node and stop p2p server
 func (n *Node) Start() error {
-	// start p2p server
+	// start p2p and rpc server
 	err := n.Node.Start()
 	if err != nil {
 		return err
 	}
 
-	// stop it
+	// stop p2p server
 	n.Node.Server().Stop()
 
 	return nil

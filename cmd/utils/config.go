@@ -57,9 +57,43 @@ func MakeFullNode(ctx *cli.Context) (*ethereum.Node, *ethereum.Backend) {
 	return stack, backend
 }
 
-// MakeMigrationNode creates an node to create snapshot
+// MakeMigrationNode creates a node to create snapshot
 func MakeMigrationNode(ctx *cli.Context) (*ethereum.Node, *ethereum.Backend) {
 	stack, cfg := makeConfigNode(ctx)
+
+	backend, err := ethereum.NewBackend(stack, &cfg.Eth, nil)
+	if err != nil {
+		ethUtils.Fatalf("Failed to create archive read backend: %v", err)
+	}
+
+	return stack, backend
+}
+
+// MakeStandaloneNode creates a node to read blockchain data.
+// There should no any inbound/outbound connection, no tendermint core.
+// Only ipc is allowed for query.
+func MakeStandaloneNode(ctx *cli.Context) (*ethereum.Node, *ethereum.Backend) {
+	cfg := gethConfig{
+		Eth:  eth.DefaultConfig,
+		Node: DefaultNodeConfig(),
+	}
+	ethUtils.SetNodeConfig(ctx, &cfg.Node)
+
+	// override config, it's actually like --dev.
+	cfg.Node.P2P.MaxPeers = 0
+	cfg.Node.P2P.ListenAddr = ""
+	cfg.Node.P2P.NoDiscovery = true
+	cfg.Node.P2P.DiscoveryV5 = false
+	cfg.Node.HTTPHost = ""
+	cfg.Node.WSHost = ""
+
+	stack, err := ethereum.New(&cfg.Node)
+	if err != nil {
+		ethUtils.Fatalf("Failed to create the protocol stack: %v", err)
+	}
+
+	SetEthermintEthConfig(ctx, &cfg.Eth)
+	ethUtils.SetEthConfig(ctx, &stack.Node, &cfg.Eth)
 
 	backend, err := ethereum.NewBackend(stack, &cfg.Eth, nil)
 	if err != nil {

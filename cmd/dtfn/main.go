@@ -42,8 +42,11 @@ var (
 		utils.TxpoolThreshold,
 		utils.TxpoolPriceLimit,
 		utils.LRUCacheSize,
+		utils.StandaloneFlag,
 		ethUtils.InsecureUnlockAllowedFlag,
+		ethUtils.NoDiscoverFlag,
 		ethUtils.MaxPeersFlag,
+		ethUtils.ListenPortFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -160,7 +163,13 @@ func init() {
 			Action:      makeMigrationCmd,
 			Name:        "makemigration",
 			Usage:       "dump latest state, including height, contract code, contract state",
-			Description: "read archive data",
+			Description: "make state snapshot",
+		},
+		{
+			Action:      standaloneCmd,
+			Name:        "standalone",
+			Usage:       "serve as read-only node via ipc",
+			Description: "read blockchain data",
 		},
 	}
 
