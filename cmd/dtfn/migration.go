@@ -212,58 +212,71 @@ func writeState2File(chain *core.BlockChain, blockNumber uint64, preimages map[c
 				continue
 			}
 
-			// get byte code
-			code, err := stateDB.Database().ContractCode(common.BytesToHash(iter.LeafKey()), common.BytesToHash(account.CodeHash))
-			// this might be EOA, so we cannot get its byte code
-			if err != nil {
-				// fmt.Printf("cannot get byte code:\naccount:%+v, err:%+v\n", account, err)
-				continue
+			accountAddressHash := common.BytesToHash(iter.LeafKey()).String()
+			var accountFileName string
+
+			var isEOA bool
+			if common.BytesToHash(account.CodeHash) == crypto.Keccak256Hash(nil) {
+				accountFileName = filepath.Join(targetDir, "eoa_"+accountAddressHash[2:])
+				isEOA = true
+			} else {
+				accountFileName = filepath.Join(targetDir, "contract_"+accountAddressHash[2:])
+				isEOA = false
 			}
 
-			// get storage trie
-			stateTrie, err := stateDB.Database().OpenStorageTrie(common.BytesToHash(iter.LeafKey()), account.Root)
-			if err != nil {
-				fmt.Println("cannot open storage trie:", err)
-				continue
-			}
-
-			contractAddressHash := common.BytesToHash(iter.LeafKey()).String()
-			contractFileName := filepath.Join(targetDir, "contract_"+contractAddressHash[2:])
-			contractFile, err := os.Create(contractFileName)
+			accountFile, err := os.Create(accountFileName)
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
 
 			// write account to file
-			contractFile.WriteString("Nonce:")
-			contractFile.WriteString(strconv.FormatUint(account.Nonce, 10))
-			contractFile.WriteString("\n")
-			contractFile.WriteString("Balance:")
-			contractFile.WriteString(account.Balance.String())
-			contractFile.WriteString("\n")
-			// write byte code to file
-			contractFile.WriteString("CodeHash:")
-			contractFile.WriteString(common.Bytes2Hex(account.CodeHash))
-			contractFile.WriteString("\n")
+			accountFile.WriteString("Nonce:")
+			accountFile.WriteString(strconv.FormatUint(account.Nonce, 10))
+			accountFile.WriteString("\n")
+			accountFile.WriteString("Balance:")
+			accountFile.WriteString(account.Balance.String())
+			accountFile.WriteString("\n")
 
-			contractFile.WriteString("Code:")
-			contractFile.WriteString(common.Bytes2Hex(code))
-			contractFile.WriteString("\n")
+			if isEOA {
+				accountFile.Close()
+				continue
+			}
+			// write byte code to file
+			code, err := stateDB.Database().ContractCode(common.BytesToHash(iter.LeafKey()), common.BytesToHash(account.CodeHash))
+			if err != nil {
+				fmt.Println("cannot get byte code:", account, err)
+				accountFile.Close()
+				continue
+			}
+			accountFile.WriteString("CodeHash:")
+			accountFile.WriteString(common.Bytes2Hex(account.CodeHash))
+			accountFile.WriteString("\n")
+
+			accountFile.WriteString("Code:")
+			accountFile.WriteString(common.Bytes2Hex(code))
+			accountFile.WriteString("\n")
+
 			// write storage to file
+			stateTrie, err := stateDB.Database().OpenStorageTrie(common.BytesToHash(iter.LeafKey()), account.Root)
+			if err != nil {
+				fmt.Println("cannot open storage trie:", account, err)
+				accountFile.Close()
+				continue
+			}
 			stateIter := stateTrie.NodeIterator(nil)
 			for stateIter.Next(true) {
 				if stateIter.Leaf() {
-					contractFile.WriteString("Storage[")
-					contractFile.WriteString(common.Bytes2Hex(stateIter.LeafKey()))
-					contractFile.WriteString(",")
+					accountFile.WriteString("Storage[")
+					accountFile.WriteString(common.Bytes2Hex(stateIter.LeafKey()))
+					accountFile.WriteString(",")
 					var value []byte
 					rlp.DecodeBytes(stateIter.LeafBlob(), &value)
-					contractFile.WriteString(common.Bytes2Hex(value))
-					contractFile.WriteString("]\n")
+					accountFile.WriteString(common.Bytes2Hex(value))
+					accountFile.WriteString("]\n")
 				}
 			}
-			contractFile.Close()
+			accountFile.Close()
 			contractWritten++
 
 			// showing progress
