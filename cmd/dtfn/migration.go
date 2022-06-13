@@ -227,13 +227,8 @@ func writeState2File(chain *core.BlockChain, blockNumber uint64, preimages map[c
 				continue
 			}
 
-			contractFileName := filepath.Join(targetDir, "contract_"+common.Bytes2Hex(iter.LeafKey()))
-			if address, ok := preimages[common.BytesToHash(iter.LeafKey())]; ok {
-				contractFileName = filepath.Join(targetDir, "contract_"+common.Bytes2Hex(address.Bytes()))
-			} else {
-				fmt.Printf("cannot get contract address %v\n", iter.LeafKey())
-				continue
-			}
+			contractAddressHash := common.BytesToHash(iter.LeafKey()).String()
+			contractFileName := filepath.Join(targetDir, "contract_"+contractAddressHash[2:])
 			contractFile, err := os.Create(contractFileName)
 			if err != nil {
 				fmt.Println(err)

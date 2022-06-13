@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-export GOMODCACHE=/home/duanlian/go/pkg/mod
+# set GOMODCACHE to the right directory
+export GOMODCACHE=`go env | grep GOMODCACHE | awk '{print $2}' FS="=" | sed 's/"//g'`
 
 installBLS(){
     mkdir -p $GOMODCACHE/github.com/herumi
