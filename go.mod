@@ -98,6 +98,6 @@ require (
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/DTFN/go-ethereum v1.5.3-0.20220811034717-5904d51e6dd2
+replace github.com/ethereum/go-ethereum => github.com/DTFN/go-ethereum v1.5.3-0.20220812012109-599a3e399f4b
 
 replace github.com/tendermint/tendermint => github.com/DTFN/tendermint v1.5.0
